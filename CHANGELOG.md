@@ -17,10 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fictional demo card readable by `openthaiid -synthetic`
 - Thai citizen MVP profile: `citizenId`, `thaiName`, `birthDate`
 - Browser SDK `@openthaiid/web` with cancellation, session renewal, and reconnect
-- Vanilla example page
+- Vanilla example page (external module script, CSP-friendly)
+- Playwright browser acceptance harness (`acceptance/`) against the real
+  bridge + synthetic card, using a PTY terminal for approval (no bypass)
 - Contract docs (architecture, security, protocol, provenance, acceptance)
 - GitHub Actions CI: Go test/race, five-target build matrix with version smoke,
-  SDK (`npm ci` only)
+  SDK (`npm ci` only), and multi-OS browser acceptance
 
 ### Changed (protocol / card — pre-release corrections)
 

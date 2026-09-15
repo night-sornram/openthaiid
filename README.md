@@ -122,11 +122,11 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 make test          # Go unit + integration (synthetic hardware)
 make race          # race detector
 cd sdk/web && npm test
+make acceptance    # Playwright against real bridge + synthetic card
 ```
 
-Hardware acceptance (ACR39U on Windows/Linux/macOS) and a Playwright browser
-matrix are still required before a production release claim. See
-[docs/acceptance.md](docs/acceptance.md) for the current evidence status.
-## License
+Hardware acceptance (ACR39U on Windows/Linux/macOS) is still required before
+a production release claim. See
+[docs/acceptance.md](docs/acceptance.md) for the current evidence status.## License
 
 Apache-2.0. See [LICENSE](LICENSE).

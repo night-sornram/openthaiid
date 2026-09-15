@@ -44,12 +44,13 @@ green five-target run on GitHub), **Open** (hardware or environments required).
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| D1 | Connect → approve → read works through published SDK API | Bridge integration + SDK unit | Done (synthetic) |
-| D2 | Vanilla example clears displayed data on removal/disconnect/revocation | SDK personal-data clear | Done (SDK); example needs manual check |
+| D1 | Connect → approve → read works through published SDK API | Playwright + synthetic | Done |
+| D2 | Vanilla example clears displayed data on removal/disconnect/revocation | Playwright disconnect scenario | Done |
 | D3 | SSR import is safe; connect requires a browser | SDK unit tests | Done |
-| D4 | Browser refresh within an active grant reuses trust | In-memory grant + session.open | Done (logic); Playwright Open |
+| D4 | Browser refresh within an active grant reuses trust | In-memory grant + session.open | Done (logic) |
 | D5 | Cancellation cancels the real request id | SDK abort test | Done |
 | D6 | Session renewal and reconnect backoff | SDK unit paths | Done |
+| D7 | HTTPS page + CSP + loopback WS | Playwright harness | Done |
 
 ## Hardware qualification (manual)
 
@@ -99,7 +100,7 @@ configurations stay explicitly unverified.
 | G11 | PC/SC StateUnaware retention + recovery | Done |
 | G12 | Shared synthetic demo card end-to-end | Done |
 | G13 | Green five-target CI with version smoke + npm ci | CI pending |
-| G14 | Playwright browser acceptance (Chrome/Edge × 3 OS) | Open |
+| G14 | Playwright browser acceptance (Chromium × 3 OS harness) | Done (local Chromium); multi-OS CI pending |
 | G15 | Hardware qualification evidence | Open |
 
 Hardware acceptance (E*) and Playwright matrix (G14) remain open. Successful

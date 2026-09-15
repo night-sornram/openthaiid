@@ -1,0 +1,13 @@
+{
+  "name": "openthaiid-acceptance",
+  "private": true,
+  "type": "module",
+  "description": "Browser acceptance tests against the real Go bridge with synthetic hardware",
+  "scripts": {
+    "test": "node run.mjs",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
