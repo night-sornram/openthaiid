@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenThaiID — vanilla example</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Segoe UI", "Segoe UI Symbol", sans-serif;
+      }
+      body {
+        margin: 2rem auto;
+        max-width: 42rem;
+        line-height: 1.5;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      button {
+        font: inherit;
+        padding: 0.55rem 1rem;
+        margin: 0 0.4rem 0.4rem 0;
+        border-radius: 8px;
+        border: 1px solid #8886;
+        background: transparent;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.primary {
+        background: #1a56db;
+        border-color: #1a56db;
+        color: #fff;
+      }
+      button.primary:disabled {
+        background: #8884;
+      }
+      pre {
+        padding: 1rem;
+        border: 1px solid #8884;
+        border-radius: 10px;
+        overflow: auto;
+        min-height: 7rem;
+        font-size: 0.9rem;
+      }
+      .muted {
+        opacity: 0.72;
+        font-size: 0.92rem;
+      }
+      .row {
+        margin: 1rem 0;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>OpenThaiID demo</h1>
+    <p class="muted">
+      Independent open-source project. Not affiliated with or endorsed by the
+      Department of Provincial Administration.
+    </p>
+    <ol class="muted">
+      <li>Start the bridge: <code>./dist/openthaiid -synthetic</code> (or real PC/SC).</li>
+      <li>Click Connect — approve the origin in the terminal when prompted.</li>
+      <li>Click Read to fetch the selected fields.</li>
+    </ol>
+    <div class="row">
+      <button id="connect" class="primary" type="button">Connect</button>
+      <button id="read" type="button" disabled>Read</button>
+      <button id="disconnect" type="button" disabled>Disconnect</button>
+    </div>
+    <p>
+      Status: <strong id="status">disconnected</strong>
+      <span id="approval" class="muted"></span>
+    </p>
+    <pre id="out">No card data yet.</pre>
+    <p class="muted">
+      Card fields are cleared on disconnect or removal. Do not store results.
+      Serve this page from HTTPS for production-like browser checks
+      (<code>ws://127.0.0.1:17891/v1/ws</code>).
+    </p>
+    <script type="module">
+      import { ThaiID } from "../../sdk/web/dist/index.js";
+
+      const statusEl = document.getElementById("status");
+      const approvalEl = document.getElementById("approval");
+      const outEl = document.getElementById("out");
+      const connectBtn = document.getElementById("connect");
+      const readBtn = document.getElementById("read");
+      const disconnectBtn = document.getElementById("disconnect");
+
+      const thaiID = new ThaiID({
+        fields: ["citizenId", "thaiName", "birthDate"],
+      });
+
+      thaiID.on("connectionChanged", (s) => {
+        statusEl.textContent = s;
+        const connected = s === "connected";
+        readBtn.disabled = !connected;
+        disconnectBtn.disabled = s === "disconnected";
+        connectBtn.disabled = s !== "disconnected";
+        if (s !== "awaiting-approval") approvalEl.textContent = "";
+      });
+      thaiID.on("approvalRequired", ({ comparisonCode, approvalId }) => {
+        approvalEl.textContent = ` — waiting for terminal approval (request ${approvalId}, code ${comparisonCode})`;
+      });
+      thaiID.on("cardChanged", ({ present }) => {
+        if (!present) outEl.textContent = "No card data yet.";
+      });
+
+      connectBtn.addEventListener("click", async () => {
+        outEl.textContent = "Connecting…";
+        try {
+          await thaiID.connect();
+          const status = await thaiID.status();
+          outEl.textContent = JSON.stringify(status, null, 2);
+        } catch (err) {
+          outEl.textContent = `Connect failed: ${err.code ?? err.message}\n${err.message ?? ""}`;
+        }
+      });
+
+      readBtn.addEventListener("click", async () => {
+        outEl.textContent = "Reading…";
+        try {
+          const result = await thaiID.read();
+          outEl.textContent = JSON.stringify(
+            { warnings: result.warnings, fields: result.fields },
+            null,
+            2,
+          );
+        } catch (err) {
+          outEl.textContent = `Read failed: ${err.code ?? err.message}`;
+        }
+      });
+
+      disconnectBtn.addEventListener("click", async () => {
+        await thaiID.disconnect();
+        outEl.textContent = "No card data yet.";
+      });
+    </script>
+  </body>
+</html>

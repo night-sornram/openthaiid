@@ -1,0 +1,45 @@
+{
+  "$comment": "Synthetic fixtures only. Never commit captured real-card data.",
+  "profiles": {
+    "thai-citizen-mvp": {
+      "status": "blocked-pending-provenance-review",
+      "fields": ["citizenId", "thaiName", "birthDate"],
+      "note": "Offsets and APDUs must be independently implemented after Phase 0 source review. Values below are invented for parser tests."
+    }
+  },
+  "fixtures": [
+    {
+      "name": "citizen-id-13-digits",
+      "input": { "rawHex": "31313031373031323334353637" },
+      "expect": { "citizenId": "1101701234567" }
+    },
+    {
+      "name": "thai-name-trim-padding",
+      "input": { "rawTis620Hex": "" },
+      "expect": {
+        "thaiName": {
+          "title": "นาย",
+          "givenName": "สมชาย",
+          "middleName": null,
+          "familyName": "ใจดี",
+          "fullName": "นาย สมชาย ใจดี"
+        }
+      },
+      "note": "Concrete TIS-620 bytes are filled when the parser lands in Phase 3."
+    },
+    {
+      "name": "birth-date-be-partial",
+      "input": { "raw": "25330412" },
+      "expect": {
+        "birthDate": { "year": 2533, "month": 4, "day": 12 }
+      }
+    },
+    {
+      "name": "birth-date-unknown-day",
+      "input": { "raw": "25330400" },
+      "expect": {
+        "birthDate": { "year": 2533, "month": 4, "day": null }
+      }
+    }
+  ]
+}
