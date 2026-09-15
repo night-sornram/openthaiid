@@ -22,9 +22,10 @@ fi
 
 DIST="$ROOT/dist"
 STAGE="$DIST/stage-$VERSION"
-ARCHIVE="$DIST/${BIN_NAME%-*}-${VERSION}-${OS}-${ARCH}.tar.gz"
+ARCHIVE_BASE="openthaiid-${VERSION}-${OS}-${ARCH}"
+ARCHIVE="$DIST/${ARCHIVE_BASE}.tar.gz"
 if [ "$OS" = "windows" ]; then
-  ARCHIVE="$DIST/openthaiid-$VERSION-windows-$ARCH.zip"
+  ARCHIVE="$DIST/${ARCHIVE_BASE}.zip"
 fi
 
 echo "Building $BIN_NAME ..."

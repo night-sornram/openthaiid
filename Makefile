@@ -1,4 +1,4 @@
-.PHONY: build test race vet fmt doctor sdk sdk-test tidy
+.PHONY: build test race vet fmt doctor sdk sdk-test tidy package clean check
 
 build:
 	mkdir -p dist
@@ -16,6 +16,9 @@ vet:
 fmt:
 	gofmt -w .
 
+fmt-check:
+	test -z "$$(gofmt -l .)"
+
 doctor: build
 	./dist/openthaiid doctor
 
@@ -27,3 +30,13 @@ sdk-test:
 
 tidy:
 	go mod tidy
+
+package: build
+	chmod +x scripts/package.sh
+	./scripts/package.sh
+
+check: fmt-check vet test sdk-test build doctor
+	@echo "All local checks passed."
+
+clean:
+	rm -rf dist sdk/web/dist

@@ -67,8 +67,22 @@ bridge revision, and non-personal outcome only.
 | F3 | Backend/Card interfaces defined; synthetic backend implements them | Required |
 | F4 | Real PC/SC adapter compiles on darwin with pinned `ebfe/scard` | Required on this machine |
 | F5 | Five-target build matrix documented; CI workflow present | Required |
-| F6 | Provenance ledger lists MVP profile as blocked pending source review | Required |
+| F6 | Provenance ledger records MVP profile sources and independent implementation | Required |
 | F7 | Dependency audit checklist present | Required |
 
-Hardware acceptance (E*) remains open until Windows/Linux test access exists.
-Successful compilation alone does not satisfy hardware claims.
+## Software MVP exit (Phases 2–6)
+
+| # | Criterion | Status |
+|---|---|---|
+| G1 | Thai profile + APDU engine + TIS-620 parsers with unit tests | Done |
+| G2 | Protocol v1 WebSocket dispatch (open/read/cancel/status/events) | Done |
+| G3 | Origin approval, deny, revoke, field-subset enforcement | Done (integration tests) |
+| G4 | Card-session generations; no stale results on removal | Done |
+| G5 | SDK connect → approve → read | Done |
+| G6 | Vanilla example | Done |
+| G7 | Privacy log sentinel test | Done |
+| G8 | Release packaging script + third-party notices | Done |
+
+Hardware acceptance (E*) remains open until Windows/Linux test access and an
+ACR39U reader are available. Successful compilation alone does not satisfy
+hardware claims.

@@ -10,8 +10,8 @@ node_modules/
 sdk/web/dist/
 examples/vanilla/dist/
 examples/vanilla/node_modules/
-package-lock.json
-sdk/web/package-lock.json
+# Keep sdk/web/package-lock.json for reproducible CI (npm ci).
+examples/vanilla/package-lock.json
 
 # Editor / OS
 .DS_Store
