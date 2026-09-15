@@ -2,8 +2,12 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +26,7 @@ type Grant struct {
 }
 
 // Session binds a token to an origin grant and bridge instance.
+// Session expiry is always capped at the underlying grant expiry.
 type Session struct {
 	Token      string
 	Origin     Origin
@@ -38,8 +43,9 @@ type PendingRequest struct {
 	Comparison string
 	ExpiresAt  time.Time
 	CreatedAt  time.Time
-	// Result is closed when the operator allows or denies.
-	// Value is stored in decided/allowed.
+	// ConnectionID binds the approval to the originating connection.
+	ConnectionID string
+
 	done    chan struct{}
 	allowed bool
 	decided bool
@@ -62,11 +68,15 @@ type Manager struct {
 
 	// denialCooldownUntil blocks new approvals briefly after a denial.
 	denialCooldownUntil time.Time
-	// approvalRate tracks recent approval creations.
+	// recentApprovals tracks recent approval creations.
 	recentApprovals []time.Time
 
 	// NonInteractive denies new approvals when true (stdin not a TTY).
 	NonInteractive bool
+
+	// OnRevoke is invoked (outside the manager lock) with the origin and
+	// tokens that were just revoked.
+	OnRevoke func(origin Origin, tokens []string)
 }
 
 // NewManager constructs an authorization manager.
@@ -90,8 +100,8 @@ func NewManager(instanceID string, trustTTL, sessionTTL, approvalTTL time.Durati
 // InstanceID returns the bridge instance identifier.
 func (m *Manager) InstanceID() string { return m.instanceID }
 
-// RequestApproval creates a pending request and returns it.
-func (m *Manager) RequestApproval(origin Origin, fields []card.Field, now time.Time) (*PendingRequest, error) {
+// RequestApproval creates a pending request bound to connectionID and returns it.
+func (m *Manager) RequestApproval(origin Origin, fields []card.Field, connectionID string, now time.Time) (*PendingRequest, error) {
 	fields, err := card.NormalizeFields(fields)
 	if err != nil {
 		return nil, err
@@ -118,27 +128,55 @@ func (m *Manager) RequestApproval(origin Origin, fields []card.Field, now time.T
 	if len(m.recentApprovals) >= 4 {
 		return nil, card.NewError(card.ErrRateLimited, "too many approval requests")
 	}
+	// Replace any still-open approval from the same connection.
+	for id, p := range m.pending {
+		if p.ConnectionID != "" && p.ConnectionID == connectionID && !p.decided {
+			p.decided = true
+			p.allowed = false
+			close(p.done)
+			delete(m.pending, id)
+		}
+	}
 	if len(m.pending) >= m.maxPending {
 		return nil, card.NewError(card.ErrRateLimited, "too many pending approvals")
 	}
 
-	// Existing valid grant with a superset field set can be reused by the
-	// caller without a new terminal prompt — handled in OpenSession.
 	comp := comparisonCode()
 	id := m.nextID
 	m.nextID++
 	p := &PendingRequest{
-		ID:         id,
-		Origin:     origin,
-		Fields:     append([]card.Field(nil), fields...),
-		Comparison: comp,
-		ExpiresAt:  now.Add(m.approvalTTL),
-		CreatedAt:  now,
-		done:       make(chan struct{}),
+		ID:           id,
+		Origin:       origin,
+		Fields:       append([]card.Field(nil), fields...),
+		Comparison:   comp,
+		ExpiresAt:    now.Add(m.approvalTTL),
+		CreatedAt:    now,
+		ConnectionID: connectionID,
+		done:         make(chan struct{}),
 	}
 	m.pending[id] = p
 	m.recentApprovals = append(m.recentApprovals, now)
 	return p, nil
+}
+
+// CancelPendingByConnection closes undecided approvals for a connection.
+func (m *Manager) CancelPendingByConnection(connectionID string) []int64 {
+	if connectionID == "" {
+		return nil
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var ids []int64
+	for id, p := range m.pending {
+		if p.ConnectionID == connectionID && !p.decided {
+			p.decided = true
+			p.allowed = false
+			close(p.done)
+			delete(m.pending, id)
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 // Pending returns open pending requests (for terminal display).
@@ -150,6 +188,7 @@ func (m *Manager) Pending(now time.Time) []*PendingRequest {
 	for _, p := range m.pending {
 		out = append(out, p)
 	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
 }
 
@@ -163,6 +202,11 @@ func (m *Manager) Resolve(id int64, allow bool, now time.Time) (*PendingRequest,
 	}
 	if now.After(p.ExpiresAt) {
 		delete(m.pending, id)
+		if !p.decided {
+			p.decided = true
+			p.allowed = false
+			close(p.done)
+		}
 		return nil, card.NewError(card.ErrApprovalTimeout, "approval expired")
 	}
 	p.decided = true
@@ -182,16 +226,22 @@ func (m *Manager) Resolve(id int64, allow bool, now time.Time) (*PendingRequest,
 	return p, nil
 }
 
-// Wait blocks until the pending request is resolved or expires.
-func (m *Manager) Wait(p *PendingRequest, now time.Time) (bool, error) {
+// Wait blocks until the pending request is resolved, expires, or ctx is done.
+func (m *Manager) Wait(ctx context.Context, p *PendingRequest) (bool, error) {
 	timer := time.NewTimer(time.Until(p.ExpiresAt))
 	defer timer.Stop()
 	select {
 	case <-p.done:
 		return p.allowed, nil
+	case <-ctx.Done():
+		m.CancelPendingByConnection(p.ConnectionID)
+		return false, card.NewError(card.ErrCancelled, "wait cancelled")
 	case <-timer.C:
 		m.mu.Lock()
-		if _, ok := m.pending[p.ID]; ok {
+		if existing, ok := m.pending[p.ID]; ok && existing == p && !p.decided {
+			p.decided = true
+			p.allowed = false
+			close(p.done)
 			delete(m.pending, p.ID)
 		}
 		m.mu.Unlock()
@@ -205,7 +255,7 @@ func (m *Manager) GrantFor(origin Origin, now time.Time) (*Grant, bool) {
 	defer m.mu.Unlock()
 	m.gcLocked(now)
 	g, ok := m.grants[origin]
-	if !ok {
+	if !ok || !now.Before(g.ExpiresAt) {
 		return nil, false
 	}
 	cp := *g
@@ -213,15 +263,20 @@ func (m *Manager) GrantFor(origin Origin, now time.Time) (*Grant, bool) {
 	return &cp, true
 }
 
-// OpenSession authenticates a connection under an existing grant.
+// OpenSession authenticates a connection under an existing live grant.
 // Field expansion beyond the grant is rejected.
+// Session expiry is capped at the grant expiry.
 func (m *Manager) OpenSession(origin Origin, fields []card.Field, now time.Time) (*Session, error) {
 	fields, err := card.NormalizeFields(fields)
 	if err != nil {
 		return nil, err
 	}
-	g, ok := m.GrantFor(origin, now)
-	if !ok {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.gcLocked(now)
+
+	g, ok := m.grants[origin]
+	if !ok || !now.Before(g.ExpiresAt) {
 		return nil, card.NewError(card.ErrApprovalRequired, "origin not trusted")
 	}
 	if !card.Subset(fields, g.Fields) {
@@ -231,29 +286,42 @@ func (m *Manager) OpenSession(origin Origin, fields []card.Field, now time.Time)
 	if err != nil {
 		return nil, card.NewError(card.ErrConnectionFailed, "token generation failed")
 	}
+	exp := now.Add(m.sessionTTL)
+	if exp.After(g.ExpiresAt) {
+		exp = g.ExpiresAt
+	}
 	s := &Session{
 		Token:      tok,
 		Origin:     origin,
 		Fields:     append([]card.Field(nil), fields...),
 		InstanceID: m.instanceID,
-		ExpiresAt:  now.Add(m.sessionTTL),
+		ExpiresAt:  exp,
 	}
-	m.mu.Lock()
 	m.sessions[tok] = s
-	m.mu.Unlock()
 	cp := *s
 	cp.Fields = append([]card.Field(nil), s.Fields...)
 	return &cp, nil
 }
 
-// Session validates a bearer token against origin and instance.
+// Session validates a bearer token against origin, instance, live grant,
+// and field set. The grant must still be live; an expired grant invalidates
+// an otherwise unexpired token.
 func (m *Manager) Session(token string, origin Origin, now time.Time) (*Session, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.gcLocked(now)
 	s, ok := m.sessions[token]
-	if !ok || s.ExpiresAt.Before(now) || s.Origin != origin || s.InstanceID != m.instanceID {
+	if !ok || !now.Before(s.ExpiresAt) || s.Origin != origin || s.InstanceID != m.instanceID {
 		return nil, card.NewError(card.ErrAuthExpired, "session invalid")
+	}
+	g, ok := m.grants[origin]
+	if !ok || !now.Before(g.ExpiresAt) {
+		delete(m.sessions, token)
+		return nil, card.NewError(card.ErrAuthExpired, "grant expired")
+	}
+	if !card.Subset(s.Fields, g.Fields) {
+		delete(m.sessions, token)
+		return nil, card.NewError(card.ErrFieldNotAllowed, "grant fields narrowed")
 	}
 	cp := *s
 	cp.Fields = append([]card.Field(nil), s.Fields...)
@@ -267,27 +335,63 @@ func (m *Manager) CloseSession(token string) {
 	m.mu.Unlock()
 }
 
-// RevokeOrigin cancels the grant and all sessions for an origin.
+// RevokeOrigin cancels the grant, pending approvals, and all sessions for an
+// origin. It returns the revoked session tokens and fires OnRevoke outside
+// the lock.
 func (m *Manager) RevokeOrigin(origin Origin) int {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	delete(m.grants, origin)
-	n := 0
+	var tokens []string
 	for tok, s := range m.sessions {
 		if s.Origin == origin {
 			delete(m.sessions, tok)
-			n++
+			tokens = append(tokens, tok)
 		}
 	}
-	return n
+	for id, p := range m.pending {
+		if p.Origin == origin && !p.decided {
+			p.decided = true
+			p.allowed = false
+			close(p.done)
+			delete(m.pending, id)
+		}
+	}
+	m.mu.Unlock()
+	if m.OnRevoke != nil && len(tokens) > 0 {
+		m.OnRevoke(origin, tokens)
+	}
+	return len(tokens)
 }
 
-// RevokeAll clears every grant and session.
+// RevokeAll clears every grant, pending approval, and session.
 func (m *Manager) RevokeAll() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	type revoked struct {
+		origin Origin
+		tokens []string
+	}
+	byOrigin := map[Origin][]string{}
+	for tok, s := range m.sessions {
+		byOrigin[s.Origin] = append(byOrigin[s.Origin], tok)
+	}
+	for _, p := range m.pending {
+		if !p.decided {
+			p.decided = true
+			p.allowed = false
+			close(p.done)
+		}
+	}
+	m.pending = map[int64]*PendingRequest{}
 	m.grants = map[Origin]*Grant{}
 	m.sessions = map[string]*Session{}
+	m.mu.Unlock()
+	if m.OnRevoke != nil {
+		for o, toks := range byOrigin {
+			if len(toks) > 0 {
+				m.OnRevoke(o, toks)
+			}
+		}
+	}
 }
 
 // TrustedOrigins lists live grants (for terminal `trust`).
@@ -301,13 +405,13 @@ func (m *Manager) TrustedOrigins(now time.Time) []Grant {
 		cp.Fields = append([]card.Field(nil), g.Fields...)
 		out = append(out, cp)
 	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Origin < out[j].Origin })
 	return out
 }
 
 func (m *Manager) gcLocked(now time.Time) {
 	for id, p := range m.pending {
 		if now.After(p.ExpiresAt) {
-			// Do not close(p.done) here if already decided — only undelivered.
 			if !p.decided {
 				p.decided = true
 				p.allowed = false
@@ -317,12 +421,17 @@ func (m *Manager) gcLocked(now time.Time) {
 		}
 	}
 	for o, g := range m.grants {
-		if now.After(g.ExpiresAt) {
+		if !now.Before(g.ExpiresAt) {
 			delete(m.grants, o)
 		}
 	}
 	for tok, s := range m.sessions {
-		if now.After(s.ExpiresAt) {
+		if !now.Before(s.ExpiresAt) {
+			delete(m.sessions, tok)
+			continue
+		}
+		g, ok := m.grants[s.Origin]
+		if !ok || !now.Before(g.ExpiresAt) {
 			delete(m.sessions, tok)
 		}
 	}
@@ -341,14 +450,25 @@ func comparisonCode() string {
 	if _, err := rand.Read(b[:]); err != nil {
 		return "000000"
 	}
-	// Six decimal digits from 3 bytes.
 	n := int(b[0])<<16 | int(b[1])<<8 | int(b[2])
 	n %= 1000000
-	s := "000000"
-	digits := []byte(s)
+	digits := []byte("000000")
 	for i := 5; i >= 0; i-- {
 		digits[i] = byte('0' + n%10)
 		n /= 10
 	}
 	return string(digits)
+}
+
+// EscapeTerminal renders untrusted text for terminal display.
+func EscapeTerminal(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r < 0x20 || r == 0x7f {
+			fmt.Fprintf(&b, "\\x%02x", r)
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

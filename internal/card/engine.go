@@ -46,7 +46,11 @@ func (e *Engine) Execute(ctx context.Context, conn Transmitter, fields []Field) 
 	return e.Profile.Parse(fields, responses)
 }
 
+// maxGetResponseRounds bounds GET RESPONSE chaining for a single APDU.
+const maxGetResponseRounds = 8
+
 // transmit sends one APDU, handling 61xx GET RESPONSE when Retrieve is set.
+// Oversized bodies are rejected rather than silently truncated.
 func (e *Engine) transmit(ctx context.Context, conn Transmitter, a APDU) ([]byte, error) {
 	raw, err := conn.Transmit(ctx, a.Command, a.MaxResponse+16)
 	if err != nil {
@@ -58,8 +62,26 @@ func (e *Engine) transmit(ctx context.Context, conn Transmitter, a APDU) ([]byte
 	}
 	body := raw[:len(raw)-2]
 
-	// 61xx: more data available via GET RESPONSE.
 	if a.Retrieve && sw&0xFF00 == 0x6100 {
+		body, err = e.retrieve(ctx, conn, body, sw, a.MaxResponse)
+		if err != nil {
+			return nil, err
+		}
+	} else if !IsSWMatch(a, sw) {
+		if sw == 0x6A82 || sw == 0x6A86 {
+			return nil, NewError(ErrUnsupportedCard, "application not found")
+		}
+		return nil, NewError(ErrReadFailed, "unexpected status")
+	}
+
+	if a.MaxResponse > 0 && len(body) > a.MaxResponse {
+		return nil, NewError(ErrReadFailed, "response larger than profile bound")
+	}
+	return body, nil
+}
+
+func (e *Engine) retrieve(ctx context.Context, conn Transmitter, body []byte, sw uint16, maxResp int) ([]byte, error) {
+	for round := 0; round < maxGetResponseRounds; round++ {
 		le := int(sw & 0xFF)
 		if le == 0 {
 			le = 0xFF
@@ -73,21 +95,21 @@ func (e *Engine) transmit(ctx context.Context, conn Transmitter, a APDU) ([]byte
 		if !ok {
 			return nil, NewError(ErrReadFailed, "short get-response")
 		}
+		if msw&0xFF00 == 0x6100 {
+			body = append(body, more[:len(more)-2]...)
+			sw = msw
+			continue
+		}
 		if !IsSWMatch(APDU{ExpectSW: []uint16{StatusOK}}, msw) {
 			return nil, NewError(ErrReadFailed, "get-response status")
 		}
 		body = append(body, more[:len(more)-2]...)
-	} else if !IsSWMatch(a, sw) {
-		if sw == 0x6A82 || sw == 0x6A86 {
-			return nil, NewError(ErrUnsupportedCard, "application not found")
+		if maxResp > 0 && len(body) > maxResp {
+			return nil, NewError(ErrReadFailed, "response larger than profile bound")
 		}
-		return nil, NewError(ErrReadFailed, "unexpected status")
+		return body, nil
 	}
-
-	if a.MaxResponse > 0 && len(body) > a.MaxResponse {
-		body = body[:a.MaxResponse]
-	}
-	return body, nil
+	return nil, NewError(ErrReadFailed, "get-response chain too long")
 }
 
 // Execute is the convenience used by the reader manager.

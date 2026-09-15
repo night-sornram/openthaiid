@@ -8,25 +8,46 @@ on:
 permissions:
   contents: read
 
+env:
+  GO_VERSION: "1.27.1"
+  NODE_VERSION: "22"
+
 jobs:
   go-test:
     name: Go test
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version: "1.22.x"
+          go-version: ${{ env.GO_VERSION }}
       - name: Install PC/SC headers
         run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev
+      - name: Record resolved versions
+        run: |
+          {
+            echo "go: $(go version)"
+            echo "node: (not used in this job)"
+            echo "runner: $ImageOS $ImageVersion"
+          } | tee tool-versions.txt
       - name: Format
         run: test -z "$(gofmt -l .)"
       - name: Vet
         run: go vet ./...
       - name: Test
-        run: go test ./...
+        run: go test ./... -count=1
       - name: Race (packages with tests)
-        run: go test -race ./internal/...
+        run: go test -race ./internal/... -count=1
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: go-test-versions
+          path: tool-versions.txt
+          if-no-files-found: ignore
 
   go-build-matrix:
     name: Go build (${{ matrix.goos }}/${{ matrix.goarch }})
@@ -60,11 +81,14 @@ jobs:
             runner: macos-15-intel
             packages: ""
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version: "1.22.x"
+          go-version: ${{ env.GO_VERSION }}
       - name: Install native deps
         if: matrix.packages != ''
         run: sudo apt-get update && sudo apt-get install -y ${{ matrix.packages }}
@@ -73,32 +97,57 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: ${{ matrix.cgo }}
+          VERSION: 0.0.1-ci
         run: |
           ext=""
           if [ "$GOOS" = "windows" ]; then ext=".exe"; fi
           mkdir -p dist
-          go build -o "dist/openthaiid-${GOOS}-${GOARCH}${ext}" ./cmd/openthaiid
+          go build -trimpath \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "dist/openthaiid-${GOOS}-${GOARCH}${ext}" ./cmd/openthaiid
       - name: Smoke version
-        if: matrix.goos != 'windows'
         env:
           CGO_ENABLED: ${{ matrix.cgo }}
+          VERSION: 0.0.1-ci
         run: |
-          ./dist/openthaiid-${{ matrix.goos }}-${{ matrix.goarch }} version
+          ext=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then ext=".exe"; fi
+          bin="dist/openthaiid-${{ matrix.goos }}-${{ matrix.goarch }}${ext}"
+          got="$("$bin" version)"
+          echo "version output: $got"
+          test "$got" = "$VERSION"
+      - name: Upload binary
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: openthaiid-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/openthaiid-*
 
   sdk:
     name: Web SDK
     runs-on: ubuntu-24.04
     defaults:
       run:
+        shell: bash
         working-directory: sdk/web
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: sdk/web/package-lock.json
-      - run: npm ci || npm install
+      - name: Record resolved versions
+        run: |
+          {
+            echo "node: $(node -v)"
+            echo "npm: $(npm -v)"
+          } | tee tool-versions.txt
+      - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Upload SDK dist
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: sdk-web-dist
+          path: sdk/web/dist

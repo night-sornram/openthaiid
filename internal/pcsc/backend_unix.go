@@ -21,10 +21,16 @@ type osBackend struct {
 	waiters  map[uint64]chan struct{}
 	nextWait uint64
 	closed   bool
+	// lastStates retains EventState between GetStatusChange calls so
+	// subsequent waits do not use StateUnaware (which returns immediately).
+	lastStates map[string]scard.StateFlag
 }
 
 func newPlatformBackend() (Backend, error) {
-	return &osBackend{waiters: map[uint64]chan struct{}{}}, nil
+	return &osBackend{
+		waiters:    map[uint64]chan struct{}{},
+		lastStates: map[string]scard.StateFlag{},
+	}, nil
 }
 
 func (b *osBackend) Name() string { return "pcsc" }
@@ -50,6 +56,7 @@ func (b *osBackend) Establish(ctx context.Context) error {
 	}
 	b.ctx = pcscCtx
 	b.closed = false
+	b.lastStates = map[string]scard.StateFlag{}
 	return nil
 }
 
@@ -62,6 +69,7 @@ func (b *osBackend) Release(ctx context.Context) error {
 		b.ctx = nil
 	}
 	b.closed = true
+	b.lastStates = map[string]scard.StateFlag{}
 	for id, ch := range b.waiters {
 		select {
 		case ch <- struct{}{}:
@@ -108,7 +116,6 @@ func (b *osBackend) CardPresent(ctx context.Context, readerID string) (bool, err
 		Reader:       name,
 		CurrentState: scard.StateUnaware,
 	}}
-	// Zero timeout: immediate status query.
 	err = pcscCtx.GetStatusChange(states, 0)
 	if err != nil {
 		if err == scard.ErrTimeout {
@@ -130,6 +137,11 @@ func (b *osBackend) WaitForChange(ctx context.Context, timeout time.Duration) er
 	b.nextWait++
 	ch := make(chan struct{}, 1)
 	b.waiters[id] = ch
+	// Snapshot retained states under the lock.
+	last := make(map[string]scard.StateFlag, len(b.lastStates))
+	for k, v := range b.lastStates {
+		last[k] = v
+	}
 	b.mu.Unlock()
 
 	defer func() {
@@ -142,17 +154,20 @@ func (b *osBackend) WaitForChange(ctx context.Context, timeout time.Duration) er
 	if err != nil && err != scard.ErrNoReadersAvailable {
 		return card.NewError(card.ErrPCSCUnavailable, "reader enumeration failed")
 	}
-	states := make([]scard.ReaderState, 0, len(names)+1)
+	states := make([]scard.ReaderState, 0, len(names))
 	for _, n := range names {
-		states = append(states, scard.ReaderState{Reader: n, CurrentState: scard.StateUnaware})
+		cur, ok := last[n]
+		if !ok {
+			// First observation of this reader: seed with Unaware once.
+			cur = scard.StateUnaware
+		}
+		states = append(states, scard.ReaderState{Reader: n, CurrentState: cur})
 	}
-	// A short timeout doubles as the recovery enumeration cadence.
 	wait := timeout
 	if wait <= 0 {
 		wait = time.Second
 	}
 	if len(states) == 0 {
-		// No readers: sleep briefly so the monitor loop can resync later.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -162,13 +177,32 @@ func (b *osBackend) WaitForChange(ctx context.Context, timeout time.Duration) er
 	}
 	err = pcscCtx.GetStatusChange(states, wait)
 	if err != nil {
-		// Timeout is the common case when nothing changed.
 		if err == scard.ErrTimeout {
+			// Retain current states even on timeout.
+			b.retainStates(states)
 			return context.DeadlineExceeded
 		}
+		// Drop retained states so the next wait re-seeds.
+		b.mu.Lock()
+		b.lastStates = map[string]scard.StateFlag{}
+		b.mu.Unlock()
 		return card.NewError(card.ErrPCSCUnavailable, "status change failed")
 	}
+	b.retainStates(states)
 	return nil
+}
+
+func (b *osBackend) retainStates(states []scard.ReaderState) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.lastStates == nil {
+		b.lastStates = map[string]scard.StateFlag{}
+	}
+	for _, st := range states {
+		// Clear the Unaware bit so the next wait is edge-sensitive.
+		es := st.EventState &^ scard.StateUnaware
+		b.lastStates[st.Reader] = es
+	}
 }
 
 func (b *osBackend) CancelWait() error {
@@ -192,9 +226,6 @@ func (b *osBackend) Open(ctx context.Context, readerID string) (CardConnection, 
 	if err != nil {
 		return nil, err
 	}
-	// ShareShared allows the monitoring context to keep a status handle.
-	// ProtocolAny negotiates T=0/T=1 via PC/SC.
-	// Active protocol is requested so ATR/status work after connect.
 	sc, err := pcscCtx.Connect(name, scard.ShareShared, scard.ProtocolAny)
 	if err != nil {
 		if err == scard.ErrNoSmartcard {
@@ -219,8 +250,6 @@ func (b *osBackend) nameFor(readerID string) (string, error) {
 }
 
 func readerIDFor(name string) string {
-	// Opaque process-local id derived from the OS name.
-	// Not stable across process restarts (by design).
 	return fmt.Sprintf("rd_%x", simpleHash(name))
 }
 
@@ -250,8 +279,6 @@ func (c *osConn) Transmit(ctx context.Context, command []byte, maxResp int) ([]b
 	if c.closed || c.conn == nil {
 		return nil, card.NewError(card.ErrCancelled, "connection closed")
 	}
-	// ebfe/scard Transmit sends the command and returns response + SW.
-	// Buffer sizing is handled by the library; we still enforce maxResp.
 	resp, err := c.conn.Transmit(command)
 	if err != nil {
 		return nil, card.NewError(card.ErrReadFailed, "transmit failed")
@@ -281,7 +308,6 @@ func (c *osConn) EndTransaction(ctx context.Context) error {
 	if c.closed || c.conn == nil || !c.tx {
 		return nil
 	}
-	// scard.LeaveCard keeps the card in the connected state.
 	_ = c.conn.EndTransaction(scard.LeaveCard)
 	c.tx = false
 	return nil

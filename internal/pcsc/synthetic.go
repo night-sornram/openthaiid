@@ -2,41 +2,59 @@ package pcsc
 
 import (
 	"context"
+	"encoding/hex"
 	"sync"
 	"time"
 
 	"github.com/night-sornram/openthaiid/internal/card"
 )
 
-// SyntheticBackend is a deterministic Backend for tests and CI.
-// It never touches a real reader.
-type SyntheticBackend struct {
-	mu      sync.Mutex
-	ready   bool
-	stalled bool
-	closed  bool
-
-	readers map[string]string // id → name
-	present map[string]bool
-
-	waiters []chan struct{}
-
-	// Script maps APDU hex-ish name or full command string to responses.
-	// For the synthetic MVP we key on command string.
-	script map[string][]byte
-	// FailOpen makes Open fail for a reader.
+// SyntheticState is shared device state for the synthetic backend family.
+// Separate Backend contexts (monitor vs read) share one state so inventory
+// and card presence stay consistent.
+type SyntheticState struct {
+	mu       sync.Mutex
+	readers  map[string]string // id → name
+	present  map[string]bool
+	script   map[string][]byte
 	failOpen map[string]bool
+	stalled  bool
 }
 
-// NewSynthetic returns an empty synthetic backend.
-func NewSynthetic() *SyntheticBackend {
-	return &SyntheticBackend{
+// NewSyntheticState creates empty shared device state.
+func NewSyntheticState() *SyntheticState {
+	return &SyntheticState{
 		readers:  map[string]string{},
 		present:  map[string]bool{},
 		script:   map[string][]byte{},
 		failOpen: map[string]bool{},
 	}
 }
+
+// SyntheticBackend is a deterministic Backend for tests and CI.
+// It never touches a real reader.
+type SyntheticBackend struct {
+	mu     sync.Mutex
+	ready  bool
+	closed bool
+
+	state *SyntheticState
+
+	waiters []chan struct{}
+}
+
+// NewSynthetic returns a synthetic backend with private state.
+func NewSynthetic() *SyntheticBackend {
+	return NewSyntheticWithState(NewSyntheticState())
+}
+
+// NewSyntheticWithState returns a synthetic backend sharing device state.
+func NewSyntheticWithState(state *SyntheticState) *SyntheticBackend {
+	return &SyntheticBackend{state: state}
+}
+
+// State exposes the shared device state (test / CLI controls).
+func (s *SyntheticBackend) State() *SyntheticState { return s.state }
 
 func (s *SyntheticBackend) Name() string { return "synthetic" }
 
@@ -61,11 +79,15 @@ func (s *SyntheticBackend) Release(ctx context.Context) error {
 
 func (s *SyntheticBackend) Supported() error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.stalled {
+	ready, closed := s.ready, s.closed
+	s.mu.Unlock()
+	s.state.mu.Lock()
+	stalled := s.state.stalled
+	s.state.mu.Unlock()
+	if stalled {
 		return card.NewError(card.ErrBackendStalled, "synthetic backend stalled")
 	}
-	if !s.ready {
+	if closed || !ready {
 		return card.NewError(card.ErrPCSCUnavailable, "synthetic backend not established")
 	}
 	return nil
@@ -75,10 +97,10 @@ func (s *SyntheticBackend) Readers(ctx context.Context) ([]ReaderInfo, error) {
 	if err := s.Supported(); err != nil {
 		return nil, err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	out := make([]ReaderInfo, 0, len(s.readers))
-	for id, name := range s.readers {
+	s.state.mu.Lock()
+	defer s.state.mu.Unlock()
+	out := make([]ReaderInfo, 0, len(s.state.readers))
+	for id, name := range s.state.readers {
 		out = append(out, ReaderInfo{ID: id, Name: name})
 	}
 	return out, nil
@@ -88,12 +110,12 @@ func (s *SyntheticBackend) CardPresent(ctx context.Context, readerID string) (bo
 	if err := s.Supported(); err != nil {
 		return false, err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, ok := s.readers[readerID]; !ok {
+	s.state.mu.Lock()
+	defer s.state.mu.Unlock()
+	if _, ok := s.state.readers[readerID]; !ok {
 		return false, card.NewError(card.ErrReaderRemoved, "reader not found")
 	}
-	return s.present[readerID], nil
+	return s.state.present[readerID], nil
 }
 
 func (s *SyntheticBackend) WaitForChange(ctx context.Context, timeout time.Duration) error {
@@ -132,82 +154,179 @@ func (s *SyntheticBackend) Open(ctx context.Context, readerID string) (CardConne
 	if err := s.Supported(); err != nil {
 		return nil, err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.failOpen[readerID] {
+	s.state.mu.Lock()
+	defer s.state.mu.Unlock()
+	if s.state.failOpen[readerID] {
 		return nil, card.NewError(card.ErrReadFailed, "open failed")
 	}
-	name, ok := s.readers[readerID]
-	if !ok {
+	if _, ok := s.state.readers[readerID]; !ok {
 		return nil, card.NewError(card.ErrReaderRemoved, "reader not found")
 	}
-	if !s.present[readerID] {
+	if !s.state.present[readerID] {
 		return nil, card.NewError(card.ErrNoCard, "no card")
 	}
-	_ = name
 	return &syntheticConn{sb: s, readerID: readerID}, nil
 }
 
-// --- test controls ---
+// --- shared-state controls (also used by the CLI synthetic demo) ---
 
 // AddReader inserts a reader and notifies watchers.
 func (s *SyntheticBackend) AddReader(id, name string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.readers[id] = name
-	s.present[id] = false
-	s.notifyLocked()
+	s.state.AddReader(id, name)
+	s.notifyAll()
 }
 
 // RemoveReader removes a reader and notifies watchers.
 func (s *SyntheticBackend) RemoveReader(id string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.readers, id)
-	delete(s.present, id)
-	s.notifyLocked()
+	s.state.RemoveReader(id)
+	s.notifyAll()
 }
 
 // InsertCard marks a card present.
 func (s *SyntheticBackend) InsertCard(id string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.present[id] = true
-	s.notifyLocked()
+	s.state.InsertCard(id)
+	s.notifyAll()
 }
 
 // RemoveCard marks a card absent.
 func (s *SyntheticBackend) RemoveCard(id string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.present[id] = false
-	s.notifyLocked()
+	s.state.RemoveCard(id)
+	s.notifyAll()
 }
 
 // SetStalled simulates a hung native call surface.
 func (s *SyntheticBackend) SetStalled(v bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.stalled = v
+	s.state.SetStalled(v)
 }
 
 // SetScriptResponse programs the response for a command string.
 func (s *SyntheticBackend) SetScriptResponse(cmd string, resp []byte) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.script[cmd] = resp
+	s.state.SetScriptResponse(cmd, resp)
 }
 
-func (s *SyntheticBackend) responseFor(cmd string) ([]byte, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	resp, ok := s.script[cmd]
+// SeedDemoCard installs one clearly labeled fictional reader + Thai ID card
+// with independently specified command responses for the three MVP fields.
+func (s *SyntheticBackend) SeedDemoCard() {
+	seedDemoCard(s.state)
+	s.notifyAll()
+}
+
+func (st *SyntheticState) AddReader(id, name string) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	st.readers[id] = name
+	st.present[id] = false
+}
+
+func (st *SyntheticState) RemoveReader(id string) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	delete(st.readers, id)
+	delete(st.present, id)
+}
+
+func (st *SyntheticState) InsertCard(id string) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	st.present[id] = true
+}
+
+func (st *SyntheticState) RemoveCard(id string) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	st.present[id] = false
+}
+
+func (st *SyntheticState) SetStalled(v bool) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	st.stalled = v
+}
+
+func (st *SyntheticState) SetScriptResponse(cmd string, resp []byte) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	cp := make([]byte, len(resp))
+	copy(cp, resp)
+	st.script[cmd] = cp
+}
+
+func (st *SyntheticState) responseFor(cmd string) ([]byte, error) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	resp, ok := st.script[cmd]
 	if !ok {
+		// Also accept hex form for convenience.
+		if r, ok2 := st.script[hex.EncodeToString([]byte(cmd))]; ok2 {
+			out := make([]byte, len(r))
+			copy(out, r)
+			return out, nil
+		}
 		return nil, card.NewError(card.ErrReadFailed, "no synthetic response")
 	}
 	out := make([]byte, len(resp))
 	copy(out, resp)
 	return out, nil
+}
+
+// seedDemoCard is independent of parser constants: command bytes match
+// testdata/synthetic/fixtures.json and APDU.md.
+func seedDemoCard(st *SyntheticState) {
+	const readerID = "synthetic-acr39u"
+	st.AddReader(readerID, "SYNTHETIC ACR39U (fictional demo)")
+	st.InsertCard(readerID)
+
+	selectCmd := string([]byte{0x00, 0xA4, 0x04, 0x00, 0x08, 0xA0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01})
+	cidCmd := string([]byte{0x80, 0xB0, 0x00, 0x04, 0x02, 0x00, 0x0D})
+	nameCmd := string([]byte{0x80, 0xB0, 0x00, 0x11, 0x02, 0x00, 0x64})
+	birthCmd := string([]byte{0x80, 0xB0, 0x00, 0xD9, 0x02, 0x00, 0x08})
+
+	// Fictional citizen id with a valid check digit (computed independently).
+	// 1 1017 0123456 7 is the historical sample; use a clearly fictional one:
+	// 0000000000000 would fail length semantics; use 1234567890121 (checksum advisory).
+	cid := []byte("1234567890121")
+
+	// Thai name: นาย#สมชาย##ใจดี  (TIS-620)
+	name := tis620("นาย")
+	name = append(name, '#')
+	name = append(name, tis620("สมชาย")...)
+	name = append(name, '#', '#')
+	name = append(name, tis620("ใจดี")...)
+	padded := make([]byte, 100)
+	copy(padded, name)
+	for i := len(name); i < 100; i++ {
+		padded[i] = 0x20
+	}
+
+	// Birth: 2533-04-12 BE → 1990-04-12 CE
+	birth := []byte("25330412")
+
+	st.SetScriptResponse(selectCmd, []byte{0x90, 0x00})
+	st.SetScriptResponse(cidCmd, append(append([]byte(nil), cid...), 0x90, 0x00))
+	st.SetScriptResponse(nameCmd, append(append([]byte(nil), padded...), 0x90, 0x00))
+	st.SetScriptResponse(birthCmd, append(append([]byte(nil), birth...), 0x90, 0x00))
+}
+
+func tis620(s string) []byte {
+	var out []byte
+	for _, r := range s {
+		if r < 0x80 {
+			out = append(out, byte(r))
+			continue
+		}
+		if r >= 0x0E01 && r <= 0x0E5B {
+			out = append(out, byte(0xA1+(r-0x0E01)))
+			continue
+		}
+		out = append(out, '?')
+	}
+	return out
+}
+
+func (s *SyntheticBackend) notifyAll() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.notifyLocked()
 }
 
 func (s *SyntheticBackend) notifyLocked() {
@@ -237,14 +356,14 @@ func (c *syntheticConn) Transmit(ctx context.Context, command []byte, maxResp in
 	if c.closed {
 		return nil, card.NewError(card.ErrCancelled, "connection closed")
 	}
-	return c.sb.responseFor(string(command))
+	return c.sb.state.responseFor(string(command))
 }
 
 func (c *syntheticConn) BeginTransaction(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
-		return card.NewError(card.ErrCancelled, "connection closed")
+		return nil
 	}
 	c.inTx = true
 	return nil

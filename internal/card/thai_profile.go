@@ -7,18 +7,19 @@ import (
 )
 
 // ThaiCitizenMVP is the reviewed community-reference profile for the three
-// MVP fields. Offsets follow the widely published community command tables
-// (see docs/provenance.md). Implementation is independent; no upstream source
-// was copied.
+// MVP fields. Command bytes and offsets follow the published APDU table in
+// docs/provenance.md (dotnetthailand/ThaiNationalIDCard APDU.md). The
+// implementation is independent; no upstream source was copied.
+//
+// READ BINARY command form (from the cited table):
+//
+//	CLA=0x80 INS=0xB0 P1=off_hi P2=off_lo Lc=0x02 Data=0x00 Le=length
 //
 // Field memory map (READ BINARY offsets):
 //
 //	citizenId   0x0004  13 bytes, ASCII digits
-//	thaiTitle   0x0011  100 bytes, TIS-620
-//	thaiGiven   0x0075  100 bytes
-//	thaiMiddle  0x00D9  100 bytes
-//	thaiFamily  0x013D  100 bytes
-//	birthDate   0x0331  8 bytes, YYYYMMDD Buddhist Era
+//	thaiName    0x0011  100 bytes, Windows-874 / TIS-620, '#'-delimited
+//	birthDate   0x00D9  8 bytes, YYYYMMDD Buddhist Era
 type ThaiCitizenMVP struct{}
 
 // Profile ID constants.
@@ -27,6 +28,7 @@ const (
 )
 
 var (
+	// SELECT FILE by DF name, Lc=0x08, DF = A0 00 00 00 54 48 00 01
 	thaiSelectAPDU = []byte{0x00, 0xA4, 0x04, 0x00, 0x08, 0xA0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01}
 
 	// Community-documented ATR prefixes that often appear on Thai national
@@ -39,15 +41,12 @@ var (
 
 // Named offsets used by this profile.
 const (
-	offCitizenID  = 0x0004
-	lenCitizenID  = 13
-	offThaiTitle  = 0x0011
-	offThaiGiven  = 0x0075
-	offThaiMiddle = 0x00D9
-	offThaiFamily = 0x013D
-	lenNamePart   = 100
-	offBirthDate  = 0x0331
-	lenBirthDate  = 8
+	offCitizenID = 0x0004
+	lenCitizenID = 0x0D
+	offThaiName  = 0x0011
+	lenThaiName  = 0x64
+	offBirthDate = 0x00D9
+	lenBirthDate = 0x08
 )
 
 // MaxReadLe is the maximum Le for a single READ BINARY.
@@ -68,8 +67,6 @@ func (p ThaiCitizenMVP) MatchesATR(atr []byte) bool {
 			return true
 		}
 	}
-	// Unknown ATRs are not rejected outright at this layer; the engine
-	// rejects after SELECT fails.
 	return false
 }
 
@@ -91,7 +88,6 @@ func (ThaiCitizenMVP) ReadCommands(fields []Field) ([]APDU, error) {
 	}
 
 	var cmds []APDU
-	// SELECT is always required before any READ BINARY.
 	cmds = append(cmds, APDU{
 		Name:        "SELECT",
 		Command:     append([]byte(nil), thaiSelectAPDU...),
@@ -103,10 +99,7 @@ func (ThaiCitizenMVP) ReadCommands(fields []Field) ([]APDU, error) {
 		cmds = append(cmds, readBinary("CID", offCitizenID, lenCitizenID)...)
 	}
 	if want[FieldThaiName] {
-		cmds = append(cmds, readBinary("TH_TITLE", offThaiTitle, lenNamePart)...)
-		cmds = append(cmds, readBinary("TH_GIVEN", offThaiGiven, lenNamePart)...)
-		cmds = append(cmds, readBinary("TH_MIDDLE", offThaiMiddle, lenNamePart)...)
-		cmds = append(cmds, readBinary("TH_FAMILY", offThaiFamily, lenNamePart)...)
+		cmds = append(cmds, readBinary("TH_NAME", offThaiName, lenThaiName)...)
 	}
 	if want[FieldBirthDate] {
 		cmds = append(cmds, readBinary("BIRTH", offBirthDate, lenBirthDate)...)
@@ -114,10 +107,12 @@ func (ThaiCitizenMVP) ReadCommands(fields []Field) ([]APDU, error) {
 	return cmds, nil
 }
 
-// readBinary builds one or more READ BINARY APDUs covering [offset, offset+length).
-// Command form: CLA=80 INS=B0 P1=off_hi P2=off_lo Le=chunk.
-// Subsequent chunks are issued as additional APDUs (profile does not rely on
-// proprietary chaining).
+// readBinary builds READ BINARY APDUs covering [offset, offset+length).
+// Command form matches the cited table:
+//
+//	CLA=0x80 INS=0xB0 P1=off_hi P2=off_lo Lc=0x02 Data=0x00 Le=chunk
+//
+// Lengths above 0xFF are split into additional APDUs.
 func readBinary(name string, offset, length int) []APDU {
 	var out []APDU
 	remaining := length
@@ -130,14 +125,15 @@ func readBinary(name string, offset, length int) []APDU {
 		cmd := []byte{
 			0x80, 0xB0,
 			byte(off >> 8), byte(off & 0xFF),
+			0x02, 0x00,
 			byte(le),
 		}
 		out = append(out, APDU{
 			Name:        fmt.Sprintf("%s@0x%04X", name, off),
 			Command:     cmd,
 			ExpectSW:    []uint16{StatusOK},
-			MaxResponse: le + 2,
-			Retrieve:    true, // allow 61xx + GET RESPONSE
+			MaxResponse: le,
+			Retrieve:    true,
 		})
 		off += le
 		remaining -= le
@@ -156,13 +152,12 @@ func (ThaiCitizenMVP) Parse(fields []Field, responses [][]byte) (*FieldValues, [
 		return nil, nil, NewError(ErrReadFailed, "response count mismatch")
 	}
 
-	// Map command name → body (SW already stripped by the engine).
 	bodies := map[string][]byte{}
 	for i, c := range cmds {
 		bodies[c.Name] = responses[i]
 	}
 
-	vals := &FieldValues{}
+	vals := NewFieldValues(fields)
 	var warns []Warning
 
 	if containsField(fields, FieldCitizenID) {
@@ -180,21 +175,22 @@ func (ThaiCitizenMVP) Parse(fields []Field, responses [][]byte) (*FieldValues, [
 	}
 
 	if containsField(fields, FieldThaiName) {
-		title := decodeThaiField(bodies["TH_TITLE@0x0011"], lenNamePart)
-		given := decodeThaiField(bodies["TH_GIVEN@0x0075"], lenNamePart)
-		middle := decodeThaiField(bodies["TH_MIDDLE@0x00D9"], lenNamePart)
-		family := decodeThaiField(bodies["TH_FAMILY@0x013D"], lenNamePart)
-		name, w := buildThaiName(title, given, middle, family)
-		if w != nil {
-			warns = append(warns, *w)
-		}
-		if name != nil {
-			vals.ThaiName = name
+		raw, ok := bodies["TH_NAME@0x0011"]
+		if !ok || len(raw) == 0 {
+			warns = append(warns, Warning{Field: FieldThaiName, Code: "TRUNCATED", Message: "thai name truncated"})
+		} else {
+			name, w := parseThaiNameBlock(raw)
+			if w != nil {
+				warns = append(warns, *w)
+			}
+			if name != nil {
+				vals.ThaiName = name
+			}
 		}
 	}
 
 	if containsField(fields, FieldBirthDate) {
-		raw, ok := bodies["BIRTH@0x0331"]
+		raw, ok := bodies["BIRTH@0x00D9"]
 		if !ok || len(raw) < lenBirthDate {
 			warns = append(warns, Warning{Field: FieldBirthDate, Code: "TRUNCATED", Message: "birth date truncated"})
 		} else {

@@ -112,7 +112,7 @@ Success result:
       "familyName": "ใจดี",
       "fullName": "นาย สมชาย ใจดี"
     },
-    "birthDate": { "year": 2533, "month": 4, "day": 12 }
+    "birthDate": { "year": 1990, "month": 4, "day": 12 }
   },
   "warnings": []
 }
@@ -120,7 +120,7 @@ Success result:
 
 - Requested fields must be a subset of the approved grant.
 - Invalid or unavailable individual fields become `null` plus a
-  field-specific warning.
+  field-specific warning. Unrequested fields are omitted.
 - Transport loss, unsupported card, or generation change fails the whole read.
 
 ## Events
@@ -181,8 +181,8 @@ type ThaiName = {
 | Field | Representation |
 |---|---|
 | `citizenId` | String preserving all 13 digits |
-| `thaiName` | `ThaiName` |
-| `birthDate` | `CardDate` (Buddhist Era year when the profile uses BE) |
+| `thaiName` | `ThaiName` (single `#`-delimited card block) |
+| `birthDate` | `CardDate` with **Gregorian** year (card stores Buddhist Era; bridge converts BE→CE and validates leap years) |
 
 ## Synthetic examples
 

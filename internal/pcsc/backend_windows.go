@@ -17,11 +17,13 @@ type osBackend struct {
 	mu     sync.Mutex
 	ctx    *scard.Context
 	closed bool
-	nextID uint64
+	// lastStates retains EventState between GetStatusChange calls so
+	// subsequent waits do not use StateUnaware (which returns immediately).
+	lastStates map[string]scard.StateFlag
 }
 
 func newPlatformBackend() (Backend, error) {
-	return &osBackend{}, nil
+	return &osBackend{lastStates: map[string]scard.StateFlag{}}, nil
 }
 
 func (b *osBackend) Name() string { return "pcsc" }
@@ -47,6 +49,7 @@ func (b *osBackend) Establish(ctx context.Context) error {
 	}
 	b.ctx = pcscCtx
 	b.closed = false
+	b.lastStates = map[string]scard.StateFlag{}
 	return nil
 }
 
@@ -59,6 +62,7 @@ func (b *osBackend) Release(ctx context.Context) error {
 		b.ctx = nil
 	}
 	b.closed = true
+	b.lastStates = map[string]scard.StateFlag{}
 	return nil
 }
 
@@ -111,17 +115,27 @@ func (b *osBackend) CardPresent(ctx context.Context, readerID string) (bool, err
 func (b *osBackend) WaitForChange(ctx context.Context, timeout time.Duration) error {
 	b.mu.Lock()
 	pcscCtx := b.ctx
-	b.mu.Unlock()
 	if pcscCtx == nil {
+		b.mu.Unlock()
 		return card.NewError(card.ErrPCSCUnavailable, "pcsc context not established")
 	}
+	last := make(map[string]scard.StateFlag, len(b.lastStates))
+	for k, v := range b.lastStates {
+		last[k] = v
+	}
+	b.mu.Unlock()
+
 	names, err := pcscCtx.ListReaders()
 	if err != nil && err != scard.ErrNoReadersAvailable {
 		return card.NewError(card.ErrPCSCUnavailable, "reader enumeration failed")
 	}
 	states := make([]scard.ReaderState, 0, len(names))
 	for _, n := range names {
-		states = append(states, scard.ReaderState{Reader: n, CurrentState: scard.StateUnaware})
+		cur, ok := last[n]
+		if !ok {
+			cur = scard.StateUnaware
+		}
+		states = append(states, scard.ReaderState{Reader: n, CurrentState: cur})
 	}
 	wait := timeout
 	if wait <= 0 {
@@ -138,11 +152,28 @@ func (b *osBackend) WaitForChange(ctx context.Context, timeout time.Duration) er
 	err = pcscCtx.GetStatusChange(states, wait)
 	if err != nil {
 		if err == scard.ErrTimeout {
+			b.retainStates(states)
 			return context.DeadlineExceeded
 		}
+		b.mu.Lock()
+		b.lastStates = map[string]scard.StateFlag{}
+		b.mu.Unlock()
 		return card.NewError(card.ErrPCSCUnavailable, "status change failed")
 	}
+	b.retainStates(states)
 	return nil
+}
+
+func (b *osBackend) retainStates(states []scard.ReaderState) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.lastStates == nil {
+		b.lastStates = map[string]scard.StateFlag{}
+	}
+	for _, st := range states {
+		es := st.EventState &^ scard.StateUnaware
+		b.lastStates[st.Reader] = es
+	}
 }
 
 func (b *osBackend) CancelWait() error {

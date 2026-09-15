@@ -25,10 +25,13 @@ make build
 # Run with real hardware
 ./dist/openthaiid
 
-# Or run without hardware (synthetic backend)
+# Or run without hardware (synthetic backend + fictional demo card)
 ./dist/openthaiid -synthetic
 ```
 
+The synthetic backend seeds one clearly labeled fictional reader and Thai ID
+card so the documented connect → approve → read path works from a clean
+checkout without hardware.
 Default WebSocket endpoint: `ws://127.0.0.1:17891/v1/ws`
 
 ### Terminal commands
@@ -121,9 +124,9 @@ make race          # race detector
 cd sdk/web && npm test
 ```
 
-Hardware acceptance (ACR39U on Windows/Linux/macOS) is still required before
-a production release claim.
-
+Hardware acceptance (ACR39U on Windows/Linux/macOS) and a Playwright browser
+matrix are still required before a production release claim. See
+[docs/acceptance.md](docs/acceptance.md) for the current evidence status.
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).

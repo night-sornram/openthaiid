@@ -43,9 +43,7 @@ type ChangeEvent struct {
 type Manager struct {
 	mu sync.RWMutex
 
-	backend pcsc.Backend
-	// readerBackend is a second context used only for Open/Transmit so
-	// monitoring can continue during a read.
+	backend       pcsc.Backend
 	readerBackend pcsc.Backend
 
 	readers       map[string]*ReaderState
@@ -56,8 +54,10 @@ type Manager struct {
 
 	subscribers map[chan ChangeEvent]struct{}
 
-	// pendingGeneration invalidated card sessions on removal.
-	// cardSessionID is the insertion generation token.
+	// monitorDone is closed when the monitoring goroutine exits.
+	monitorDone    chan struct{}
+	monitorStop    context.CancelFunc
+	monitorStarted bool
 }
 
 // NewManager builds a manager around two backend instances (same factory).
@@ -68,31 +68,65 @@ func NewManager(monitor, reader pcsc.Backend) *Manager {
 		readers:       map[string]*ReaderState{},
 		backendStatus: "unavailable",
 		subscribers:   map[chan ChangeEvent]struct{}{},
+		monitorDone:   make(chan struct{}),
 	}
 }
 
 // Start establishes both backends and begins the monitoring loop.
+// A PC/SC failure at startup is non-fatal: the monitor loop retries recovery.
 func (m *Manager) Start(ctx context.Context) error {
+	mctx, cancel := context.WithCancel(context.Background())
+	m.mu.Lock()
+	if m.monitorStarted {
+		m.mu.Unlock()
+		cancel()
+		return nil
+	}
+	m.monitorStop = cancel
+	m.monitorStarted = true
+	m.mu.Unlock()
+
 	if err := m.backend.Establish(ctx); err != nil {
-		return err
+		m.mu.Lock()
+		m.backendStatus = "unavailable"
+		m.mu.Unlock()
+		go m.monitorLoop(mctx)
+		return nil
 	}
 	if err := m.readerBackend.Establish(ctx); err != nil {
 		_ = m.backend.Release(ctx)
-		return err
+		m.mu.Lock()
+		m.backendStatus = "unavailable"
+		m.mu.Unlock()
+		go m.monitorLoop(mctx)
+		return nil
 	}
-	if err := m.resync(ctx); err != nil {
-		return err
+	if err := m.resync(ctx); err == nil {
+		m.mu.Lock()
+		m.backendStatus = "available"
+		m.mu.Unlock()
 	}
-	m.mu.Lock()
-	m.backendStatus = "available"
-	m.mu.Unlock()
-	go m.monitorLoop(ctx)
+	go m.monitorLoop(mctx)
 	return nil
 }
 
-// Stop releases backends.
+// Stop joins the monitoring loop and releases backends.
 func (m *Manager) Stop(ctx context.Context) error {
+	m.mu.Lock()
+	stop := m.monitorStop
+	started := m.monitorStarted
+	done := m.monitorDone
+	m.mu.Unlock()
+	if stop != nil {
+		stop()
+	}
 	_ = m.backend.CancelWait()
+	if started {
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
+	}
 	_ = m.backend.Release(ctx)
 	return m.readerBackend.Release(ctx)
 }
@@ -125,7 +159,7 @@ func (m *Manager) emit(ev ChangeEvent) {
 	}
 }
 
-// Snapshot returns the current reader view.
+// Snapshot returns the current reader view under synchronization.
 func (m *Manager) Snapshot() Snapshot {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -137,25 +171,39 @@ func (m *Manager) Snapshot() Snapshot {
 }
 
 func (m *Manager) monitorLoop(ctx context.Context) {
+	defer close(m.monitorDone)
 	for ctx.Err() == nil {
+		if m.backend.Supported() != nil {
+			// Backend not established: try recovery.
+			if !m.recoverBackend(ctx) {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(2 * time.Second):
+				}
+				continue
+			}
+		}
 		err := m.backend.WaitForChange(ctx, time.Second)
 		if ctx.Err() != nil {
 			return
 		}
 		if err != nil && err != context.DeadlineExceeded {
 			m.mu.Lock()
-			if m.backendStatus != "stalled" {
+			if !m.stalled {
 				m.backendStatus = "unavailable"
 			}
 			m.mu.Unlock()
-			// Recovery: try to re-establish after a short pause.
+			m.invalidateAllSessions()
 			select {
 			case <-ctx.Done():
 				return
 			case <-time.After(2 * time.Second):
 			}
 			_ = m.backend.Release(ctx)
+			_ = m.readerBackend.Release(ctx)
 			if e2 := m.backend.Establish(ctx); e2 == nil {
+				_ = m.readerBackend.Establish(ctx)
 				m.mu.Lock()
 				m.backendStatus = "available"
 				m.mu.Unlock()
@@ -165,15 +213,54 @@ func (m *Manager) monitorLoop(ctx context.Context) {
 	}
 }
 
+func (m *Manager) recoverBackend(ctx context.Context) bool {
+	if err := m.backend.Establish(ctx); err != nil {
+		return false
+	}
+	if err := m.readerBackend.Establish(ctx); err != nil {
+		_ = m.backend.Release(ctx)
+		return false
+	}
+	m.mu.Lock()
+	m.backendStatus = "available"
+	m.stalled = false
+	m.mu.Unlock()
+	_ = m.resync(ctx)
+	return true
+}
+
+// invalidateAllSessions clears card generations (reader loss / service failure).
+func (m *Manager) invalidateAllSessions() {
+	m.mu.Lock()
+	prev := m.readers
+	next := make(map[string]*ReaderState, len(m.readers))
+	for id, r := range m.readers {
+		cp := *r
+		if cp.Presence == pcsc.PresencePresent {
+			cp.Presence = pcsc.PresenceAbsent
+		}
+		cp.CardSessionID = ""
+		next[id] = &cp
+	}
+	m.readers = next
+	m.mu.Unlock()
+
+	for id, old := range prev {
+		if old.CardSessionID != "" {
+			m.emit(ChangeEvent{Kind: "card.removed", ReaderID: id, CardSessionID: old.CardSessionID})
+		}
+	}
+}
+
 // resync diffs the backend inventory and emits events.
 func (m *Manager) resync(ctx context.Context) error {
-	if m.backend.Supported() != nil {
+	if err := m.backend.Supported(); err != nil {
 		m.mu.Lock()
-		if !m.stalled {
+		if !m.stalled && m.backendStatus != "stalled" {
 			m.backendStatus = "unavailable"
 		}
 		m.mu.Unlock()
-		return nil
+		return err
 	}
 	list, err := m.backend.Readers(ctx)
 	if err != nil {
@@ -298,6 +385,8 @@ type ReadRequest struct {
 }
 
 // Read performs a single active read against the reader backend.
+// The native slot stays occupied until the blocked call returns; late
+// results from a cancelled context are discarded.
 func (m *Manager) Read(ctx context.Context, req ReadRequest) (*card.ReadResult, error) {
 	fields, err := card.NormalizeFields(req.Fields)
 	if err != nil {
@@ -320,8 +409,17 @@ func (m *Manager) Read(ctx context.Context, req ReadRequest) (*card.ReadResult, 
 		m.mu.Unlock()
 		return nil, card.NewError(card.ErrBusy, "another read is in progress")
 	}
+	if m.stalled {
+		m.mu.Unlock()
+		return nil, card.NewError(card.ErrBackendStalled, "backend stalled")
+	}
 	m.reading = true
 	m.mu.Unlock()
+
+	// Occupies the single native read slot until the call returns, even if
+	// ctx is already cancelled — the native work cannot be interrupted.
+	done := make(chan struct{})
+	defer close(done)
 	defer func() {
 		m.mu.Lock()
 		m.reading = false
@@ -339,24 +437,44 @@ func (m *Manager) Read(ctx context.Context, req ReadRequest) (*card.ReadResult, 
 	}
 	defer func() { _ = conn.EndTransaction(context.Background()) }()
 
-	// Re-check generation after open; removal may have raced.
 	if cur, ok := m.CardSession(readerID); !ok || cur != sid {
 		return nil, card.NewError(card.ErrCardRemoved, "card session changed")
 	}
 
-	vals, warns, err := req.Execute(ctx, conn, fields)
-	if err != nil {
-		return nil, err
+	type execResult struct {
+		vals  *card.FieldValues
+		warns []card.Warning
+		err   error
 	}
-	// Re-check before returning a result.
+	resCh := make(chan execResult, 1)
+	go func() {
+		vals, warns, err := req.Execute(ctx, conn, fields)
+		resCh <- execResult{vals, warns, err}
+	}()
+
+	var res execResult
+	select {
+	case res = <-resCh:
+	case <-ctx.Done():
+		// Wait for the native call to finish so the slot stays honest;
+		// discard the late result.
+		go func() {
+			<-resCh
+			_ = conn.Close()
+		}()
+		return nil, card.NewError(card.ErrCancelled, "read cancelled")
+	}
+	if res.err != nil {
+		return nil, res.err
+	}
 	if cur, ok := m.CardSession(readerID); !ok || cur != sid {
 		return nil, card.NewError(card.ErrCardRemoved, "card session changed")
 	}
 	return &card.ReadResult{
 		ReaderID:      readerID,
 		CardSessionID: sid,
-		Fields:        *vals,
-		Warnings:      warns,
+		Fields:        *res.vals,
+		Warnings:      res.warns,
 	}, nil
 }
 

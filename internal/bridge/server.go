@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/coder/websocket"
@@ -35,36 +34,89 @@ type Server struct {
 	httpSrv  *http.Server
 	listener net.Listener
 
-	seq atomic.Uint64
+	clientsMu sync.Mutex
+	clients   map[string]*clientConn
 
-	// cancelRead is set while a card.read is in flight (single-read MVP).
-	cancelReadMu sync.Mutex
-	cancelRead   map[string]context.CancelFunc // key: token+requestID
-
-	eventSubsMu sync.Mutex
-	eventSubs   map[*clientConn]struct{}
+	opSem chan struct{}
 }
 
 type clientConn struct {
-	ws      *websocket.Conn
-	origin  auth.Origin
-	token   string
-	sess    *auth.Session
+	id     string
+	ws     *websocket.Conn
+	origin auth.Origin
+
+	// authMu guards token and sess across the receive loop and async ops.
+	authMu sync.Mutex
+	token  string
+	sess   *auth.Session
+
 	writeMu sync.Mutex
 	closed  bool
+
+	lastReqID int64
+	eventSeq  uint64
+
+	cancelOps    context.CancelFunc
+	cancelOpsCtx context.Context
+
+	pendingMu sync.Mutex
+	pending   map[int64]context.CancelFunc
+
+	outq    chan []byte
+	dropped bool
+}
+
+func (cc *clientConn) setSession(sess *auth.Session) {
+	cc.authMu.Lock()
+	if sess == nil {
+		cc.token = ""
+		cc.sess = nil
+	} else {
+		cc.token = sess.Token
+		cc.sess = sess
+	}
+	cc.authMu.Unlock()
+}
+
+func (cc *clientConn) clearSession() {
+	cc.setSession(nil)
+}
+
+func (cc *clientConn) getToken() string {
+	cc.authMu.Lock()
+	defer cc.authMu.Unlock()
+	return cc.token
+}
+
+func (cc *clientConn) getSession() *auth.Session {
+	cc.authMu.Lock()
+	defer cc.authMu.Unlock()
+	return cc.sess
+}
+
+func (cc *clientConn) hasSession() bool {
+	cc.authMu.Lock()
+	defer cc.authMu.Unlock()
+	return cc.token != "" && cc.sess != nil
 }
 
 // New constructs a bridge server.
 func New(cfg config.Config, log *slog.Logger, authMgr *auth.Manager, readers *reader.Manager) *Server {
-	return &Server{
-		cfg:        cfg,
-		log:        log,
-		auth:       authMgr,
-		readers:    readers,
-		engine:     card.NewEngine(card.DefaultProfile()),
-		cancelRead: map[string]context.CancelFunc{},
-		eventSubs:  map[*clientConn]struct{}{},
+	n := cfg.MaxActiveReads
+	if n < 1 {
+		n = 1
 	}
+	s := &Server{
+		cfg:     cfg,
+		log:     log,
+		auth:    authMgr,
+		readers: readers,
+		engine:  card.NewEngine(card.DefaultProfile()),
+		clients: map[string]*clientConn{},
+		opSem:   make(chan struct{}, n),
+	}
+	authMgr.OnRevoke = s.handleAuthRevoked
+	return s
 }
 
 // InstanceID exposes the bridge instance id used in events.
@@ -92,7 +144,6 @@ func (s *Server) Start(ctx context.Context) error {
 			s.log.Error("bridge serve failed", "error", err)
 		}
 	}()
-	// Forward reader events to connected clients.
 	go s.forwardReaderEvents(ctx)
 	return nil
 }
@@ -105,8 +156,17 @@ func (s *Server) Addr() string {
 	return s.cfg.Addr()
 }
 
-// Shutdown stops the HTTP server.
+// Shutdown stops the HTTP server and closes upgraded WebSockets.
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.clientsMu.Lock()
+	clients := make([]*clientConn, 0, len(s.clients))
+	for _, c := range s.clients {
+		clients = append(clients, c)
+	}
+	s.clientsMu.Unlock()
+	for _, c := range clients {
+		c.closeWS(websocket.StatusGoingAway, "shutdown")
+	}
 	if s.httpSrv == nil {
 		return nil
 	}
@@ -147,9 +207,9 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) eligibleAllowList() []auth.Origin {
 	var out []auth.Origin
-	for _, s := range s.cfg.OriginAllowList {
-		if o, err := auth.NormalizeOrigin(s); err == nil {
-			out = append(out, o)
+	for _, o := range s.cfg.OriginAllowList {
+		if no, err := auth.NormalizeOrigin(o); err == nil {
+			out = append(out, no)
 		}
 	}
 	return out
@@ -176,9 +236,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		Subprotocols: []string{protocol.Subprotocol},
-		// Origin already validated above against the exact configured policy.
-		// Disable coder/websocket's default same-origin check so we own it.
+		Subprotocols:   []string{protocol.Subprotocol},
 		OriginPatterns: []string{"*"},
 	})
 	if err != nil {
@@ -195,33 +253,76 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cc := &clientConn{ws: c, origin: origin}
-	s.eventSubsMu.Lock()
-	s.eventSubs[cc] = struct{}{}
-	s.eventSubsMu.Unlock()
+	cc := newClientConn(c, origin)
+	s.registerClient(cc)
 
 	defer func() {
-		s.eventSubsMu.Lock()
-		delete(s.eventSubs, cc)
-		s.eventSubsMu.Unlock()
+		s.unregisterClient(cc)
+		s.auth.CancelPendingByConnection(cc.id)
+		if cc.cancelOps != nil {
+			cc.cancelOps()
+		}
 		s.mu.Lock()
 		s.conns--
 		s.mu.Unlock()
-		_ = c.Close(websocket.StatusNormalClosure, "")
+		cc.closeWS(websocket.StatusNormalClosure, "")
 	}()
 
-	ctx := r.Context()
+	go cc.writeLoop()
+	s.sendStatusSnapshot(cc, protocol.TypeStatusSnapshot)
+
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
 	c.SetReadLimit(int64(s.cfg.MaxFrameBytes))
+
+	unauthDeadline := time.Now().Add(30 * time.Second)
 	for {
+		if cc.getToken() == "" && time.Now().After(unauthDeadline) {
+			cc.closeWS(websocket.StatusPolicyViolation, "authentication timeout")
+			return
+		}
 		_, data, err := c.Read(ctx)
 		if err != nil {
 			return
 		}
-		s.handleMessage(ctx, cc, data)
+		if cc.getToken() != "" {
+			// Authenticated connections are no longer subject to the
+			// unauthenticated lifetime bound.
+			unauthDeadline = time.Now().Add(24 * time.Hour)
+		}
+		s.dispatch(ctx, cc, data)
 	}
 }
 
-func (s *Server) handleMessage(ctx context.Context, cc *clientConn, data []byte) {
+func newClientConn(c *websocket.Conn, origin auth.Origin) *clientConn {
+	id := "conn-" + randomID()
+	ctx, cancel := context.WithCancel(context.Background())
+	return &clientConn{
+		id:           id,
+		ws:           c,
+		origin:       origin,
+		pending:      map[int64]context.CancelFunc{},
+		outq:         make(chan []byte, 64),
+		cancelOps:    cancel,
+		cancelOpsCtx: ctx,
+	}
+}
+
+func (s *Server) registerClient(cc *clientConn) {
+	s.clientsMu.Lock()
+	s.clients[cc.id] = cc
+	s.clientsMu.Unlock()
+}
+
+func (s *Server) unregisterClient(cc *clientConn) {
+	s.clientsMu.Lock()
+	delete(s.clients, cc.id)
+	s.clientsMu.Unlock()
+}
+
+// dispatch validates the envelope and runs the operation without blocking
+// the receive loop for long-running work (approval wait, card read).
+func (s *Server) dispatch(ctx context.Context, cc *clientConn, data []byte) {
 	var req protocol.Request
 	if err := json.Unmarshal(data, &req); err != nil {
 		s.writeError(cc, 0, card.NewError(card.ErrInvalidRequest, "malformed message"))
@@ -231,23 +332,47 @@ func (s *Server) handleMessage(ctx context.Context, cc *clientConn, data []byte)
 		s.writeError(cc, req.ID, card.AsError(err))
 		return
 	}
+	cc.writeMu.Lock()
+	if req.ID <= cc.lastReqID {
+		cc.writeMu.Unlock()
+		s.writeError(cc, req.ID, card.NewError(card.ErrInvalidRequest, "request id must increase"))
+		return
+	}
+	cc.lastReqID = req.ID
+	cc.writeMu.Unlock()
 
 	switch req.Type {
 	case protocol.TypeSessionOpen:
-		s.opSessionOpen(ctx, cc, req)
+		s.runAsync(ctx, cc, req, s.opSessionOpen)
 	case protocol.TypeSessionRenew:
-		s.opSessionRenew(ctx, cc, req)
+		s.runAsync(ctx, cc, req, s.opSessionRenew)
 	case protocol.TypeSessionClose:
 		s.opSessionClose(cc, req)
 	case protocol.TypeBridgeStatus:
-		s.opBridgeStatus(ctx, cc, req)
+		s.runAsync(ctx, cc, req, s.opBridgeStatus)
 	case protocol.TypeCardRead:
-		s.opCardRead(ctx, cc, req)
+		s.runAsync(ctx, cc, req, s.opCardRead)
 	case protocol.TypeRequestCancel:
-		s.opCancel(ctx, cc, req)
+		s.opCancel(cc, req)
 	default:
 		s.writeError(cc, req.ID, card.NewError(card.ErrInvalidRequest, "unknown operation"))
 	}
+}
+
+func (s *Server) runAsync(ctx context.Context, cc *clientConn, req protocol.Request, fn func(context.Context, *clientConn, protocol.Request)) {
+	opCtx, cancel := context.WithCancel(ctx)
+	cc.pendingMu.Lock()
+	cc.pending[req.ID] = cancel
+	cc.pendingMu.Unlock()
+	go func() {
+		defer func() {
+			cc.pendingMu.Lock()
+			delete(cc.pending, req.ID)
+			cc.pendingMu.Unlock()
+			cancel()
+		}()
+		fn(opCtx, cc, req)
+	}()
 }
 
 func (s *Server) opSessionOpen(ctx context.Context, cc *clientConn, req protocol.Request) {
@@ -270,16 +395,8 @@ func (s *Server) opSessionOpen(ctx context.Context, cc *clientConn, req protocol
 	now := time.Now()
 	sess, err := s.auth.OpenSession(cc.origin, fields, now)
 	if err == nil {
-		cc.token = sess.Token
-		cc.sess = sess
-		s.writeResult(cc, req.ID, protocol.SessionOpenResult{
-			Token:           sess.Token,
-			ExpiresAt:       sess.ExpiresAt.UTC().Format(time.RFC3339),
-			Fields:          sess.Fields,
-			InstanceID:      sess.InstanceID,
-			Protocol:        protocol.ProtocolInfo{Major: protocol.Major, Minor: 0},
-			FieldsSupported: card.MVPFields,
-		})
+		cc.setSession(sess)
+		s.writeResult(cc, req.ID, sessionResult(sess))
 		s.sendStatusSnapshot(cc, protocol.TypeStatusSnapshot)
 		return
 	}
@@ -289,16 +406,12 @@ func (s *Server) opSessionOpen(ctx context.Context, cc *clientConn, req protocol
 		return
 	}
 
-	// Pairing-only: create a pending approval and wait for the operator.
-	// One request produces exactly one response.
-	pending, perr := s.auth.RequestApproval(cc.origin, fields, now)
+	pending, perr := s.auth.RequestApproval(cc.origin, fields, cc.id, time.Now())
 	if perr != nil {
 		s.writeError(cc, req.ID, card.AsError(perr).WithRequestID(req.ID))
 		return
 	}
 	s.logApprovalPrompt(pending)
-	// Tell only this connection about its own pending approval.
-	// Pairing-only clients still receive this (it is about them).
 	if body, err := json.Marshal(protocol.ApprovalRequiredPayload{
 		ApprovalID:     pending.ID,
 		Fields:         pending.Fields,
@@ -308,7 +421,11 @@ func (s *Server) opSessionOpen(ctx context.Context, cc *clientConn, req protocol
 		s.writeEventTo(cc, protocol.TypeApprovalRequired, body)
 	}
 
-	allowed, werr := s.auth.Wait(pending, time.Now())
+	waitCtx := ctx
+	if cc.cancelOpsCtx != nil {
+		waitCtx = cc.cancelOpsCtx
+	}
+	allowed, werr := s.auth.Wait(waitCtx, pending)
 	if werr != nil {
 		s.writeError(cc, req.ID, card.AsError(werr).WithRequestID(req.ID))
 		return
@@ -322,22 +439,24 @@ func (s *Server) opSessionOpen(ctx context.Context, cc *clientConn, req protocol
 		s.writeError(cc, req.ID, card.AsError(err).WithRequestID(req.ID))
 		return
 	}
-	cc.token = sess.Token
-	cc.sess = sess
-	s.writeResult(cc, req.ID, protocol.SessionOpenResult{
+	cc.setSession(sess)
+	s.writeResult(cc, req.ID, sessionResult(sess))
+	s.sendStatusSnapshot(cc, protocol.TypeStatusSnapshot)
+}
+
+func sessionResult(sess *auth.Session) protocol.SessionOpenResult {
+	return protocol.SessionOpenResult{
 		Token:           sess.Token,
 		ExpiresAt:       sess.ExpiresAt.UTC().Format(time.RFC3339),
 		Fields:          sess.Fields,
 		InstanceID:      sess.InstanceID,
 		Protocol:        protocol.ProtocolInfo{Major: protocol.Major, Minor: 0},
 		FieldsSupported: card.MVPFields,
-	})
-	s.sendStatusSnapshot(cc, protocol.TypeStatusSnapshot)
+	}
 }
 
 func (s *Server) logApprovalPrompt(p *auth.PendingRequest) {
-	// Terminal-facing only; not a persistent structured log of card data.
-	fmt.Printf("\n[approval] %s requests: %v\n", p.Origin, p.Fields)
+	fmt.Printf("\n[approval] %s requests: %v\n", auth.EscapeTerminal(string(p.Origin)), p.Fields)
 	fmt.Printf("Trust ends when OpenThaiID stops or after %s.\n", s.cfg.TrustDuration)
 	fmt.Printf("Request: %d   Comparison code: %s\n\n", p.ID, p.Comparison)
 	fmt.Printf("allow %d\n", p.ID)
@@ -356,16 +475,8 @@ func (s *Server) opSessionRenew(ctx context.Context, cc *clientConn, req protoco
 		return
 	}
 	s.auth.CloseSession(sess.Token)
-	cc.token = fresh.Token
-	cc.sess = fresh
-	s.writeResult(cc, req.ID, protocol.SessionOpenResult{
-		Token:           fresh.Token,
-		ExpiresAt:       fresh.ExpiresAt.UTC().Format(time.RFC3339),
-		Fields:          fresh.Fields,
-		InstanceID:      fresh.InstanceID,
-		Protocol:        protocol.ProtocolInfo{Major: protocol.Major, Minor: 0},
-		FieldsSupported: card.MVPFields,
-	})
+	cc.setSession(fresh)
+	s.writeResult(cc, req.ID, sessionResult(fresh))
 }
 
 func (s *Server) opSessionClose(cc *clientConn, req protocol.Request) {
@@ -373,8 +484,7 @@ func (s *Server) opSessionClose(cc *clientConn, req protocol.Request) {
 	if tok != "" {
 		s.auth.CloseSession(tok)
 	}
-	cc.token = ""
-	cc.sess = nil
+	cc.clearSession()
 	s.writeResult(cc, req.ID, map[string]bool{"closed": true})
 }
 
@@ -383,8 +493,7 @@ func (s *Server) opBridgeStatus(ctx context.Context, cc *clientConn, req protoco
 		s.writeError(cc, req.ID, card.AsError(err))
 		return
 	}
-	snap := s.buildStatus()
-	s.writeResult(cc, req.ID, snap)
+	s.writeResult(cc, req.ID, s.buildStatus())
 }
 
 func (s *Server) opCardRead(ctx context.Context, cc *clientConn, req protocol.Request) {
@@ -412,16 +521,23 @@ func (s *Server) opCardRead(ctx context.Context, cc *clientConn, req protocol.Re
 		return
 	}
 
+	select {
+	case s.opSem <- struct{}{}:
+	case <-ctx.Done():
+		s.writeError(cc, req.ID, card.NewError(card.ErrCancelled, "read cancelled").WithRequestID(req.ID))
+		return
+	}
+	defer func() { <-s.opSem }()
+
 	readCtx, cancel := context.WithTimeout(ctx, s.cfg.ReadTimeout)
-	key := fmt.Sprintf("%s:%d", cc.token, req.ID)
-	s.cancelReadMu.Lock()
-	s.cancelRead[key] = cancel
-	s.cancelReadMu.Unlock()
+	cc.pendingMu.Lock()
+	cc.pending[req.ID] = cancel
+	cc.pendingMu.Unlock()
 	defer func() {
 		cancel()
-		s.cancelReadMu.Lock()
-		delete(s.cancelRead, key)
-		s.cancelReadMu.Unlock()
+		cc.pendingMu.Lock()
+		delete(cc.pending, req.ID)
+		cc.pendingMu.Unlock()
 	}()
 
 	res, err := s.readers.Read(readCtx, reader.ReadRequest{
@@ -435,25 +551,22 @@ func (s *Server) opCardRead(ctx context.Context, cc *clientConn, req protocol.Re
 		return
 	}
 
-	// Recheck authorization before delivery.
-	if _, err := s.auth.Session(cc.token, cc.origin, time.Now()); err != nil {
+	if _, err := s.auth.Session(cc.getToken(), cc.origin, time.Now()); err != nil {
 		s.writeError(cc, req.ID, card.NewError(card.ErrAuthExpired, "authorization revoked").WithRequestID(req.ID))
 		return
 	}
-	// Unicast result to this connection only.
 	s.writeResult(cc, req.ID, res)
 }
 
-func (s *Server) opCancel(ctx context.Context, cc *clientConn, req protocol.Request) {
+func (s *Server) opCancel(cc *clientConn, req protocol.Request) {
 	var p protocol.CancelPayload
 	if err := json.Unmarshal(req.Payload, &p); err != nil {
 		s.writeError(cc, req.ID, card.NewError(card.ErrInvalidRequest, "bad payload"))
 		return
 	}
-	key := fmt.Sprintf("%s:%d", cc.token, p.RequestID)
-	s.cancelReadMu.Lock()
-	cancel, ok := s.cancelRead[key]
-	s.cancelReadMu.Unlock()
+	cc.pendingMu.Lock()
+	cancel, ok := cc.pending[p.RequestID]
+	cc.pendingMu.Unlock()
 	if ok {
 		cancel()
 	}
@@ -469,8 +582,7 @@ func (s *Server) requireAuth(cc *clientConn, req protocol.Request) (*auth.Sessio
 	if err != nil {
 		return nil, card.AsError(err)
 	}
-	cc.token = tok
-	cc.sess = sess
+	cc.setSession(sess)
 	return sess, nil
 }
 
@@ -478,7 +590,7 @@ func tokenFrom(cc *clientConn, req protocol.Request) string {
 	if req.Token != "" {
 		return req.Token
 	}
-	return cc.token
+	return cc.getToken()
 }
 
 func (s *Server) buildStatus() protocol.StatusSnapshot {
@@ -536,49 +648,82 @@ func (s *Server) forwardReaderEvents(ctx context.Context) {
 			default:
 				continue
 			}
-			s.broadcastEvent(t, payload, nil)
+			s.broadcastEvent(t, payload)
 		}
 	}
 }
 
-func (s *Server) nextSeq() uint64 { return s.seq.Add(1) }
+// handleAuthRevoked delivers authorization.revoked then closes affected clients.
+func (s *Server) handleAuthRevoked(origin auth.Origin, tokens []string) {
+	s.clientsMu.Lock()
+	targets := make([]*clientConn, 0)
+	for _, cc := range s.clients {
+		tok := cc.getToken()
+		if tok == "" {
+			continue
+		}
+		for _, t := range tokens {
+			if tok == t {
+				targets = append(targets, cc)
+				break
+			}
+		}
+	}
+	s.clientsMu.Unlock()
+	for _, cc := range targets {
+		body, _ := json.Marshal(map[string]string{"reason": "origin revoked"})
+		s.writeEventTo(cc, protocol.TypeAuthRevoked, body)
+		cc.clearSession()
+		if cc.cancelOps != nil {
+			cc.cancelOps()
+		}
+		cc.closeWS(websocket.StatusPolicyViolation, "authorization revoked")
+	}
+}
 
-func (s *Server) broadcastEvent(t protocol.Type, payload any, only *clientConn) {
+func (s *Server) broadcastEvent(t protocol.Type, payload any) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
-	s.eventSubsMu.Lock()
-	targets := make([]*clientConn, 0, len(s.eventSubs))
-	for cc := range s.eventSubs {
-		// Unauthenticated / pairing-only clients receive no device events.
-		if cc.token == "" || cc.sess == nil {
-			continue
-		}
-		if only != nil && cc != only {
+	s.clientsMu.Lock()
+	targets := make([]*clientConn, 0, len(s.clients))
+	for _, cc := range s.clients {
+		if !cc.hasSession() {
 			continue
 		}
 		targets = append(targets, cc)
 	}
-	s.eventSubsMu.Unlock()
+	s.clientsMu.Unlock()
 
+	now := time.Now()
 	for _, cc := range targets {
+		if _, err := s.auth.Session(cc.getToken(), cc.origin, now); err != nil {
+			cc.clearSession()
+			cc.closeWS(websocket.StatusPolicyViolation, "authorization expired")
+			continue
+		}
 		s.writeEventTo(cc, t, body)
 	}
 }
 
 func (s *Server) writeEventTo(cc *clientConn, t protocol.Type, payload json.RawMessage) {
+	cc.writeMu.Lock()
+	cc.eventSeq++
+	seq := cc.eventSeq
+	cc.writeMu.Unlock()
+
 	raw, err := json.Marshal(protocol.Event{
 		V:          protocol.Major,
 		Type:       t,
 		InstanceID: s.InstanceID(),
-		Sequence:   s.nextSeq(),
+		Sequence:   seq,
 		Payload:    payload,
 	})
 	if err != nil {
 		return
 	}
-	_ = s.writeRaw(cc, raw)
+	cc.enqueue(raw)
 }
 
 func (s *Server) writeResult(cc *clientConn, id int64, result any) {
@@ -595,7 +740,7 @@ func (s *Server) writeResult(cc *clientConn, id int64, result any) {
 	if err != nil {
 		return
 	}
-	_ = s.writeRaw(cc, body)
+	cc.enqueue(body)
 }
 
 func (s *Server) writeError(cc *clientConn, id int64, e *card.Error) {
@@ -610,18 +755,64 @@ func (s *Server) writeError(cc *clientConn, id int64, e *card.Error) {
 	if err != nil {
 		return
 	}
-	_ = s.writeRaw(cc, body)
+	cc.enqueue(body)
 }
 
-func (s *Server) writeRaw(cc *clientConn, body []byte) error {
+// enqueue queues a frame. If the client is too slow, the connection is marked
+// dropped and closed — other clients are never delayed.
+func (cc *clientConn) enqueue(body []byte) {
 	cc.writeMu.Lock()
-	defer cc.writeMu.Unlock()
-	if cc.closed {
-		return nil
+	if cc.closed || cc.dropped {
+		cc.writeMu.Unlock()
+		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	return cc.ws.Write(ctx, websocket.MessageText, body)
+	select {
+	case cc.outq <- body:
+		cc.writeMu.Unlock()
+	default:
+		cc.dropped = true
+		cc.writeMu.Unlock()
+		go cc.closeWS(websocket.StatusPolicyViolation, "client too slow")
+	}
+}
+
+func (cc *clientConn) writeLoop() {
+	for body := range cc.outq {
+		cc.writeMu.Lock()
+		if cc.closed {
+			cc.writeMu.Unlock()
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err := cc.ws.Write(ctx, websocket.MessageText, body)
+		cancel()
+		if err != nil {
+			cc.closed = true
+			cc.writeMu.Unlock()
+			_ = cc.ws.Close(websocket.StatusInternalError, "write failed")
+			return
+		}
+		cc.writeMu.Unlock()
+	}
+}
+
+func (cc *clientConn) closeWS(code websocket.StatusCode, reason string) {
+	cc.writeMu.Lock()
+	if cc.closed {
+		cc.writeMu.Unlock()
+		return
+	}
+	cc.closed = true
+	cc.writeMu.Unlock()
+	_ = cc.ws.Close(code, reason)
+}
+
+func randomID() string {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "unknown"
+	}
+	return hex.EncodeToString(b[:])
 }
 
 // NewInstanceID creates a random bridge instance id.

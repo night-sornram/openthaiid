@@ -61,8 +61,9 @@ func Subset(want, allowed []Field) bool {
 	return true
 }
 
-// CardDate is a partial Gregorian or Buddhist-Era date.
+// CardDate is a partial Gregorian date.
 // Unknown components stay null; they are never defaulted to 1.
+// Year is always Common Era after parsing.
 type CardDate struct {
 	Year  *int `json:"year"`
 	Month *int `json:"month"`
@@ -79,12 +80,42 @@ type ThaiName struct {
 }
 
 // FieldValues holds normalized field results for one read.
-// Fields not requested are absent. Requested but unavailable fields are nil
-// and accompanied by a warning.
+// Unrequested fields are omitted from JSON. Requested but unavailable
+// fields marshal as null and carry a warning.
 type FieldValues struct {
 	CitizenID *string   `json:"citizenId,omitempty"`
 	ThaiName  *ThaiName `json:"thaiName,omitempty"`
 	BirthDate *CardDate `json:"birthDate,omitempty"`
+
+	requested []Field
+}
+
+// NewFieldValues records which fields were requested so unavailable ones
+// can be marshaled as explicit nulls.
+func NewFieldValues(requested []Field) *FieldValues {
+	return &FieldValues{requested: append([]Field(nil), requested...)}
+}
+
+// MarshalJSON emits only requested fields. Present values are encoded;
+// missing requested values are null.
+func (f FieldValues) MarshalJSON() ([]byte, error) {
+	if f.requested == nil {
+		// Fallback for values built without NewFieldValues (tests, copies).
+		type alias FieldValues
+		return jsonMarshal((*alias)(&f))
+	}
+	m := make(map[string]any, 3)
+	for _, field := range f.requested {
+		switch field {
+		case FieldCitizenID:
+			m["citizenId"] = f.CitizenID
+		case FieldThaiName:
+			m["thaiName"] = f.ThaiName
+		case FieldBirthDate:
+			m["birthDate"] = f.BirthDate
+		}
+	}
+	return jsonMarshal(m)
 }
 
 // Warning is a non-fatal field-level problem.

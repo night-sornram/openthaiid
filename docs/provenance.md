@@ -43,7 +43,26 @@ sequences is documented in:
 
 | Profile ID | Fields | Source URL | Immutable revision | Source license | Attribution | Concerns | Status |
 |---|---|---|---|---|---|---|---|
-| `thai-citizen-mvp` | `citizenId`, `thaiName`, `birthDate` | https://github.com/dotnetthailand/ThaiNationalIDCard/blob/main/APDU.md | repository HEAD at plan time (record exact SHA before release) | Community table; treat as requiring independent implementation | Credit community lineage (chakphanu / Manoi / dotnetthailand) in docs | Not an official government spec; layout may vary by card generation; real-card validation still required | **Implemented independently** — offsets used: SELECT `00 A4 04 00 08 A0 00 00 00 54 48 00 01`; CID `0x0004`/13; Thai name `0x0011`/`0x0075`/`0x00D9`/`0x013D`/100; birth `0x0331`/8. **Release still requires physical ACR39U acceptance.** |
+| `thai-citizen-mvp` | `citizenId`, `thaiName`, `birthDate` | https://github.com/dotnetthailand/ThaiNationalIDCard/blob/main/APDU.md | [`4d803243715254cc93efe9040d8b1ecd85f520aa`](https://github.com/dotnetthailand/ThaiNationalIDCard/blob/4d803243715254cc93efe9040d8b1ecd85f520aa/APDU.md) | Community command table; treat as requiring independent implementation | Credit community lineage (chakphanu / Manoi / dotnetthailand) in docs | Not an official government spec; layout may vary by card generation; real-card validation still required | **Implemented independently.** SELECT `00 A4 04 00 08 A0 00 00 00 54 48 00 01`. READ BINARY form `CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len`. Offsets: CID `0x0004`/13; Thai full name `0x0011`/100 (single `#`-delimited block); birth `0x00D9`/8 (Buddhist Era on card, Gregorian after parse). **Release still requires physical ACR39U acceptance.** |
+
+### Command facts used by `thai-citizen-mvp`
+
+Independently reconstructed from the cited table (not copied from source code):
+
+| Step | Bytes | Notes |
+|---|---|---|
+| SELECT | `00 A4 04 00 08 A0 00 00 00 54 48 00 01` | Direct DF name selection |
+| READ CID | `80 B0 00 04 02 00 0D` | 13 ASCII digits |
+| READ Thai name | `80 B0 00 11 02 00 64` | 100-byte block, `#` between title/given/middle/family |
+| READ birth date | `80 B0 00 D9 02 00 08` | `YYYYMMDD` Buddhist Era |
+| GET RESPONSE | `00 C0 00 00 <Le>` | Used after `61xx` |
+
+Open concerns retained for qualification:
+
+1. The community table is not a government specification.
+2. Card generations may differ; physical ACR39U acceptance is required before release claims.
+3. Name delimiter (`#`) and empty-middle handling must be confirmed on real cards during Phase G.
+4. Birth-date century edge cases (cards issued before BE 2400) are out of MVP scope and must remain unverified until observed.
 
 Before merging real-card reading for a profile:
 
@@ -56,7 +75,9 @@ Before merging real-card reading for a profile:
 ## Synthetic fixtures
 
 All automated tests use synthetic fixtures under `testdata/synthetic/`.
-CI must never contain captured real-card data.
+Fixtures specify command bytes, offsets, and expected parse results
+independently of implementation constants. CI must never contain captured
+real-card data.
 
 ## Dependency policy
 
@@ -66,7 +87,7 @@ Preferred candidates (subject to actual license terms):
 |---|---|---|
 | [ebfe/scard](https://github.com/ebfe/scard) @ `7af069cabc25c2ba8051ea6216c0eb0d376f95fb` | PC/SC bindings | BSD-2-Clause |
 | [coder/websocket](https://github.com/coder/websocket) | Loopback WebSocket | MIT-like permissive |
-| [golang.org/x/text](https://pkg.go.dev/golang.org/x/text/encoding/charmap) | Thai encoding helpers | BSD-3-Clause |
+| [golang.org/x/text](https://pkg.go.dev/golang.org/x/text/encoding/charmap) | Windows-874 decoder for Thai name fields | BSD-3-Clause |
 
 Rejected:
 

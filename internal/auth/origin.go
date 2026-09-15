@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"fmt"
 	"net"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/night-sornram/openthaiid/internal/card"
@@ -14,7 +16,10 @@ import (
 //   - parse as absolute URL with scheme http/https
 //   - no userinfo
 //   - host must be present
+//   - no path, query, or fragment
+//   - port must be numeric 1–65535 when present
 //   - default ports dropped from the canonical form
+//   - IPv6 hosts keep bracketed serialization
 func NormalizeOrigin(raw string) (Origin, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" || raw == "null" || raw == "*" {
@@ -31,24 +36,41 @@ func NormalizeOrigin(raw string) (Origin, error) {
 	if u.User != nil {
 		return "", card.NewError(card.ErrApprovalDenied, "invalid origin userinfo")
 	}
+	if u.Path != "" && u.Path != "/" {
+		return "", card.NewError(card.ErrApprovalDenied, "invalid origin path")
+	}
+	if u.RawQuery != "" || u.Fragment != "" {
+		return "", card.NewError(card.ErrApprovalDenied, "invalid origin query or fragment")
+	}
 	host := strings.ToLower(u.Hostname())
 	if host == "" {
 		return "", card.NewError(card.ErrApprovalDenied, "invalid origin host")
 	}
-	// Reject wildcards and empty labels.
 	if host == "*" || strings.Contains(host, "*") {
 		return "", card.NewError(card.ErrApprovalDenied, "wildcard origin forbidden")
 	}
+
 	port := u.Port()
-	switch {
-	case port == "":
-		// keep empty for default ports
-	case scheme == "http" && port == "80":
-		port = ""
-	case scheme == "https" && port == "443":
-		port = ""
+	if port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return "", card.NewError(card.ErrApprovalDenied, "invalid origin port")
+		}
+		switch {
+		case scheme == "http" && port == "80":
+			port = ""
+		case scheme == "https" && port == "443":
+			port = ""
+		}
 	}
-	out := scheme + "://" + host
+
+	out := scheme + "://"
+	if strings.Contains(host, ":") {
+		// IPv6 literal keeps brackets in the serialized origin.
+		out += "[" + host + "]"
+	} else {
+		out += host
+	}
 	if port != "" {
 		out += ":" + port
 	}
@@ -114,4 +136,16 @@ func ValidHostAuthority(got, want string) bool {
 	g := strings.ToLower(strings.TrimSpace(got))
 	w := strings.ToLower(strings.TrimSpace(want))
 	return g != "" && g == w
+}
+
+// FormatOrigin is a helper for tests and terminal display.
+func FormatOrigin(o Origin) string { return string(o) }
+
+// MustOrigin is a test helper.
+func MustOrigin(raw string) Origin {
+	o, err := NormalizeOrigin(raw)
+	if err != nil {
+		panic(fmt.Sprintf("origin %q: %v", raw, err))
+	}
+	return o
 }

@@ -86,9 +86,20 @@ func main() {
 
 	var factory readerFactories
 	if synthetic {
+		// Share one synthetic device state across monitor and read contexts
+		// so inventory and card presence stay consistent. Seed one clearly
+		// labeled fictional card for the documented demo path.
+		shared := pcsc.NewSyntheticState()
 		factory = readerFactories{
-			monitor: func() (pcsc.Backend, error) { return pcsc.NewSyntheticBackend(), nil },
-			read:    func() (pcsc.Backend, error) { return pcsc.NewSyntheticBackend(), nil },
+			monitor: func() (pcsc.Backend, error) {
+				b := pcsc.NewSyntheticWithState(shared)
+				return b, nil
+			},
+			read: func() (pcsc.Backend, error) {
+				b := pcsc.NewSyntheticWithState(shared)
+				b.SeedDemoCard()
+				return b, nil
+			},
 		}
 	} else {
 		factory = readerFactories{

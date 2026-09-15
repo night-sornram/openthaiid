@@ -1,24 +1,21 @@
 package card
 
 import (
-	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 // decodeThaiField trims padding from a fixed-width TIS-620/Windows-874 field.
 // Trailing spaces and NULs are removed; internal spaces are preserved.
-// Invalid bytes become U+FFFD via replacement decoding but still yield a value
-// with a warning at a higher layer when needed.
 func decodeThaiField(raw []byte, expect int) *string {
 	if len(raw) == 0 {
 		return nil
 	}
-	// Only use up to expect bytes if the buffer is longer.
 	if expect > 0 && len(raw) > expect {
 		raw = raw[:expect]
 	}
-	// Trim trailing NULs and ASCII spaces (common card padding).
 	end := len(raw)
 	for end > 0 && (raw[end-1] == 0x00 || raw[end-1] == 0x20) {
 		end--
@@ -27,8 +24,7 @@ func decodeThaiField(raw []byte, expect int) *string {
 	if len(raw) == 0 {
 		return nil
 	}
-	s := decodeTIS620(raw)
-	// Collapse only leading/trailing whitespace after decode.
+	s := decodeWindows874(raw)
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return nil
@@ -36,55 +32,25 @@ func decodeThaiField(raw []byte, expect int) *string {
 	return &s
 }
 
-// decodeTIS620 maps bytes to Unicode.
-// TIS-620 is the 0xA1–0xFB Thai range; 0x00–0x7F are ASCII.
-// Bytes 0x80–0xA0 and 0xFC–0xFF use Windows-874 extensions when valid.
-func decodeTIS620(b []byte) string {
-	var sb strings.Builder
-	sb.Grow(len(b))
-	for i := 0; i < len(b); i++ {
-		c := b[i]
-		switch {
-		case c < 0x80:
-			sb.WriteByte(c)
-		case c >= 0xA1 && c <= 0xFB:
-			// TIS-620 Thai: U+0E01 + (c - 0xA1)
-			sb.WriteRune(rune(0x0E01 + int(c-0xA1)))
-		case c == 0xA0:
-			sb.WriteRune(0x00A0) // NBSP (Win-874)
-		case c >= 0x80 && c <= 0x9F:
-			// Win-874 specials (quotes, ellipsis, etc.) — map a few common ones.
-			sb.WriteString(win874Special(c))
-		default:
-			sb.WriteRune(utf8.RuneError)
+// decodeWindows874 maps bytes to Unicode using the reviewed Windows-874
+// decoder (superset of TIS-620 used by Thai identity cards).
+func decodeWindows874(b []byte) string {
+	out, err := charmap.Windows874.NewDecoder().Bytes(b)
+	if err != nil {
+		// Replacement path: ASCII pass-through plus U+FFFD for undecodable bytes.
+		var sb strings.Builder
+		sb.Grow(len(b))
+		for i := 0; i < len(b); i++ {
+			c := b[i]
+			if c < 0x80 {
+				sb.WriteByte(c)
+			} else {
+				sb.WriteRune(utf8.RuneError)
+			}
 		}
+		return sb.String()
 	}
-	return sb.String()
-}
-
-func win874Special(c byte) string {
-	switch c {
-	case 0x80:
-		return "€"
-	case 0x85:
-		return "…"
-	case 0x91:
-		return "‘"
-	case 0x92:
-		return "’"
-	case 0x93:
-		return "“"
-	case 0x94:
-		return "”"
-	case 0x95:
-		return "•"
-	case 0x96:
-		return "–"
-	case 0x97:
-		return "—"
-	default:
-		return string(rune(c))
-	}
+	return string(out)
 }
 
 // parseCitizenID validates a 13-digit citizen id.
@@ -103,7 +69,6 @@ func parseCitizenID(raw []byte) (*string, *Warning) {
 		}
 	}
 	if !citizenIDChecksumOK(s) {
-		// Still return the value; checksum is advisory.
 		w := Warning{Field: FieldCitizenID, Code: "CHECKSUM", Message: "citizen id checksum failed"}
 		return &s, &w
 	}
@@ -126,9 +91,10 @@ func citizenIDChecksumOK(s string) bool {
 }
 
 // parseBirthDate parses an 8-byte YYYYMMDD field.
-// Year is Buddhist Era when it looks like BE (>= 2400).
+// Card years are Buddhist Era (typically 2400+); output year is Gregorian.
 // Unknown/invalid components become null with a warning; a zero day is never
-// replaced with 1.
+// replaced with 1. Leap-year and month-length rules are validated on the
+// Gregorian calendar after conversion.
 func parseBirthDate(raw []byte) (*CardDate, *Warning) {
 	s := strings.TrimSpace(string(raw))
 	s = strings.Trim(s, "\x00")
@@ -142,14 +108,18 @@ func parseBirthDate(raw []byte) (*CardDate, *Warning) {
 			return nil, &w
 		}
 	}
-	y, _ := strconv.Atoi(s[0:4])
-	mo, _ := strconv.Atoi(s[4:6])
-	day, _ := strconv.Atoi(s[6:8])
+	y, _ := atoi2(s[0:4])
+	mo, _ := atoi2(s[4:6])
+	day, _ := atoi2(s[6:8])
+
+	// Buddhist Era → Common Era for realistic Thai ID years.
+	if y >= 2400 {
+		y = y - 543
+	}
 
 	d := &CardDate{}
 	var warns []Warning
 
-	// Buddhist Era years are 2400+; Gregorian would be 1900–2099 for this domain.
 	if y == 0 {
 		d.Year = nil
 	} else {
@@ -163,19 +133,126 @@ func parseBirthDate(raw []byte) (*CardDate, *Warning) {
 	} else {
 		d.Month = &mo
 	}
-	if day == 0 || day > 31 {
-		// Zero day means unknown — do not default to 1.
+
+	maxDay := 0
+	if mo >= 1 && mo <= 12 && y != 0 {
+		maxDay = daysInGregorianMonth(y, mo)
+	} else if mo >= 1 && mo <= 12 {
+		// Year unknown: reject only clearly impossible days.
+		maxDay = 31
+	}
+
+	if day == 0 {
 		d.Day = nil
-		if day != 0 {
-			warns = append(warns, Warning{Field: FieldBirthDate, Code: "BAD_DAY", Message: "birth day invalid"})
-		}
+	} else if maxDay > 0 && day > maxDay {
+		d.Day = nil
+		warns = append(warns, Warning{Field: FieldBirthDate, Code: "BAD_DAY", Message: "birth day invalid"})
 	} else {
 		d.Day = &day
 	}
+
+	// Fully unknown date is an unavailable field, not an empty object.
+	if d.Year == nil && d.Month == nil && d.Day == nil {
+		if len(warns) == 0 {
+			warns = append(warns, Warning{Field: FieldBirthDate, Code: "EMPTY", Message: "birth date empty"})
+		}
+		return nil, &warns[0]
+	}
+
 	if len(warns) > 0 {
 		return d, &warns[0]
 	}
 	return d, nil
+}
+
+func atoi2(s string) (int, bool) {
+	n := 0
+	if len(s) == 0 {
+		return 0, false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return 0, false
+		}
+		n = n*10 + int(s[i]-'0')
+	}
+	return n, true
+}
+
+func isGregorianLeap(y int) bool {
+	return y%4 == 0 && (y%100 != 0 || y%400 == 0)
+}
+
+func daysInGregorianMonth(y, m int) int {
+	switch m {
+	case 1, 3, 5, 7, 8, 10, 12:
+		return 31
+	case 4, 6, 9, 11:
+		return 30
+	case 2:
+		if isGregorianLeap(y) {
+			return 29
+		}
+		return 28
+	default:
+		return 0
+	}
+}
+
+// parseThaiNameBlock splits a single 100-byte Thai-name block.
+// Community card layout uses '#' between components:
+//
+//	title # given # middle # family
+//
+// An empty middle name appears as consecutive delimiters. When '#' is absent
+// the block is split on whitespace (title given [middle] family).
+func parseThaiNameBlock(raw []byte) (*ThaiName, *Warning) {
+	s := decodeThaiField(raw, 0)
+	if s == nil {
+		return nil, &Warning{Field: FieldThaiName, Code: "EMPTY", Message: "name fields empty"}
+	}
+	var parts []string
+	if strings.Contains(*s, "#") {
+		parts = strings.Split(*s, "#")
+		// Drop a trailing empty component from a trailing delimiter.
+		if n := len(parts); n > 0 && parts[n-1] == "" {
+			parts = parts[:n-1]
+		}
+	} else {
+		parts = strings.Fields(*s)
+	}
+	if len(parts) == 0 {
+		return nil, &Warning{Field: FieldThaiName, Code: "EMPTY", Message: "name fields empty"}
+	}
+
+	trim := func(p string) *string {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return nil
+		}
+		return &p
+	}
+
+	var title, given, middle, family *string
+	switch len(parts) {
+	case 1:
+		// Only a single token — treat as given name.
+		given = trim(parts[0])
+	case 2:
+		title = trim(parts[0])
+		given = trim(parts[1])
+	case 3:
+		title = trim(parts[0])
+		given = trim(parts[1])
+		family = trim(parts[2])
+	default:
+		title = trim(parts[0])
+		given = trim(parts[1])
+		middle = trim(parts[2])
+		family = trim(parts[3])
+	}
+
+	return buildThaiName(title, given, middle, family)
 }
 
 // buildThaiName assembles a ThaiName and fullName.

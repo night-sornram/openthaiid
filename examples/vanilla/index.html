@@ -115,6 +115,12 @@
       thaiID.on("cardChanged", ({ present }) => {
         if (!present) outEl.textContent = "No card data yet.";
       });
+      thaiID.on("error", (err) => {
+        if (err.code === "AUTH_EXPIRED" || err.code === "CONNECTION_FAILED") {
+          outEl.textContent = "No card data yet.";
+          approvalEl.textContent = "";
+        }
+      });
 
       connectBtn.addEventListener("click", async () => {
         outEl.textContent = "Connecting…";

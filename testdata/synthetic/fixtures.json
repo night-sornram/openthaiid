@@ -1,10 +1,27 @@
 {
-  "$comment": "Synthetic fixtures only. Never commit captured real-card data.",
+  "$comment": "Synthetic fixtures only. Never commit captured real-card data. Command bytes independently specified from dotnetthailand/ThaiNationalIDCard APDU.md @ 4d803243715254cc93efe9040d8b1ecd85f520aa (community table; independent implementation).",
+  "source": {
+    "url": "https://github.com/dotnetthailand/ThaiNationalIDCard/blob/main/APDU.md",
+    "revision": "4d803243715254cc93efe9040d8b1ecd85f520aa",
+    "license": "community table; independent implementation required"
+  },
   "profiles": {
     "thai-citizen-mvp": {
-      "status": "blocked-pending-provenance-review",
+      "status": "implemented-independently",
       "fields": ["citizenId", "thaiName", "birthDate"],
-      "note": "Offsets and APDUs must be independently implemented after Phase 0 source review. Values below are invented for parser tests."
+      "apduForm": "CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len",
+      "commands": {
+        "select": "00A4040008A000000054480001",
+        "citizenId": "80B0000402000D",
+        "thaiName": "80B00011020064",
+        "birthDate": "80B000D9020008"
+      },
+      "offsets": {
+        "citizenId": "0x0004",
+        "thaiName": "0x0011",
+        "birthDate": "0x00D9"
+      },
+      "note": "Thai name is a single 100-byte block with '#' delimiters between title/given/middle/family. Birth date year is Buddhist Era on card and Gregorian after parse."
     }
   },
   "fixtures": [
@@ -14,8 +31,12 @@
       "expect": { "citizenId": "1101701234567" }
     },
     {
-      "name": "thai-name-trim-padding",
-      "input": { "rawTis620Hex": "" },
+      "name": "thai-name-hash-delimited",
+      "input": {
+        "rawTis620Hex": "",
+        "rawUtf8": "นาย#สมชาย##ใจดี",
+        "note": "TIS-620 bytes: A2 C1 D2 23 A4 CB A2 B9 C1 23 23 A4 CA B9"
+      },
       "expect": {
         "thaiName": {
           "title": "นาย",
@@ -24,21 +45,54 @@
           "familyName": "ใจดี",
           "fullName": "นาย สมชาย ใจดี"
         }
-      },
-      "note": "Concrete TIS-620 bytes are filled when the parser lands in Phase 3."
+      }
     },
     {
-      "name": "birth-date-be-partial",
+      "name": "birth-date-be-to-gregorian",
       "input": { "raw": "25330412" },
       "expect": {
-        "birthDate": { "year": 2533, "month": 4, "day": 12 }
-      }
+        "birthDate": { "year": 1990, "month": 4, "day": 12 }
+      },
+      "note": "2533 BE → 1990 CE"
     },
     {
       "name": "birth-date-unknown-day",
       "input": { "raw": "25330400" },
       "expect": {
-        "birthDate": { "year": 2533, "month": 4, "day": null }
+        "birthDate": { "year": 1990, "month": 4, "day": null }
+      }
+    },
+    {
+      "name": "birth-date-leap-ok",
+      "input": { "raw": "25270229" },
+      "expect": {
+        "birthDate": { "year": 1984, "month": 2, "day": 29 }
+      }
+    },
+    {
+      "name": "birth-date-non-leap-rejected",
+      "input": { "raw": "25280229" },
+      "expect": {
+        "birthDate": { "year": 1985, "month": 2, "day": null }
+      }
+    },
+    {
+      "name": "command-bytes-citizen-id",
+      "input": { "fields": ["citizenId"] },
+      "expect": {
+        "apdus": ["00A4040008A000000054480001", "80B0000402000D"]
+      }
+    },
+    {
+      "name": "command-bytes-all-mvp",
+      "input": { "fields": ["citizenId", "thaiName", "birthDate"] },
+      "expect": {
+        "apdus": [
+          "00A4040008A000000054480001",
+          "80B0000402000D",
+          "80B00011020064",
+          "80B000D9020008"
+        ]
       }
     }
   ]

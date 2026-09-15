@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,12 +18,19 @@ func TestNormalizeOrigin(t *testing.T) {
 		{"https://Clinic.Example.com", "https://clinic.example.com", true},
 		{"https://clinic.example.com:443", "https://clinic.example.com", true},
 		{"http://127.0.0.1:5173", "http://127.0.0.1:5173", true},
+		{"http://[::1]:5173", "http://[::1]:5173", true},
 		{"", "", false},
 		{"null", "", false},
 		{"*", "", false},
 		{"https://*.example.com", "", false},
 		{"ftp://example.com", "", false},
 		{"https://user:pass@example.com", "", false},
+		{"https://clinic.example.com/path", "", false},
+		{"https://clinic.example.com?q=1", "", false},
+		{"https://clinic.example.com#frag", "", false},
+		{"https://clinic.example.com:99999", "", false},
+		{"https://clinic.example.com:abc", "", false},
+		{"https://clinic.example.com:0", "", false},
 	}
 	for _, tc := range cases {
 		got, err := NormalizeOrigin(tc.in)
@@ -79,7 +88,7 @@ func TestApprovalFlow(t *testing.T) {
 	origin, _ := NormalizeOrigin("https://clinic.example.com")
 	fields := []card.Field{card.FieldThaiName}
 
-	p, err := m.RequestApproval(origin, fields, now)
+	p, err := m.RequestApproval(origin, fields, "conn-1", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +125,7 @@ func TestDenial(t *testing.T) {
 	now := time.Now()
 	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)
 	origin, _ := NormalizeOrigin("https://a.example")
-	p, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, now)
+	p, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,8 +135,7 @@ func TestDenial(t *testing.T) {
 	if _, err := m.OpenSession(origin, []card.Field{card.FieldCitizenID}, now); err == nil {
 		t.Fatal("denied origin must not get a session")
 	}
-	// Cooldown blocks new approvals.
-	if _, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, now); err == nil {
+	if _, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now); err == nil {
 		t.Fatal("expected cooldown rate limit")
 	}
 }
@@ -137,7 +145,7 @@ func TestNonInteractiveFailsClosed(t *testing.T) {
 	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)
 	m.NonInteractive = true
 	origin, _ := NormalizeOrigin("https://a.example")
-	if _, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, now); err == nil {
+	if _, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now); err == nil {
 		t.Fatal("noninteractive must deny new approvals")
 	}
 }
@@ -146,7 +154,7 @@ func TestTokenExpiry(t *testing.T) {
 	now := time.Now()
 	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)
 	origin, _ := NormalizeOrigin("https://a.example")
-	p, _ := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, now)
+	p, _ := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now)
 	_, _ = m.Resolve(p.ID, true, now)
 	s, err := m.OpenSession(origin, []card.Field{card.FieldCitizenID}, now)
 	if err != nil {
@@ -155,5 +163,120 @@ func TestTokenExpiry(t *testing.T) {
 	later := now.Add(2 * time.Minute)
 	if _, err := m.Session(s.Token, origin, later); err == nil {
 		t.Fatal("expired session must fail")
+	}
+}
+
+func TestSessionCappedAtGrantExpiry(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", 30*time.Second, time.Hour, 2*time.Second, 4)
+	origin, _ := NormalizeOrigin("https://a.example")
+	p, _ := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now)
+	_, _ = m.Resolve(p.ID, true, now)
+	s, err := m.OpenSession(origin, []card.Field{card.FieldCitizenID}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	grantEnd := now.Add(30 * time.Second)
+	if s.ExpiresAt.After(grantEnd) {
+		t.Fatalf("session expiry %s exceeds grant %s", s.ExpiresAt, grantEnd)
+	}
+}
+
+func TestExpiredGrantInvalidatesLiveToken(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", 30*time.Second, time.Hour, 2*time.Second, 4)
+	origin, _ := NormalizeOrigin("https://a.example")
+	p, _ := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now)
+	_, _ = m.Resolve(p.ID, true, now)
+	// Craft a session that outlives the grant by temporarily using a long TTL
+	// manager state: reopen after grant would expire is refused; Session() must
+	// also refuse an existing token once the grant is gone.
+	s, err := m.OpenSession(origin, []card.Field{card.FieldCitizenID}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Manually expire the grant.
+	m.mu.Lock()
+	m.grants[origin].ExpiresAt = now.Add(time.Second)
+	m.mu.Unlock()
+	later := now.Add(2 * time.Second)
+	if _, err := m.Session(s.Token, origin, later); err == nil {
+		t.Fatal("expired grant must invalidate session token")
+	}
+}
+
+func TestRevocationCallback(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)
+	var gotOrigin Origin
+	var gotTokens []string
+	m.OnRevoke = func(o Origin, tokens []string) {
+		gotOrigin = o
+		gotTokens = tokens
+	}
+	origin, _ := NormalizeOrigin("https://a.example")
+	p, _ := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now)
+	_, _ = m.Resolve(p.ID, true, now)
+	s, err := m.OpenSession(origin, []card.Field{card.FieldCitizenID}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := m.RevokeOrigin(origin); n != 1 {
+		t.Fatalf("revoked %d", n)
+	}
+	if gotOrigin != origin || len(gotTokens) != 1 || gotTokens[0] != s.Token {
+		t.Fatalf("callback %v %v", gotOrigin, gotTokens)
+	}
+}
+
+func TestCancelPendingOnDisconnect(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", time.Hour, time.Minute, 5*time.Second, 4)
+	origin, _ := NormalizeOrigin("https://a.example")
+	p, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "conn-x", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := m.CancelPendingByConnection("conn-x")
+	if len(ids) != 1 || ids[0] != p.ID {
+		t.Fatalf("ids %v", ids)
+	}
+	if len(m.Pending(now)) != 0 {
+		t.Fatal("pending should be empty after cancel")
+	}
+}
+
+func TestWaitContextCancel(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", time.Hour, time.Minute, 10*time.Second, 4)
+	origin, _ := NormalizeOrigin("https://a.example")
+	p, err := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "conn-y", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := m.Wait(ctx, p)
+		done <- err
+	}()
+	cancel()
+	select {
+	case err := <-done:
+		if err == nil || card.AsError(err).Code != card.ErrCancelled {
+			t.Fatalf("err %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("wait did not honor context")
+	}
+}
+
+func TestEscapeTerminal(t *testing.T) {
+	got := EscapeTerminal("ok\x1b[31mred")
+	if strings.Contains(got, "\x1b") {
+		t.Fatalf("control char not escaped: %q", got)
+	}
+	if !strings.Contains(got, `\x1b`) {
+		t.Fatalf("expected escaped form, got %q", got)
 	}
 }

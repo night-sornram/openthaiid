@@ -39,8 +39,9 @@ func startTestBridge(t *testing.T, autoAllow bool) (url string, authMgr *auth.Ma
 
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	authMgr = auth.NewManager("bridge-it", cfg.TrustDuration, cfg.SessionDuration, cfg.ApprovalTimeout, cfg.MaxPendingApprovals)
-	mon = pcsc.NewSynthetic()
-	rdb = pcsc.NewSynthetic()
+	shared := pcsc.NewSyntheticState()
+	mon = pcsc.NewSyntheticWithState(shared)
+	rdb = pcsc.NewSyntheticWithState(shared)
 	ctx, cancel := context.WithCancel(context.Background())
 	if err := mon.Establish(ctx); err != nil {
 		t.Fatal(err)
@@ -83,7 +84,8 @@ func startTestBridge(t *testing.T, autoAllow bool) (url string, authMgr *auth.Ma
 func scriptThaiCard(rdb *pcsc.SyntheticBackend) {
 	p := card.ThaiCitizenMVP{}
 	rdb.SetScriptResponse(string(p.SelectCommand()), append([]byte(nil), 0x90, 0x00))
-	rdb.SetScriptResponse(string([]byte{0x80, 0xB0, 0x00, 0x04, 0x0D}), append([]byte("1101701234567"), 0x90, 0x00))
+	// Documented READ BINARY: 80 B0 P1 P2 Lc=02 Data=00 Le
+	rdb.SetScriptResponse(string([]byte{0x80, 0xB0, 0x00, 0x04, 0x02, 0x00, 0x0D}), append([]byte("1101701234567"), 0x90, 0x00))
 	// Minimal: only CID for this test.
 }
 
