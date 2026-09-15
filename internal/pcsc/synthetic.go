@@ -19,6 +19,16 @@ type SyntheticState struct {
 	script   map[string][]byte
 	failOpen map[string]bool
 	stalled  bool
+
+	// block maps a lifecycle phase → channel closed to unblock it.
+	// Phases: open, begin, transmit, end, close.
+	block map[string]chan struct{}
+	// cleanupCounts records EndTransaction / Close invocations for
+	// exactly-once cleanup assertions.
+	endTxCalls  int
+	closeCalls  int
+	openCalls   int
+	blockHooked bool
 }
 
 // NewSyntheticState creates empty shared device state.
@@ -28,6 +38,7 @@ func NewSyntheticState() *SyntheticState {
 		present:  map[string]bool{},
 		script:   map[string][]byte{},
 		failOpen: map[string]bool{},
+		block:    map[string]chan struct{}{},
 	}
 }
 
@@ -154,6 +165,9 @@ func (s *SyntheticBackend) Open(ctx context.Context, readerID string) (CardConne
 	if err := s.Supported(); err != nil {
 		return nil, err
 	}
+	if err := s.state.waitPhase(ctx, "open"); err != nil {
+		return nil, err
+	}
 	s.state.mu.Lock()
 	defer s.state.mu.Unlock()
 	if s.state.failOpen[readerID] {
@@ -165,6 +179,7 @@ func (s *SyntheticBackend) Open(ctx context.Context, readerID string) (CardConne
 	if !s.state.present[readerID] {
 		return nil, card.NewError(card.ErrNoCard, "no card")
 	}
+	s.state.openCalls++
 	return &syntheticConn{sb: s, readerID: readerID}, nil
 }
 
@@ -197,6 +212,76 @@ func (s *SyntheticBackend) RemoveCard(id string) {
 // SetStalled simulates a hung native call surface.
 func (s *SyntheticBackend) SetStalled(v bool) {
 	s.state.SetStalled(v)
+}
+
+// BlockPhase parks the named lifecycle phase until UnblockPhase is called.
+// Phases: open | begin | transmit | end | close.
+func (s *SyntheticBackend) BlockPhase(phase string) {
+	s.state.BlockPhase(phase)
+}
+
+// UnblockPhase releases a previously blocked phase.
+func (s *SyntheticBackend) UnblockPhase(phase string) {
+	s.state.UnblockPhase(phase)
+}
+
+// CleanupStats returns end-transaction and close call counts.
+func (s *SyntheticBackend) CleanupStats() (endTx, closes int) {
+	return s.state.CleanupStats()
+}
+
+// OpenStats returns the number of Open calls.
+func (s *SyntheticBackend) OpenStats() int {
+	s.state.mu.Lock()
+	defer s.state.mu.Unlock()
+	return s.state.openCalls
+}
+
+func (st *SyntheticState) BlockPhase(phase string) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if _, ok := st.block[phase]; !ok {
+		st.block[phase] = make(chan struct{})
+	}
+}
+
+func (st *SyntheticState) UnblockPhase(phase string) {
+	st.mu.Lock()
+	ch, ok := st.block[phase]
+	delete(st.block, phase)
+	st.mu.Unlock()
+	if ok {
+		close(ch)
+	}
+}
+
+func (st *SyntheticState) CleanupStats() (endTx, closes int) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return st.endTxCalls, st.closeCalls
+}
+
+func (st *SyntheticState) waitPhase(ctx context.Context, phase string) error {
+	st.mu.Lock()
+	ch, ok := st.block[phase]
+	st.mu.Unlock()
+	if !ok {
+		return nil
+	}
+	// Non-cooperative: wait is not cancelled by the request context.
+	// Use a long safety bound only.
+	timer := time.NewTimer(60 * time.Second)
+	defer timer.Stop()
+	select {
+	case <-ch:
+		return nil
+	case <-timer.C:
+		return card.NewError(card.ErrBackendStalled, "blocked phase timed out")
+	case <-ctx.Done():
+		// Still honor an explicit caller cancel for cooperative tests that
+		// pass a cancellable context into Transmit/Open helpers.
+		return ctx.Err()
+	}
 }
 
 // SetScriptResponse programs the response for a command string.
@@ -351,6 +436,12 @@ func (c *syntheticConn) Transmit(ctx context.Context, command []byte, maxResp in
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if err := c.sb.state.waitPhase(ctx, "transmit"); err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
@@ -360,27 +451,40 @@ func (c *syntheticConn) Transmit(ctx context.Context, command []byte, maxResp in
 }
 
 func (c *syntheticConn) BeginTransaction(ctx context.Context) error {
+	if err := c.sb.state.waitPhase(ctx, "begin"); err != nil {
+		return err
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
-		return nil
+		return card.NewError(card.ErrCancelled, "connection closed")
 	}
 	c.inTx = true
 	return nil
 }
 
 func (c *syntheticConn) EndTransaction(ctx context.Context) error {
+	// Cleanup is non-cooperative: do not honor request cancellation here.
+	// UnblockPhase (or the safety timeout in waitPhase) is the only way out.
+	_ = c.sb.state.waitPhase(context.Background(), "end")
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.inTx = false
+	c.sb.state.mu.Lock()
+	c.sb.state.endTxCalls++
+	c.sb.state.mu.Unlock()
+	c.mu.Unlock()
 	return nil
 }
 
 func (c *syntheticConn) Close() error {
+	_ = c.sb.state.waitPhase(context.Background(), "close")
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.closed = true
 	c.inTx = false
+	c.sb.state.mu.Lock()
+	c.sb.state.closeCalls++
+	c.sb.state.mu.Unlock()
+	c.mu.Unlock()
 	return nil
 }
 

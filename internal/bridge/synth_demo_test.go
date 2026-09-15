@@ -7,20 +7,20 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/night-sornram/openthaiid/internal/card"
+	"github.com/night-sornram/openthaiid/internal/pcsc"
 	"github.com/night-sornram/openthaiid/internal/protocol"
 )
 
 func TestSyntheticDemoReadAllFields(t *testing.T) {
-	wsURL, _, mon, rdb, _ := startTestBridge(t, true)
-	rdb.SeedDemoCard()
-	// Force the monitor loop to pick up the seeded reader/card.
-	mon.AddReader("synthetic-acr39u", "SYNTHETIC ACR39U (fictional demo)")
-	mon.InsertCard("synthetic-acr39u")
-	time.Sleep(80 * time.Millisecond)
+	// Seed the demo card BEFORE manager start so the first resync sees it.
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	tb.waitCardReady(t, "synthetic-acr39u")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
-	conn, _ := dial(t, ctx, wsURL, "https://clinic.example.com")
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
 	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
 
 	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
@@ -48,9 +48,12 @@ func TestSyntheticDemoReadAllFields(t *testing.T) {
 		if name == nil || name["givenName"] != "สมชาย" {
 			t.Fatalf("name %v", name)
 		}
+		if name["fullName"] != "นาย สมชาย ใจดี" {
+			t.Fatalf("fullName %v", name["fullName"])
+		}
 		birth, _ := fields["birthDate"].(map[string]any)
-		if birth == nil || birth["year"] != 1990.0 {
-			t.Fatalf("birth %v", birth)
+		if birth == nil || birth["year"] != 1990.0 || birth["month"] != 4.0 || birth["day"] != 12.0 {
+			t.Fatalf("birth %v (expected 1990-04-12)", birth)
 		}
 		return
 	}

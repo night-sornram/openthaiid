@@ -22,6 +22,9 @@ within browser security rules only.
 | Malformed card or oversized frames | Strict lengths, bounded command sequences, parser validation |
 | Compromised authorized site | Narrow field grants, expiry, revocation |
 | Local malware impersonating an origin | Outside browser-origin trust guarantee |
+| Slow client delaying others | Per-connection output queue; overflow closes with WS 1013 |
+| Request flooding a connection | Eight concurrent async operations max; excess is `RATE_LIMITED` |
+| Stuck native PC/SC call | Slot retained; `BACKEND_STALLED` after 2s post-cancel; no unsafe context release |
 
 ## Handshake policy
 
@@ -55,6 +58,8 @@ within browser security rules only.
 - Revocation cancels pending reads, closes sessions, and blocks delivery.
 - Authorization is rechecked before delivering a completed read.
 - Noninteractive processes fail closed on new approvals.
+- At most eight asynchronous operations may be in flight per connection.
+- Revocation during a blocked read suppresses the result and closes the socket.
 
 ## Privacy and logging
 

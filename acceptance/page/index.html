@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenThaiID acceptance</title>
+    <style>
+      body { font: 14px/1.4 system-ui, sans-serif; margin: 2rem; }
+      button { margin-right: 0.5rem; }
+      #out { white-space: pre-wrap; font-family: ui-monospace, monospace; background: #f6f6f6; padding: 1rem; min-height: 8rem; }
+      #approval { color: #666; }
+    </style>
+  </head>
+  <body>
+    <h1>OpenThaiID acceptance</h1>
+    <p>Status: <strong id="status">disconnected</strong><span id="approval"></span></p>
+    <p>
+      <button id="connect" type="button">Connect</button>
+      <button id="read" type="button" disabled>Read</button>
+      <button id="disconnect" type="button" disabled>Disconnect</button>
+    </p>
+    <div id="out">No card data yet.</div>
+    <script type="module" src="/acceptance/page/app.js"></script>
+  </body>
+</html>

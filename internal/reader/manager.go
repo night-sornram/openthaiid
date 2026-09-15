@@ -12,6 +12,10 @@ import (
 	"github.com/night-sornram/openthaiid/internal/pcsc"
 )
 
+// StallGrace is how long after cancellation/timeout a blocked native call
+// may remain outstanding before the backend is marked stalled.
+const StallGrace = 2 * time.Second
+
 // Presence mirrors pcsc.CardPresence in the public reader view.
 type Presence = pcsc.CardPresence
 
@@ -52,6 +56,17 @@ type Manager struct {
 	reading bool
 	stalled bool
 
+	// activeWorker is non-nil while a native read worker owns the slot.
+	activeWorker *readWorker
+	// idle is closed when no native worker holds the slot.
+	idle chan struct{}
+
+	// eventOverflow is set when a subscriber dropped a change event.
+	eventOverflow bool
+
+	// resyncMu serializes inventory rebuilds.
+	resyncMu sync.Mutex
+
 	subscribers map[chan ChangeEvent]struct{}
 
 	// monitorDone is closed when the monitoring goroutine exits.
@@ -60,8 +75,20 @@ type Manager struct {
 	monitorStarted bool
 }
 
+// readWorker owns open → begin → execute → end → close for one read.
+// The caller may abandon waiting; the worker always finishes cleanup.
+type readWorker struct {
+	done   chan struct{}
+	result *card.ReadResult
+	err    error
+	// cleanups counts EndTransaction+Close pairs (exactly-once cleanup).
+	cleanups int
+}
+
 // NewManager builds a manager around two backend instances (same factory).
 func NewManager(monitor, reader pcsc.Backend) *Manager {
+	idle := make(chan struct{})
+	close(idle)
 	return &Manager{
 		backend:       monitor,
 		readerBackend: reader,
@@ -69,6 +96,7 @@ func NewManager(monitor, reader pcsc.Backend) *Manager {
 		backendStatus: "unavailable",
 		subscribers:   map[chan ChangeEvent]struct{}{},
 		monitorDone:   make(chan struct{}),
+		idle:          idle,
 	}
 }
 
@@ -111,11 +139,14 @@ func (m *Manager) Start(ctx context.Context) error {
 }
 
 // Stop joins the monitoring loop and releases backends.
+// If a native worker still holds the read slot when ctx expires, Stop returns
+// without releasing a PC/SC context that is still in use.
 func (m *Manager) Stop(ctx context.Context) error {
 	m.mu.Lock()
 	stop := m.monitorStop
 	started := m.monitorStarted
 	done := m.monitorDone
+	idle := m.idle
 	m.mu.Unlock()
 	if stop != nil {
 		stop()
@@ -126,6 +157,12 @@ func (m *Manager) Stop(ctx context.Context) error {
 		case <-done:
 		case <-ctx.Done():
 		}
+	}
+	// Never release a context still owned by a blocked native worker.
+	select {
+	case <-idle:
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 	_ = m.backend.Release(ctx)
 	return m.readerBackend.Release(ctx)
@@ -147,15 +184,37 @@ func (m *Manager) Unsubscribe(ch chan ChangeEvent) {
 	m.mu.Unlock()
 }
 
+// ConsumeEventOverflow reports and clears a dropped-event condition.
+func (m *Manager) ConsumeEventOverflow() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	v := m.eventOverflow
+	m.eventOverflow = false
+	return v
+}
+
 func (m *Manager) emit(ev ChangeEvent) {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
+	subs := make([]chan ChangeEvent, 0, len(m.subscribers))
 	for ch := range m.subscribers {
+		subs = append(subs, ch)
+	}
+	m.mu.RUnlock()
+
+	overflow := false
+	for _, ch := range subs {
 		select {
 		case ch <- ev:
 		default:
-			// Drop if the subscriber is slow; they should resync.
+			overflow = true
 		}
+	}
+	if overflow {
+		m.mu.Lock()
+		m.eventOverflow = true
+		m.mu.Unlock()
+		// The monitor loop's next resync rebuilds inventory; subscribers
+		// that overflowed are closed by the bridge with WS 1013.
 	}
 }
 
@@ -173,8 +232,11 @@ func (m *Manager) Snapshot() Snapshot {
 func (m *Manager) monitorLoop(ctx context.Context) {
 	defer close(m.monitorDone)
 	for ctx.Err() == nil {
-		if m.backend.Supported() != nil {
-			// Backend not established: try recovery.
+		m.mu.RLock()
+		stalled := m.stalled
+		m.mu.RUnlock()
+		if stalled || m.backend.Supported() != nil {
+			// Stalled or backend not established: try recovery.
 			if !m.recoverBackend(ctx) {
 				select {
 				case <-ctx.Done():
@@ -200,12 +262,13 @@ func (m *Manager) monitorLoop(ctx context.Context) {
 				return
 			case <-time.After(2 * time.Second):
 			}
-			_ = m.backend.Release(ctx)
-			_ = m.readerBackend.Release(ctx)
+			m.tryReleaseBackends(ctx)
 			if e2 := m.backend.Establish(ctx); e2 == nil {
 				_ = m.readerBackend.Establish(ctx)
 				m.mu.Lock()
-				m.backendStatus = "available"
+				if !m.stalled {
+					m.backendStatus = "available"
+				}
 				m.mu.Unlock()
 			}
 		}
@@ -214,6 +277,19 @@ func (m *Manager) monitorLoop(ctx context.Context) {
 }
 
 func (m *Manager) recoverBackend(ctx context.Context) bool {
+	m.mu.RLock()
+	stalled := m.stalled
+	idle := m.idle
+	m.mu.RUnlock()
+	if stalled {
+		select {
+		case <-idle:
+		case <-ctx.Done():
+			return false
+		case <-time.After(50 * time.Millisecond):
+			return false
+		}
+	}
 	if err := m.backend.Establish(ctx); err != nil {
 		return false
 	}
@@ -222,11 +298,27 @@ func (m *Manager) recoverBackend(ctx context.Context) bool {
 		return false
 	}
 	m.mu.Lock()
-	m.backendStatus = "available"
-	m.stalled = false
+	if m.activeWorker == nil {
+		m.backendStatus = "available"
+		m.stalled = false
+	}
 	m.mu.Unlock()
 	_ = m.resync(ctx)
 	return true
+}
+
+// tryReleaseBackends releases only when no native worker holds the slot.
+func (m *Manager) tryReleaseBackends(ctx context.Context) {
+	m.mu.RLock()
+	idle := m.idle
+	m.mu.RUnlock()
+	select {
+	case <-idle:
+		_ = m.backend.Release(ctx)
+		_ = m.readerBackend.Release(ctx)
+	default:
+		// A worker still owns a PC/SC context; do not release it.
+	}
 }
 
 // invalidateAllSessions clears card generations (reader loss / service failure).
@@ -254,6 +346,8 @@ func (m *Manager) invalidateAllSessions() {
 
 // resync diffs the backend inventory and emits events.
 func (m *Manager) resync(ctx context.Context) error {
+	m.resyncMu.Lock()
+	defer m.resyncMu.Unlock()
 	if err := m.backend.Supported(); err != nil {
 		m.mu.Lock()
 		if !m.stalled && m.backendStatus != "stalled" {
@@ -282,9 +376,13 @@ func (m *Manager) resync(ctx context.Context) error {
 
 	m.mu.Lock()
 	prev := m.readers
-	m.readers = next
-	m.mu.Unlock()
-
+	// Copy previous session ids into next before publishing so Snapshot
+	// never observes a half-built ReaderState.
+	for id, st := range next {
+		if old, ok := prev[id]; ok && old.Presence == pcsc.PresencePresent && st.Presence == pcsc.PresencePresent {
+			st.CardSessionID = old.CardSessionID
+		}
+	}
 	var events []ChangeEvent
 	for id, st := range next {
 		old, ok := prev[id]
@@ -306,9 +404,6 @@ func (m *Manager) resync(ctx context.Context) error {
 		} else if wasPresent && !nowPresent {
 			events = append(events, ChangeEvent{Kind: "card.removed", ReaderID: id, CardSessionID: old.CardSessionID})
 			st.CardSessionID = ""
-		} else if nowPresent {
-			// Preserve existing session id while the card remains present.
-			st.CardSessionID = old.CardSessionID
 		}
 	}
 	for id, old := range prev {
@@ -319,6 +414,9 @@ func (m *Manager) resync(ctx context.Context) error {
 			events = append(events, ChangeEvent{Kind: "reader.disconnected", ReaderID: id, Name: old.Name})
 		}
 	}
+	m.readers = next
+	m.mu.Unlock()
+
 	for _, ev := range events {
 		m.emit(ev)
 	}
@@ -342,6 +440,17 @@ func (m *Manager) CardSession(readerID string) (string, bool) {
 		return "", false
 	}
 	return st.CardSessionID, true
+}
+
+// WaitCardSession blocks until readerID has a card session or deadline.
+func (m *Manager) WaitCardSession(readerID string, deadline time.Time) (string, bool) {
+	for time.Now().Before(deadline) {
+		if sid, ok := m.CardSession(readerID); ok {
+			return sid, true
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return m.CardSession(readerID)
 }
 
 // SelectReader picks a reader when exactly one exists.
@@ -385,13 +494,27 @@ type ReadRequest struct {
 }
 
 // Read performs a single active read against the reader backend.
-// The native slot stays occupied until the blocked call returns; late
-// results from a cancelled context are discarded.
+//
+// One native worker owns open → transaction → transmit → end → close.
+// Cancellation and timeout return promptly (CANCELLED / READ_TIMEOUT) without
+// waiting for blocked native cleanup. The global read slot stays occupied
+// until that worker finishes; late results are discarded. Overlapping reads
+// are rejected with BUSY. If native work is still blocked two seconds after
+// cancellation, the backend is marked stalled until the worker finishes and
+// recovery completes.
 func (m *Manager) Read(ctx context.Context, req ReadRequest) (*card.ReadResult, error) {
 	fields, err := card.NormalizeFields(req.Fields)
 	if err != nil {
 		return nil, err
 	}
+
+	m.mu.RLock()
+	stalled := m.stalled
+	m.mu.RUnlock()
+	if stalled {
+		return nil, card.NewError(card.ErrBackendStalled, "backend stalled")
+	}
+
 	readerID, err := m.SelectReader(req.ReaderID)
 	if err != nil {
 		return nil, err
@@ -413,69 +536,137 @@ func (m *Manager) Read(ctx context.Context, req ReadRequest) (*card.ReadResult, 
 		m.mu.Unlock()
 		return nil, card.NewError(card.ErrBackendStalled, "backend stalled")
 	}
+	w := &readWorker{done: make(chan struct{})}
 	m.reading = true
+	m.activeWorker = w
+	m.idle = make(chan struct{})
 	m.mu.Unlock()
 
-	// Occupies the single native read slot until the call returns, even if
-	// ctx is already cancelled — the native work cannot be interrupted.
-	done := make(chan struct{})
-	defer close(done)
-	defer func() {
-		m.mu.Lock()
+	// Worker owns the entire native lifecycle. It is not cancelled by ctx.
+	go m.runNativeWorker(w, readerID, sid, fields, req.Execute)
+
+	select {
+	case <-w.done:
+		m.finishWorker(w)
+		return w.result, w.err
+	case <-ctx.Done():
+		// Prompt client-visible failure. Do not wait for blocked native cleanup.
+		// After StallGrace, if the worker is still outstanding, mark the
+		// backend stalled and keep ownership until the worker finishes.
+		err := cancelError(ctx)
+		go func() {
+			stall := time.NewTimer(StallGrace)
+			defer stall.Stop()
+			select {
+			case <-w.done:
+				m.finishWorker(w)
+			case <-stall.C:
+				m.markStalled()
+				<-w.done
+				m.finishWorker(w)
+			}
+		}()
+		return nil, err
+	}
+}
+
+func cancelError(ctx context.Context) *card.Error {
+	if ctx.Err() == context.DeadlineExceeded {
+		return card.NewError(card.ErrReadTimeout, "read timed out")
+	}
+	return card.NewError(card.ErrCancelled, "read cancelled")
+}
+
+func (m *Manager) finishWorker(w *readWorker) {
+	m.mu.Lock()
+	if m.activeWorker == w {
 		m.reading = false
-		m.mu.Unlock()
-	}()
+		m.activeWorker = nil
+		close(m.idle)
+		// A finished worker unblocks stalled recovery.
+		if m.stalled {
+			m.backendStatus = "stalled"
+		}
+	}
+	m.mu.Unlock()
+}
+
+func (m *Manager) markStalled() {
+	m.mu.Lock()
+	m.stalled = true
+	m.backendStatus = "stalled"
+	m.mu.Unlock()
+}
+
+// CleanupCount reports completed native cleanup operations for tests.
+func (m *Manager) CleanupCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.activeWorker == nil {
+		return 0
+	}
+	return m.activeWorker.cleanups
+}
+
+// runNativeWorker performs the full native read under a single owner.
+// The worker context is intentionally not the caller's ctx: native PC/SC
+// calls cannot be interrupted, so ownership (and cleanup) must outlive
+// client cancellation.
+func (m *Manager) runNativeWorker(w *readWorker, readerID, sid string, fields []card.Field, execute func(context.Context, card.Transmitter, []card.Field) (*card.FieldValues, []card.Warning, error)) {
+	defer close(w.done)
+
+	// Detached from the request context; the worker always finishes.
+	ctx := context.Background()
 
 	conn, err := m.readerBackend.Open(ctx, readerID)
 	if err != nil {
-		return nil, err
+		w.err = err
+		return
 	}
-	defer func() { _ = conn.Close() }()
 
 	if err := conn.BeginTransaction(ctx); err != nil {
-		return nil, err
-	}
-	defer func() { _ = conn.EndTransaction(context.Background()) }()
-
-	if cur, ok := m.CardSession(readerID); !ok || cur != sid {
-		return nil, card.NewError(card.ErrCardRemoved, "card session changed")
+		_ = conn.Close()
+		w.cleanups++
+		w.err = err
+		return
 	}
 
-	type execResult struct {
-		vals  *card.FieldValues
-		warns []card.Warning
-		err   error
-	}
-	resCh := make(chan execResult, 1)
-	go func() {
-		vals, warns, err := req.Execute(ctx, conn, fields)
-		resCh <- execResult{vals, warns, err}
+	// Exactly-once cleanup of transaction + connection.
+	defer func() {
+		_ = conn.EndTransaction(context.Background())
+		w.cleanups++
+		_ = conn.Close()
+		w.cleanups++
 	}()
 
-	var res execResult
-	select {
-	case res = <-resCh:
-	case <-ctx.Done():
-		// Wait for the native call to finish so the slot stays honest;
-		// discard the late result.
-		go func() {
-			<-resCh
-			_ = conn.Close()
-		}()
-		return nil, card.NewError(card.ErrCancelled, "read cancelled")
+	if cur, ok := m.CardSession(readerID); !ok || cur != sid {
+		w.err = card.NewError(card.ErrCardRemoved, "card session changed")
+		return
 	}
-	if res.err != nil {
-		return nil, res.err
+
+	// Execute may block inside native code. A soft deadline only applies to
+	// cooperative backends (synthetic); real PC/SC finishes on its own.
+	execCtx, cancelExec := context.WithTimeout(ctx, 15*time.Second)
+	defer cancelExec()
+	vals, warns, err := execute(execCtx, conn, fields)
+	if err != nil {
+		w.err = err
+		return
 	}
 	if cur, ok := m.CardSession(readerID); !ok || cur != sid {
-		return nil, card.NewError(card.ErrCardRemoved, "card session changed")
+		w.err = card.NewError(card.ErrCardRemoved, "card session changed")
+		return
 	}
-	return &card.ReadResult{
+	if vals == nil {
+		w.err = card.NewError(card.ErrReadFailed, "empty result")
+		return
+	}
+	w.result = &card.ReadResult{
 		ReaderID:      readerID,
 		CardSessionID: sid,
-		Fields:        *res.vals,
-		Warnings:      res.warns,
-	}, nil
+		Fields:        *vals,
+		Warnings:      warns,
+	}
 }
 
 func newCardSessionID() string {

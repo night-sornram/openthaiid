@@ -19,10 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browser SDK `@openthaiid/web` with cancellation, session renewal, and reconnect
 - Vanilla example page (external module script, CSP-friendly)
 - Playwright browser acceptance harness (`acceptance/`) against the real
-  bridge + synthetic card, using a PTY terminal for approval (no bypass)
+  bridge + synthetic card, using node-pty for real terminal approval (no bypass)
+- Cross-platform acceptance: Playwright `chrome` / `msedge` channels,
+  approval policies (allow / deny / unanswered), allowlisted reports
+- Eight concurrent async operations per connection (`RATE_LIMITED` on excess)
+- Event-queue overflow closes clients with WebSocket 1013 and requires a
+  fresh snapshot after reconnect
+- Native read worker ownership: open → transaction → transmit → end → close
+  under one owner; prompt `CANCELLED`/`READ_TIMEOUT`; `BUSY` on overlap;
+  `BACKEND_STALLED` after 2s post-cancel; bounded shutdown without releasing
+  a PC/SC context still in use
+- Deterministic integration tests: seed synthetic state before startup,
+  deadline-bounded card-session waits, exact synthetic field assertions
 - Contract docs (architecture, security, protocol, provenance, acceptance)
 - GitHub Actions CI: Go test/race, five-target build matrix with version smoke,
-  SDK (`npm ci` only), and multi-OS browser acceptance
+  SDK (`npm ci` only), Chrome×3 + Edge×1 browser acceptance with
+  allow/deny/unanswered policies, and repeated bridge/reader tests
 
 ### Changed (protocol / card — pre-release corrections)
 

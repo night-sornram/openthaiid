@@ -21,6 +21,10 @@ import (
 	"github.com/night-sornram/openthaiid/internal/reader"
 )
 
+// maxAsyncOpsPerConn bounds concurrent asynchronous operations per WebSocket
+// connection. session.close and request.cancel stay synchronous and responsive.
+const maxAsyncOpsPerConn = 8
+
 // Server is the local bridge.
 type Server struct {
 	cfg     config.Config
@@ -38,6 +42,9 @@ type Server struct {
 	clients   map[string]*clientConn
 
 	opSem chan struct{}
+
+	readerSubMu sync.Mutex
+	readerSub   chan reader.ChangeEvent
 }
 
 type clientConn struct {
@@ -362,6 +369,12 @@ func (s *Server) dispatch(ctx context.Context, cc *clientConn, data []byte) {
 func (s *Server) runAsync(ctx context.Context, cc *clientConn, req protocol.Request, fn func(context.Context, *clientConn, protocol.Request)) {
 	opCtx, cancel := context.WithCancel(ctx)
 	cc.pendingMu.Lock()
+	if len(cc.pending) >= maxAsyncOpsPerConn {
+		cc.pendingMu.Unlock()
+		cancel()
+		s.writeError(cc, req.ID, card.NewError(card.ErrRateLimited, "too many concurrent operations").WithRequestID(req.ID))
+		return
+	}
 	cc.pending[req.ID] = cancel
 	cc.pendingMu.Unlock()
 	go func() {
@@ -621,11 +634,27 @@ func (s *Server) sendStatusSnapshot(cc *clientConn, t protocol.Type) {
 
 func (s *Server) forwardReaderEvents(ctx context.Context) {
 	ch := s.readers.Subscribe()
-	defer s.readers.Unsubscribe(ch)
+	s.readerSubMu.Lock()
+	s.readerSub = ch
+	s.readerSubMu.Unlock()
+	defer func() {
+		s.readers.Unsubscribe(ch)
+		s.readerSubMu.Lock()
+		if s.readerSub == ch {
+			s.readerSub = nil
+		}
+		s.readerSubMu.Unlock()
+	}()
+	overflowTick := time.NewTicker(200 * time.Millisecond)
+	defer overflowTick.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-overflowTick.C:
+			if s.readers.ConsumeEventOverflow() {
+				s.handleEventOverflow(&ch)
+			}
 		case ev, ok := <-ch:
 			if !ok {
 				return
@@ -650,6 +679,38 @@ func (s *Server) forwardReaderEvents(ctx context.Context) {
 			}
 			s.broadcastEvent(t, payload)
 		}
+	}
+}
+
+// handleEventOverflow closes authenticated clients with WS 1013 and renews
+// the internal reader-event subscription. Clients must reconnect and request
+// a fresh status snapshot.
+func (s *Server) handleEventOverflow(ch *chan reader.ChangeEvent) {
+	s.closeClientsEventOverflow()
+	old := *ch
+	s.readers.Unsubscribe(old)
+	fresh := s.readers.Subscribe()
+	s.readerSubMu.Lock()
+	s.readerSub = fresh
+	s.readerSubMu.Unlock()
+	*ch = fresh
+}
+
+func (s *Server) closeClientsEventOverflow() {
+	s.clientsMu.Lock()
+	targets := make([]*clientConn, 0, len(s.clients))
+	for _, cc := range s.clients {
+		if cc.hasSession() {
+			targets = append(targets, cc)
+		}
+	}
+	s.clientsMu.Unlock()
+	for _, cc := range targets {
+		cc.clearSession()
+		if cc.cancelOps != nil {
+			cc.cancelOps()
+		}
+		cc.closeWS(websocket.StatusTryAgainLater, "reader event overflow")
 	}
 }
 
@@ -758,8 +819,9 @@ func (s *Server) writeError(cc *clientConn, id int64, e *card.Error) {
 	cc.enqueue(body)
 }
 
-// enqueue queues a frame. If the client is too slow, the connection is marked
-// dropped and closed — other clients are never delayed.
+// enqueue queues a frame. If the client is too slow, the connection is closed
+// with WS 1013 (Try Again Later) so the client can reconnect and request a
+// fresh snapshot. Other clients are never delayed.
 func (cc *clientConn) enqueue(body []byte) {
 	cc.writeMu.Lock()
 	if cc.closed || cc.dropped {
@@ -772,7 +834,7 @@ func (cc *clientConn) enqueue(body []byte) {
 	default:
 		cc.dropped = true
 		cc.writeMu.Unlock()
-		go cc.closeWS(websocket.StatusPolicyViolation, "client too slow")
+		go cc.closeWS(websocket.StatusTryAgainLater, "client too slow")
 	}
 }
 

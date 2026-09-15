@@ -32,6 +32,7 @@ jobs:
             echo "go: $(go version)"
             echo "node: (not used in this job)"
             echo "runner: $ImageOS $ImageVersion"
+            echo "commit: $GITHUB_SHA"
           } | tee tool-versions.txt
       - name: Format
         run: test -z "$(gofmt -l .)"
@@ -41,6 +42,8 @@ jobs:
         run: go test ./... -count=1
       - name: Race (packages with tests)
         run: go test -race ./internal/... -count=1
+      - name: Repeat flaky-prone bridge/reader tests
+        run: go test ./internal/bridge/ ./internal/reader/ -count=50 -timeout 20m
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
@@ -153,17 +156,19 @@ jobs:
           path: sdk/web/dist
 
   browser-acceptance:
-    name: Browser acceptance (${{ matrix.os }})
+    name: Browser acceptance (${{ matrix.os }} / ${{ matrix.browser }})
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-24.04
-            browser: chromium
+            browser: chrome
           - os: macos-15
-            browser: chromium
+            browser: chrome
           - os: windows-2025
-            browser: chromium
+            browser: chrome
+          - os: windows-2025
+            browser: msedge
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -176,6 +181,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            sdk/web/package-lock.json
+            acceptance/package-lock.json
       - name: Install PC/SC headers
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev
@@ -194,19 +203,50 @@ jobs:
       - name: Install acceptance deps
         working-directory: acceptance
         run: npm ci
-      - name: Install Playwright Chromium
+      - name: Install Playwright browser channel
         working-directory: acceptance
-        run: npx playwright install --with-deps chromium
-      - name: Run acceptance
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run acceptance (allow)
         working-directory: acceptance
         env:
           OPENTHAIID_PORT: "17899"
           OPENTHAIID_HTTPS_PORT: "8443"
+          OPENTHAIID_BROWSER: ${{ matrix.browser }}
+          OPENTHAIID_APPROVAL_POLICY: allow
+          OPENTHAIID_REPORT_DIR: reports
+          OPENTHAIID_LOG_DIR: logs
         run: npm test
-      - name: Upload acceptance log
+      - name: Run acceptance (deny)
+        working-directory: acceptance
+        env:
+          OPENTHAIID_PORT: "17900"
+          OPENTHAIID_HTTPS_PORT: "8444"
+          OPENTHAIID_BROWSER: ${{ matrix.browser }}
+          OPENTHAIID_APPROVAL_POLICY: deny
+          OPENTHAIID_REPORT_DIR: reports-deny
+          OPENTHAIID_LOG_DIR: logs-deny
+        run: npm test
+      - name: Run acceptance (unanswered)
+        working-directory: acceptance
+        env:
+          OPENTHAIID_PORT: "17901"
+          OPENTHAIID_HTTPS_PORT: "8445"
+          OPENTHAIID_BROWSER: ${{ matrix.browser }}
+          OPENTHAIID_APPROVAL_POLICY: unanswered
+          OPENTHAIID_REPORT_DIR: reports-unanswered
+          OPENTHAIID_LOG_DIR: logs-unanswered
+        run: npm test
+      - name: Upload acceptance reports (allowlist)
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: acceptance-${{ matrix.os }}
-          path: acceptance/
+          name: acceptance-${{ matrix.os }}-${{ matrix.browser }}
+          path: |
+            acceptance/reports/
+            acceptance/reports-deny/
+            acceptance/reports-unanswered/
+            acceptance/logs/
+            acceptance/logs-deny/
+            acceptance/logs-unanswered/
           if-no-files-found: ignore
+          retention-days: 14

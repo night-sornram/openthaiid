@@ -1,4 +1,4 @@
-.PHONY: build test race vet fmt doctor sdk sdk-test tidy package clean check acceptance
+.PHONY: build test race vet fmt doctor sdk sdk-test tidy package clean check acceptance test-repeat
 
 VERSION ?= 0.0.1-dev
 
@@ -40,8 +40,12 @@ package: build
 check: fmt-check vet test sdk-test build
 	@echo "All local checks passed."
 
+# Repeat formerly flaky integration cases many times (local determinism gate).
+test-repeat:
+	go test ./internal/bridge/ ./internal/reader/ -count=50 -timeout 20m
+
 acceptance: build sdk
-	cd acceptance && npm ci && npm test
+	cd acceptance && npm ci && npm run test:all
 
 clean:
 	rm -rf dist sdk/web/dist acceptance/node_modules

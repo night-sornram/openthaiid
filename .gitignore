@@ -29,3 +29,8 @@ config.local.json
 *.atr.bin
 *.apdu.bin
 captured-*/
+
+# Acceptance harness local artifacts
+acceptance/reports/
+acceptance/logs/
+acceptance/localhost-*.pem

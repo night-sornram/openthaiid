@@ -64,13 +64,22 @@ consumer establishes interface requirements.
 
 - Monitoring and reading use separate PC/SC contexts.
 - Native operations on one connection are serialized.
-- One active read across the bridge; competitors receive `BUSY`.
-- Queued reads that might later hit a different inserted card are refused.
+- One active read across the bridge; competitors receive `BUSY` (never queued).
+- A single native worker owns open → transaction → transmit → end → close.
 - A Go context deadline does not interrupt a blocked native transmit. On
-  timeout the logical request is cancelled, late native results are discarded,
-  and the worker remains occupied until the call returns.
-- Persistent driver hangs force a bridge restart. Replacement workers are never
-  spawned unboundedly.
+  cancel/timeout the logical request returns `CANCELLED` or `READ_TIMEOUT`
+  promptly; late native results are discarded; the global read slot stays
+  occupied until that worker finishes cleanup.
+- If native work is still blocked two seconds after cancellation, the backend
+  is marked `BACKEND_STALLED` until the worker finishes and monitoring
+  recovery completes.
+- Shutdown never releases a PC/SC context still owned by a worker; it returns
+  at its deadline instead.
+- Each WebSocket connection allows at most eight concurrent asynchronous
+  operations. Excess requests receive `RATE_LIMITED`. `session.close` and
+  `request.cancel` stay synchronous and responsive.
+- Slow clients or an overflowed reader-event queue close the socket with
+  WebSocket status 1013; reconnect obtains a fresh snapshot.
 
 ## State dimensions
 

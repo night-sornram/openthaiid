@@ -5,9 +5,17 @@
   "description": "Browser acceptance tests against the real Go bridge with synthetic hardware",
   "scripts": {
     "test": "node run.mjs",
-    "install-browsers": "npx playwright install chromium"
+    "test:allow": "OPENTHAIID_APPROVAL_POLICY=allow node run.mjs",
+    "test:deny": "OPENTHAIID_APPROVAL_POLICY=deny node run.mjs",
+    "test:unanswered": "OPENTHAIID_APPROVAL_POLICY=unanswered node run.mjs",
+    "test:all": "npm run test:allow && npm run test:deny && npm run test:unanswered",
+    "install-browsers": "npx playwright install chrome msedge"
   },
   "devDependencies": {
+    "node-pty": "^1.1.0",
     "playwright": "^1.63.0"
+  },
+  "allowScripts": {
+    "node-pty@1.1.0": true
   }
 }

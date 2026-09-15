@@ -20,8 +20,29 @@ import (
 	"github.com/night-sornram/openthaiid/internal/reader"
 )
 
+// testBridge is a running synthetic bridge with shared device state.
+type testBridge struct {
+	wsURL   string
+	authMgr *auth.Manager
+	mon     *pcsc.SyntheticBackend
+	rdb     *pcsc.SyntheticBackend
+	state   *pcsc.SyntheticState
+	mgr     *reader.Manager
+	srv     *Server
+	cancel  context.CancelFunc
+}
+
 // startTestBridge starts a real bridge on an ephemeral loopback port.
-func startTestBridge(t *testing.T, autoAllow bool) (url string, authMgr *auth.Manager, mon *pcsc.SyntheticBackend, rdb *pcsc.SyntheticBackend, cancel context.CancelFunc) {
+// When seed is non-nil it is applied to shared synthetic state BEFORE the
+// manager starts, so the first resync already observes the seeded card.
+func startTestBridge(t *testing.T, autoAllow bool) *testBridge {
+	t.Helper()
+	return startTestBridgeSeed(t, autoAllow, func(mon, rdb *pcsc.SyntheticBackend) {
+		// default: no pre-seeded hardware; tests add readers after start
+	})
+}
+
+func startTestBridgeSeed(t *testing.T, autoAllow bool, seed func(mon, rdb *pcsc.SyntheticBackend)) *testBridge {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -38,10 +59,15 @@ func startTestBridge(t *testing.T, autoAllow bool) (url string, authMgr *auth.Ma
 	}
 
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	authMgr = auth.NewManager("bridge-it", cfg.TrustDuration, cfg.SessionDuration, cfg.ApprovalTimeout, cfg.MaxPendingApprovals)
+	authMgr := auth.NewManager("bridge-it", cfg.TrustDuration, cfg.SessionDuration, cfg.ApprovalTimeout, cfg.MaxPendingApprovals)
 	shared := pcsc.NewSyntheticState()
-	mon = pcsc.NewSyntheticWithState(shared)
-	rdb = pcsc.NewSyntheticWithState(shared)
+	mon := pcsc.NewSyntheticWithState(shared)
+	rdb := pcsc.NewSyntheticWithState(shared)
+
+	if seed != nil {
+		seed(mon, rdb)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	if err := mon.Establish(ctx); err != nil {
 		t.Fatal(err)
@@ -59,8 +85,10 @@ func startTestBridge(t *testing.T, autoAllow bool) (url string, authMgr *auth.Ma
 	}
 	t.Cleanup(func() {
 		cancel()
-		_ = s.Shutdown(context.Background())
-		_ = mgr.Stop(context.Background())
+		shutCtx, c := context.WithTimeout(context.Background(), 2*time.Second)
+		defer c()
+		_ = s.Shutdown(shutCtx)
+		_ = mgr.Stop(shutCtx)
 	})
 	wsURL := fmt.Sprintf("ws://127.0.0.1:%d/v1/ws", cfg.Port)
 
@@ -78,7 +106,26 @@ func startTestBridge(t *testing.T, autoAllow bool) (url string, authMgr *auth.Ma
 		}()
 	}
 
-	return wsURL, authMgr, mon, rdb, cancel
+	return &testBridge{
+		wsURL:   wsURL,
+		authMgr: authMgr,
+		mon:     mon,
+		rdb:     rdb,
+		state:   shared,
+		mgr:     mgr,
+		srv:     s,
+		cancel:  cancel,
+	}
+}
+
+// waitCardReady waits until the manager has a card session for readerID.
+func (tb *testBridge) waitCardReady(t *testing.T, readerID string) string {
+	t.Helper()
+	sid, ok := tb.mgr.WaitCardSession(readerID, time.Now().Add(2*time.Second))
+	if !ok {
+		t.Fatalf("timed out waiting for card session on %s", readerID)
+	}
+	return sid
 }
 
 func scriptThaiCard(rdb *pcsc.SyntheticBackend) {
@@ -86,7 +133,10 @@ func scriptThaiCard(rdb *pcsc.SyntheticBackend) {
 	rdb.SetScriptResponse(string(p.SelectCommand()), append([]byte(nil), 0x90, 0x00))
 	// Documented READ BINARY: 80 B0 P1 P2 Lc=02 Data=00 Le
 	rdb.SetScriptResponse(string([]byte{0x80, 0xB0, 0x00, 0x04, 0x02, 0x00, 0x0D}), append([]byte("1101701234567"), 0x90, 0x00))
-	// Minimal: only CID for this test.
+}
+
+func seedFullThaiCard(rdb *pcsc.SyntheticBackend) {
+	rdb.SeedDemoCard()
 }
 
 func dial(t *testing.T, ctx context.Context, wsURL, origin string) (*websocket.Conn, *http.Response) {
@@ -138,48 +188,23 @@ func writeReq(t *testing.T, ctx context.Context, c *websocket.Conn, id int64, ty
 }
 
 func TestIntegrationFullReadFlow(t *testing.T) {
-	wsURL, _, mon, rdb, _ := startTestBridge(t, true)
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		mon.AddReader("r1", "ACR39U")
+		mon.InsertCard("r1")
+		scriptThaiCard(rdb)
+	})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	tb.waitCardReady(t, "r1")
 
-	mon.AddReader("r1", "ACR39U")
-	mon.InsertCard("r1")
-	rdb.AddReader("r1", "ACR39U")
-	rdb.InsertCard("r1")
-	scriptThaiCard(rdb)
-
-	// Give the manager loop a moment to resync.
-	time.Sleep(50 * time.Millisecond)
-
-	conn, _ := dial(t, ctx, wsURL, "https://clinic.example.com")
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
 	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
 
 	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
 		Fields: []card.Field{card.FieldCitizenID},
 	})
 
-	token := ""
-	for i := 0; i < 5; i++ {
-		msg := readMsg(t, ctx, conn)
-		if msg["type"] == "approval.required" || msg["type"] == "status.snapshot" {
-			continue
-		}
-		if msg["id"] == nil {
-			continue
-		}
-		if int64(msg["id"].(float64)) != 1 {
-			continue
-		}
-		if msg["error"] != nil {
-			t.Fatalf("session.open error: %v", msg["error"])
-		}
-		result := msg["result"].(map[string]any)
-		token, _ = result["token"].(string)
-		break
-	}
-	if token == "" {
-		t.Fatal("no token after approval")
-	}
+	token := readToken(t, ctx, conn, 1)
 
 	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
 		Fields: []card.Field{card.FieldCitizenID},
@@ -207,11 +232,110 @@ func TestIntegrationFullReadFlow(t *testing.T) {
 	t.Fatal("no card.read response")
 }
 
+func TestIntegrationSeededFullCardFields(t *testing.T) {
+	// Seed the full demo card before startup; assert exact synthetic values.
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID, card.FieldThaiName, card.FieldBirthDate},
+	})
+	token := readToken(t, ctx, conn, 1)
+
+	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{})
+	for i := 0; i < 8; i++ {
+		msg := readMsg(t, ctx, conn)
+		if msg["id"] == nil || int64(msg["id"].(float64)) != 2 {
+			continue
+		}
+		if msg["error"] != nil {
+			t.Fatalf("card.read error: %v", msg["error"])
+		}
+		fields := msg["result"].(map[string]any)["fields"].(map[string]any)
+		if fields["citizenId"] != "1234567890121" {
+			t.Fatalf("citizenId %v", fields["citizenId"])
+		}
+		name, _ := fields["thaiName"].(map[string]any)
+		if name == nil {
+			t.Fatalf("missing thaiName: %v", fields)
+		}
+		if name["fullName"] != "นาย สมชาย ใจดี" {
+			t.Fatalf("thaiName.fullName %v", name["fullName"])
+		}
+		if name["givenName"] != "สมชาย" || name["familyName"] != "ใจดี" {
+			t.Fatalf("thaiName parts %v", name)
+		}
+		birth, _ := fields["birthDate"].(map[string]any)
+		if birth == nil {
+			t.Fatalf("missing birthDate: %v", fields)
+		}
+		if birth["year"] != float64(1990) || birth["month"] != float64(4) || birth["day"] != float64(12) {
+			t.Fatalf("birthDate %v (expected 1990-04-12 Gregorian)", birth)
+		}
+		return
+	}
+	t.Fatal("no card.read response")
+}
+
+func TestIntegrationInsertionAfterStartup(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		mon.AddReader("r1", "ACR39U")
+		// Card starts absent; insert after the manager is running.
+		scriptThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Wait for reader inventory first.
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		snap := tb.mgr.Snapshot()
+		if len(snap.Readers) == 1 && snap.Readers[0].ID == "r1" {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if len(tb.mgr.Snapshot().Readers) != 1 {
+		t.Fatal("reader not observed")
+	}
+	if _, ok := tb.mgr.CardSession("r1"); ok {
+		t.Fatal("card should start absent")
+	}
+
+	tb.mon.InsertCard("r1")
+	tb.waitCardReady(t, "r1")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	token := readToken(t, ctx, conn, 1)
+	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	msg := readByID(t, ctx, conn, 2)
+	if msg["error"] != nil {
+		t.Fatalf("card.read error: %v", msg["error"])
+	}
+	fields := msg["result"].(map[string]any)["fields"].(map[string]any)
+	if fields["citizenId"] != "1101701234567" {
+		t.Fatalf("citizenId %v", fields["citizenId"])
+	}
+}
+
 func TestIntegrationBadOriginRejected(t *testing.T) {
-	wsURL, _, _, _, _ := startTestBridge(t, false)
+	tb := startTestBridge(t, false)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, resp, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{
+	_, resp, err := websocket.Dial(ctx, tb.wsURL, &websocket.DialOptions{
 		Subprotocols: []string{protocol.Subprotocol},
 		HTTPHeader:   http.Header{"Origin": []string{"http://evil.example.com"}},
 	})
@@ -224,23 +348,23 @@ func TestIntegrationBadOriginRejected(t *testing.T) {
 }
 
 func TestIntegrationDenyApproval(t *testing.T) {
-	wsURL, authMgr, _, _, _ := startTestBridge(t, false)
+	tb := startTestBridge(t, false)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	go func() {
 		deadline := time.Now().Add(3 * time.Second)
 		for time.Now().Before(deadline) {
-			pending := authMgr.Pending(time.Now())
+			pending := tb.authMgr.Pending(time.Now())
 			if len(pending) > 0 {
-				_, _ = authMgr.Resolve(pending[0].ID, false, time.Now())
+				_, _ = tb.authMgr.Resolve(pending[0].ID, false, time.Now())
 				return
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
 	}()
 
-	conn, _ := dial(t, ctx, wsURL, "https://clinic.example.com")
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
 	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
 	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
 		Fields: []card.Field{card.FieldCitizenID},
@@ -263,46 +387,27 @@ func TestIntegrationDenyApproval(t *testing.T) {
 }
 
 func TestIntegrationNoFieldExpansion(t *testing.T) {
-	wsURL, _, mon, rdb, _ := startTestBridge(t, true)
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		mon.AddReader("r1", "A")
+		mon.InsertCard("r1")
+		scriptThaiCard(rdb)
+	})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	mon.AddReader("r1", "A")
-	mon.InsertCard("r1")
-	rdb.AddReader("r1", "A")
-	rdb.InsertCard("r1")
-	scriptThaiCard(rdb)
-	time.Sleep(30 * time.Millisecond)
+	tb.waitCardReady(t, "r1")
 
-	conn, _ := dial(t, ctx, wsURL, "https://clinic.example.com")
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
 	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
 	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
 		Fields: []card.Field{card.FieldCitizenID},
 	})
-	token := ""
-	for i := 0; i < 5; i++ {
-		msg := readMsg(t, ctx, conn)
-		if msg["id"] == nil || int64(msg["id"].(float64)) != 1 || msg["error"] != nil {
-			continue
-		}
-		token, _ = msg["result"].(map[string]any)["token"].(string)
-		break
-	}
-	if token == "" {
-		t.Fatal("no token")
-	}
+	token := readToken(t, ctx, conn, 1)
 	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
 		Fields: []card.Field{card.FieldCitizenID, card.FieldBirthDate},
 	})
-	for i := 0; i < 5; i++ {
-		msg := readMsg(t, ctx, conn)
-		if msg["id"] == nil || int64(msg["id"].(float64)) != 2 {
-			continue
-		}
-		errObj, _ := msg["error"].(map[string]any)
-		if errObj == nil || errObj["code"] != "FIELD_NOT_ALLOWED" {
-			t.Fatalf("expected FIELD_NOT_ALLOWED, got %v", msg)
-		}
-		return
+	msg := readByID(t, ctx, conn, 2)
+	errObj, _ := msg["error"].(map[string]any)
+	if errObj == nil || errObj["code"] != "FIELD_NOT_ALLOWED" {
+		t.Fatalf("expected FIELD_NOT_ALLOWED, got %v", msg)
 	}
-	t.Fatal("no response")
 }

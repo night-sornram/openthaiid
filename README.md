@@ -122,11 +122,17 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 make test          # Go unit + integration (synthetic hardware)
 make race          # race detector
 cd sdk/web && npm test
-make acceptance    # Playwright against real bridge + synthetic card
+make acceptance    # node-pty + Playwright (Chrome/Edge) against real bridge
 ```
+
+Browser acceptance uses Playwright channels (`chrome`, `msedge`) and a real
+PTY via node-pty for terminal approval. Approval policies: allow, deny,
+unanswered. See [acceptance/README.md](acceptance/README.md).
 
 Hardware acceptance (ACR39U on Windows/Linux/macOS) is still required before
 a production release claim. See
-[docs/acceptance.md](docs/acceptance.md) for the current evidence status.## License
+[docs/acceptance.md](docs/acceptance.md) for the current evidence status.
+
+## License
 
 Apache-2.0. See [LICENSE](LICENSE).

@@ -51,6 +51,14 @@ Rules:
 - Card results are unicast to the requester only.
 - Supported fields and capabilities are advertised after authentication.
 - Unknown operations and unsupported protocol majors are rejected.
+- Each connection allows at most **eight** concurrent asynchronous operations
+  (`session.open`, `session.renew`, `bridge.status`, `card.read`). Excess
+  requests receive `RATE_LIMITED`. `session.close` and `request.cancel` stay
+  synchronous and remain responsive under the limit.
+- If a client is too slow to drain events, or the internal reader-event queue
+  overflows, the connection is closed with WebSocket status **1013**
+  (Try Again Later). Reconnect obtains a fresh snapshot; events are not
+  replayed. Reconnect never automatically repeats a card read.
 
 ## Operations
 
@@ -156,6 +164,19 @@ type ThaiIDError = {
 | Hardware | `PCSC_UNAVAILABLE`, `NO_READER`, `READER_SELECTION_REQUIRED`, `NO_CARD`, `CARD_REMOVED`, `READER_REMOVED`, `BUSY` |
 | Reading | `UNSUPPORTED_CARD`, `READ_FAILED`, `READ_TIMEOUT`, `CANCELLED`, `BACKEND_STALLED` |
 | Validation | `INVALID_REQUEST`, `UNSUPPORTED_FIELD`, `RATE_LIMITED` |
+
+### Read ownership and recovery
+
+- One native worker owns open → transaction → transmit → end → close.
+- `CANCELLED` and `READ_TIMEOUT` return promptly; blocked native cleanup does
+  not delay the client.
+- The global read slot stays occupied until that worker finishes. Overlapping
+  reads receive `BUSY`. Late results are discarded.
+- If native work is still blocked two seconds after cancellation, the backend
+  is marked `BACKEND_STALLED`. Further reads fail with `BACKEND_STALLED` until
+  the worker finishes and monitoring recovery completes.
+- Shutdown never releases a PC/SC context still owned by a worker; it returns
+  at its deadline instead.
 
 Messages never contain raw field contents, command responses, or native error
 dumps.
