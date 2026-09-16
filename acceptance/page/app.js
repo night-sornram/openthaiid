@@ -1,4 +1,4 @@
-import { ThaiID } from "/sdk/web/dist/index.js";
+import { DEFAULT_FIELDS, ThaiID } from "/sdk/web/dist/index.js";
 
 const statusEl = document.getElementById("status");
 const approvalEl = document.getElementById("approval");
@@ -10,8 +10,15 @@ const disconnectBtn = document.getElementById("disconnect");
 const qs = new URLSearchParams(location.search);
 const endpoint = qs.get("ws") || undefined;
 
+function requestedFields() {
+  const raw = qs.get("fields");
+  if (!raw) return [...DEFAULT_FIELDS];
+  const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  return list.length ? list : [...DEFAULT_FIELDS];
+}
+
 const thaiID = new ThaiID({
-  fields: ["citizenId", "thaiName", "birthDate"],
+  fields: requestedFields(),
   ...(endpoint ? { endpoint } : {}),
 });
 

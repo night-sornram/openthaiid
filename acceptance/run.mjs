@@ -34,7 +34,7 @@ const BROWSER_CHANNEL = process.env.OPENTHAIID_BROWSER || "chrome";
 const REPORT_DIR = process.env.OPENTHAIID_REPORT_DIR || join(__dirname, "reports");
 const LOG_DIR = process.env.OPENTHAIID_LOG_DIR || join(__dirname, "logs");
 const POLICY = process.env.OPENTHAIID_APPROVAL_POLICY || "allow";
-const HARNESS_TIMEOUT_MS = Number(process.env.OPENTHAIID_HARNESS_TIMEOUT_MS || 120000);
+const HARNESS_TIMEOUT_MS = Number(process.env.OPENTHAIID_HARNESS_TIMEOUT_MS || 150000);
 const SCENARIO_TIMEOUT_MS = Number(process.env.OPENTHAIID_SCENARIO_TIMEOUT_MS || 45000);
 const PTY_EOL = process.platform === "win32" ? "\r\n" : "\r";
 
@@ -322,8 +322,22 @@ async function launchBrowser() {
   return chromium.launch(opts);
 }
 
-function pageURL(httpsBase, wsURL) {
-  return `${httpsBase}/acceptance/page/index.html?ws=${encodeURIComponent(wsURL)}`;
+const EXTRA_TEXTUAL_FIELDS = [
+  "citizenId",
+  "thaiName",
+  "englishName",
+  "birthDate",
+  "gender",
+  "issuer",
+  "issueDate",
+  "expireDate",
+  "address",
+];
+
+function pageURL(httpsBase, wsURL, fields) {
+  const q = new URLSearchParams({ ws: wsURL });
+  if (fields && fields.length) q.set("fields", fields.join(","));
+  return `${httpsBase}/acceptance/page/index.html?${q}`;
 }
 
 async function runAllowScenarios(browser, httpsBase, wsURL) {
@@ -363,6 +377,17 @@ async function runAllowScenarios(browser, httpsBase, wsURL) {
     const out = await page.locator("#out").innerText();
     for (const needle of ["1234567890121", "สมชาย", "ใจดี", "นาย สมชาย ใจดี", "1990"]) {
       if (!out.includes(needle)) throw new Error(`missing ${needle} in output`);
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(out);
+    } catch {
+      throw new Error("default read output was not JSON");
+    }
+    for (const leaked of ["englishName", "gender", "issuer", "issueDate", "expireDate", "address"]) {
+      if (parsed.fields && Object.prototype.hasOwnProperty.call(parsed.fields, leaked)) {
+        throw new Error(`unrequested ${leaked} returned under the default grant`);
+      }
     }
   });
 
@@ -420,10 +445,85 @@ async function runAllowScenarios(browser, httpsBase, wsURL) {
     }
   });
 
+  await scenario("connect-approve-read-extra-textual-fields", async () => {
+    const extraPage = await context.newPage();
+    extraPage.on("console", (msg) => {
+      diagnostics.push({ type: "console", level: msg.type(), text: msg.text().slice(0, 400) });
+    });
+    extraPage.on("pageerror", (err) => {
+      diagnostics.push({ type: "pageerror", text: String(err).slice(0, 400) });
+    });
+    try {
+      await extraPage.goto(pageURL(httpsBase, wsURL, EXTRA_TEXTUAL_FIELDS), {
+        waitUntil: "domcontentloaded",
+      });
+      await extraPage.locator("#connect").click();
+      try {
+        await extraPage.waitForFunction(
+          () => document.getElementById("status")?.textContent === "connected",
+          undefined,
+          { timeout: 20000 },
+        );
+      } catch (err) {
+        const status = await extraPage.locator("#status").innerText();
+        const approval = await extraPage.locator("#approval").innerText();
+        const out = (await extraPage.locator("#out").innerText()).slice(0, 240);
+        throw new Error(
+          `extra-fields connect failed status=${status} approval=${approval} out=${out} (${err && err.message ? err.message : err})`,
+        );
+      }
+      await extraPage.waitForFunction(
+        () => (document.getElementById("out")?.textContent || "").includes("readers"),
+        undefined,
+        { timeout: 10000 },
+      );
+      await extraPage.locator("#read").click();
+      await extraPage.waitForFunction(
+        () => {
+          const t = document.getElementById("out")?.textContent || "";
+          return t.includes("englishName") && t.includes("issuer");
+        },
+        undefined,
+        { timeout: 15000 },
+      );
+      const out = await extraPage.locator("#out").innerText();
+      let parsed;
+      try {
+        parsed = JSON.parse(out);
+      } catch {
+        throw new Error("extra-fields read output was not JSON");
+      }
+      const f = parsed.fields || {};
+      if (f.citizenId !== "1234567890121") {
+        throw new Error("citizenId mismatch on extra-fields grant");
+      }
+      if (!f.englishName || f.englishName.givenName !== "Somchai" || f.englishName.familyName !== "Jaidee") {
+        throw new Error("englishName mismatch on extra-fields grant");
+      }
+      if (!f.gender || f.gender.code !== "1" || f.gender.value !== "male") {
+        throw new Error("gender mismatch on extra-fields grant");
+      }
+      if (f.issuer !== "เทศบาลนครนิทาน") {
+        throw new Error("issuer mismatch on extra-fields grant");
+      }
+      if (!f.issueDate || f.issueDate.year !== 2017 || f.issueDate.month !== 1 || f.issueDate.day !== 15) {
+        throw new Error("issueDate mismatch on extra-fields grant");
+      }
+      if (!f.expireDate || f.expireDate.year !== 2027 || f.expireDate.day !== 14) {
+        throw new Error("expireDate mismatch on extra-fields grant");
+      }
+      if (!f.address || f.address.houseNo !== "99" || f.address.province !== "จังหวัดนิทาน") {
+        throw new Error("address mismatch on extra-fields grant");
+      }
+    } finally {
+      await extraPage.close();
+    }
+  });
+
   await context.close();
 }
 
-const PERSONAL_SENTINELS = ["1234567890121", "สมชาย", "ใจดี"];
+const PERSONAL_SENTINELS = ["1234567890121", "สมชาย", "ใจดี", "Somchai", "Jaidee", "เทศบาลนครนิทาน"];
 
 function assertNoPersonalData(label, text) {
   for (const needle of PERSONAL_SENTINELS) {
@@ -578,7 +678,15 @@ function sanitize(obj) {
       .replace(/1234567890121/g, "[citizenId]")
       .replace(/1101701234567/g, "[citizenId]")
       .replace(/สมชาย/g, "[givenName]")
-      .replace(/ใจดี/g, "[familyName]"),
+      .replace(/ใจดี/g, "[familyName]")
+      .replace(/Somchai/g, "[givenName]")
+      .replace(/Jaidee/g, "[familyName]")
+      .replace(/เทศบาลนครนิทาน/g, "[issuer]")
+      .replace(/หมู่ที่ 1/g, "[villageNo]")
+      .replace(/ถนนนิทาน/g, "[street]")
+      .replace(/ตำบลบ้านใหม่/g, "[subdistrict]")
+      .replace(/อำเภอเมือง/g, "[district]")
+      .replace(/จังหวัดนิทาน/g, "[province]"),
   );
 }
 

@@ -19,11 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `birthDate`, `gender`, `issuer`, `issueDate`, `expireDate`, `address`
   (portrait/photo remains out of scope; default grant stays the original three)
 - Browser SDK `@openthaiid/web` with cancellation, session renewal, and reconnect
+- React hooks `@openthaiid/react` wrapping `@openthaiid/web` (connect/read/disconnect,
+  approvalRequired, status, fields, AbortSignal)
 - Vanilla example page (external module script, CSP-friendly)
 - Playwright browser acceptance harness (`acceptance/`) against the real
   bridge + synthetic card, using node-pty for real terminal approval (no bypass)
 - Cross-platform acceptance: Playwright `chrome` / `msedge` channels,
   approval policies (allow / deny / unanswered), allowlisted reports
+- Allow-policy scenario that requests extra textual fields (`englishName`,
+  `gender`, `issuer`, `issueDate`, `expireDate`, `address`) via a new
+  terminal grant; default pages still request the original three fields
+- `session.open` with a field set that is not a subset of the live grant
+  prompts for a new terminal approval (card.read of ungranted fields stays
+  `FIELD_NOT_ALLOWED`)
 - Playwright two-browser-context isolation (H11): a card read is unicast
   to the requester; the idle peer page and WebSocket frames stay free of
   personal fields; the peer can still read on its own connection
@@ -56,10 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - GitHub Actions CI is split to conserve included minutes: **pull requests**
   run 4 ubuntu jobs (Go test/race with bridge/reader `-count=5`, linux/amd64
-  build, Web SDK, Chrome allow/deny/unanswered). The **full** 11-job matrix
+  build, Web + React SDKs, Chrome allow/deny/unanswered). The **full** 11-job matrix
   (five-target build, Chrome × Linux/macOS/Windows + Edge × Windows,
   `-count=50`) runs on push to `dev`/`main` and `workflow_dispatch`. Docs-only
   changes skip the workflow. Local `make test-repeat` stays `-count=50`.
+  The PR SDK job now also typechecks, tests, and builds `@openthaiid/react`
+  on the same ubuntu runner (no extra OS matrix rows).
 
 ### Changed (protocol / card — pre-release corrections)
 
@@ -121,4 +131,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Physical ACR39U acceptance on Windows/Linux/macOS
 - Playwright browser acceptance matrix (Chrome/Edge across three OSes)
 - Official Firefox/Safari support
-- Portraits, React hooks, installers, tray UI
+- Portraits, installers, tray UI

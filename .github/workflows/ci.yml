@@ -3,7 +3,7 @@ name: ci
 # CI lanes (GitHub Actions minutes)
 #
 # PR lane (`pull_request`) — cheap, ubuntu-only:
-#   Jobs: Go test, linux/amd64 build, Web SDK, Chrome acceptance
+#   Jobs: Go test, linux/amd64 build, Web + React SDKs, Chrome acceptance
 #         (allow + deny + unanswered).
 #   Repeat formerly-flaky bridge/reader tests at -count=5 (not 50).
 #   Target: ~4 billed-job-minutes-equivalent vs ~11 jobs / ~70 billed
@@ -170,20 +170,21 @@ jobs:
           path: dist/openthaiid-*
 
   sdk:
-    name: Web SDK
+    name: Web + React SDKs
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     defaults:
       run:
         shell: bash
-        working-directory: sdk/web
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: sdk/web/package-lock.json
+          cache-dependency-path: |
+            sdk/web/package-lock.json
+            sdk/react/package-lock.json
       - name: Record resolved versions
         run: |
           {
@@ -191,23 +192,29 @@ jobs:
             echo "node: $(node -v)"
             echo "npm: $(npm -v)"
           } | tee tool-versions.txt
-      - name: Install
+      - name: Web SDK
         timeout-minutes: 5
-        run: npm ci
-      - name: Typecheck
-        timeout-minutes: 3
-        run: npm run typecheck
-      - name: Test
-        timeout-minutes: 3
-        run: npm test
-      - name: Build
-        timeout-minutes: 3
-        run: npm run build
+        working-directory: sdk/web
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+      - name: React hooks SDK
+        timeout-minutes: 5
+        working-directory: sdk/react
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
       - name: Upload SDK dist
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: sdk-web-dist
-          path: sdk/web/dist
+          name: sdk-dist
+          path: |
+            sdk/web/dist
+            sdk/react/dist
 
   browser-acceptance:
     name: Browser acceptance (${{ matrix.os }} / ${{ matrix.browser }})

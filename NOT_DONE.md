@@ -1,9 +1,9 @@
 # Not done
 
-Last updated after GitHub Actions was split into a cheap PR lane and a
-full post-merge / `workflow_dispatch` matrix (on top of remaining textual
-ID fields, pairing-only handshake, mixed-case revoke, H9 restart, H11
-isolation, and green CI on PR #1).
+Last updated after the React hooks package and extra-textual-field
+acceptance coverage (on top of the GitHub Actions PR/full split,
+remaining textual ID fields, pairing-only handshake, mixed-case revoke,
+H9 restart, H11 isolation, and green CI on PR #1).
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, and remaining textual fields (synthetic)
@@ -52,7 +52,6 @@ the full 11-job matrix on merge to `dev`/`main` or via **workflow_dispatch**
 Do not treat these as MVP gaps:
 
 - Portrait / photo support
-- React hooks
 - Installers, tray UI, auto-update
 - Official Firefox / Safari support
 - Published GitHub Release / release candidate tag

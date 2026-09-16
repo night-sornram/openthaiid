@@ -48,10 +48,6 @@ trust (8 hours or until the bridge stops).
 
 ## Browser SDK
 
-```bash
-cd sdk/web && npm install && npm test && npm run build
-```
-
 ```ts
 import { ThaiID } from "@openthaiid/web";
 
@@ -74,8 +70,35 @@ console.log(result.fields);
 await thaiID.disconnect();
 ```
 
+React apps can use `@openthaiid/react` instead of wiring events by hand:
+
+```tsx
+import { useThaiID } from "@openthaiid/react";
+
+function Panel() {
+  const { connection, fields, approvalRequired, connect, read, disconnect } = useThaiID({
+    fields: ["citizenId", "thaiName", "birthDate"],
+  });
+  return (
+    <>
+      {approvalRequired && <p>Approve code {approvalRequired.comparisonCode}</p>}
+      <button type="button" onClick={() => void connect()}>Connect</button>
+      <button type="button" onClick={() => void read()}>Read</button>
+      <button type="button" onClick={() => void disconnect()}>Disconnect</button>
+      <pre>{fields ? JSON.stringify(fields, null, 2) : connection}</pre>
+    </>
+  );
+}
+```
+
+```bash
+cd sdk/web && npm install && npm test && npm run build
+cd sdk/react && npm install && npm test && npm run build
+```
+
 Open `examples/vanilla/index.html` via the built SDK for a minimal demo
 (serve from HTTPS for real browser tests; localhost HTTP is development-only).
+Copy-paste React usage is in `examples/react/README.md` and `sdk/react/README.md`.
 
 ## Architecture
 
@@ -98,6 +121,7 @@ Browser (HTTPS page)
 | `internal/protocol` | Protocol v1 envelopes |
 | `internal/bridge` | Loopback HTTP + WebSocket dispatch |
 | `sdk/web` | `@openthaiid/web` |
+| `sdk/react` | `@openthaiid/react` hooks wrapping the web SDK |
 
 ## Security
 
@@ -129,12 +153,13 @@ make test          # Go unit + integration (synthetic hardware)
 make race          # race detector
 make test-repeat   # bridge/reader tests ×50 (local determinism; full CI too)
 cd sdk/web && npm test
+cd sdk/react && npm test
 make acceptance    # node-pty + Playwright (Chrome/Edge) against real bridge
 ```
 
 GitHub Actions is split to conserve included minutes: **pull requests** run
 Ubuntu Go tests (`-count=5` on formerly flaky packages), linux/amd64 build,
-the Web SDK, and Chrome acceptance (allow/deny/unanswered). The **full**
+the Web + React SDKs, and Chrome acceptance (allow/deny/unanswered). The **full**
 five-target build + Chrome×Linux/macOS/Windows + Edge×Windows matrix, and
 `-count=50`, run on push to `dev`/`main` and via **workflow_dispatch**.
 Docs-only changes skip CI. See [docs/acceptance.md](docs/acceptance.md).
