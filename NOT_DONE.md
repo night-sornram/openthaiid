@@ -1,7 +1,7 @@
 # Not done
 
-Last updated after the two-browser-client isolation Playwright scenario
-(H11) and Go unicast pair coverage.
+Last updated after pairing-only handshake, mixed-case revoke, H9 process
+restart, and H11 two-browser isolation coverage.
 
 Software ownership, cancellation, stall recovery, request saturation, and the
 cross-platform acceptance harness are implemented and pass locally. This file
@@ -38,7 +38,7 @@ lists everything that is **not** complete for a qualified MVP release candidate.
 | Artifact upload (5 binaries + SDK dist + allowlisted acceptance reports) | Ready; needs CI run |
 | Browser acceptance: Chrome × Linux/macOS/Windows + Edge × Windows | Jobs present; allow+deny+unanswered policies |
 | node-pty harness on Windows | Code ready; needs Windows CI run |
-| Repeat bridge/reader tests `-count=20` | Step present; needs CI run |
+| Repeat bridge/reader tests `-count=50` | Step present; needs CI run |
 | Resolved Go 1.27.1 / Node 22 versions in CI reports | Job prints them; needs a green run |
 
 ---

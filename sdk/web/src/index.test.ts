@@ -13,8 +13,9 @@ type FakeWS = {
   respondTo: (s: string) => void;
 };
 
-function installFakeWebSocket(opts: { autoRespond?: boolean } = {}) {
+function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean } = {}) {
   const sockets: FakeWS[] = [];
+  const sendSnapshot = opts.snapshot !== false;
   class Fake {
     static OPEN = 1;
     static CONNECTING = 0;
@@ -68,19 +69,24 @@ function installFakeWebSocket(opts: { autoRespond?: boolean } = {}) {
             },
           }),
         });
-        this.onmessage({
-          data: JSON.stringify({
-            v: 1,
-            type: "status.snapshot",
-            instanceId: "bridge-x",
-            sequence: 2,
-            payload: {
-              connection: "connected",
-              backend: "available",
-              readers: [{ readerId: "r1", name: "ACR39U", presence: "present", cardSessionId: "cs_1" }],
-            },
-          }),
-        });
+        if (sendSnapshot) {
+          // After session.open assigns the token (promise microtask), then this macrotask.
+          setTimeout(() => {
+            this.onmessage?.({
+              data: JSON.stringify({
+                v: 1,
+                type: "status.snapshot",
+                instanceId: "bridge-x",
+                sequence: 2,
+                payload: {
+                  connection: "connected",
+                  backend: "available",
+                  readers: [{ readerId: "r1", name: "ACR39U", presence: "present", cardSessionId: "cs_1" }],
+                },
+              }),
+            });
+          }, 0);
+        }
       }
     }
   }
@@ -253,4 +259,50 @@ describe("ThaiID", () => {
       fake.restore();
     }
   });
+
+  it("ignores status.snapshot before a session token", async () => {
+    const fake = installFakeWebSocket();
+    const id = new ThaiID();
+    try {
+      const readerIds: string[][] = [];
+      id.on("statusChanged", (s) => readerIds.push(s.readers.map((r) => r.readerId)));
+      const connectP = id.connect();
+      await new Promise((r) => setTimeout(r, 0));
+      const ws = fake.sockets[0]!;
+      ws.onmessage?.({
+        data: JSON.stringify({
+          v: 1,
+          type: "status.snapshot",
+          instanceId: "bridge-x",
+          payload: {
+            connection: "connected",
+            backend: "available",
+            readers: [{ readerId: "leaked", name: "ACR39U", presence: "present", cardSessionId: "cs_leak" }],
+          },
+        }),
+      });
+      expect(readerIds.some((ids) => ids.includes("leaked"))).toBe(false);
+      expect((await id.status()).readers).toEqual([]);
+      const openMsg = ws.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open")!;
+      ws.respondTo(JSON.stringify(openMsg));
+      await connectP;
+      expect(id.state()).toBe("connected");
+      expect(readerIds.some((ids) => ids.includes("r1"))).toBe(true);
+      expect(readerIds.some((ids) => ids.includes("leaked"))).toBe(false);
+    } finally {
+      await id.disconnect();
+      fake.restore();
+    }
+  });
+
+  it("connect fails without an authenticated snapshot", async () => {
+    const fake = installFakeWebSocket({ autoRespond: true, snapshot: false });
+    try {
+      const id = new ThaiID();
+      await expect(id.connect()).rejects.toMatchObject({ code: "CONNECTION_FAILED" });
+      expect(id.state()).toBe("disconnected");
+    } finally {
+      fake.restore();
+    }
+  }, 10_000);
 });

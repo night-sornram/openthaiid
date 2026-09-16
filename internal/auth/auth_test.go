@@ -229,6 +229,23 @@ func TestRevocationCallback(t *testing.T) {
 	}
 }
 
+func TestRevokeOriginNormalizesCase(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)
+	origin, _ := NormalizeOrigin("https://clinic.example.com")
+	p, _ := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now)
+	_, _ = m.Resolve(p.ID, true, now)
+	if _, err := m.OpenSession(origin, []card.Field{card.FieldCitizenID}, now); err != nil {
+		t.Fatal(err)
+	}
+	if n := m.RevokeOrigin(Origin("https://Clinic.Example.com")); n != 1 {
+		t.Fatalf("revoked %d, want 1", n)
+	}
+	if _, ok := m.GrantFor(origin, now); ok {
+		t.Fatal("grant should be gone after mixed-case revoke")
+	}
+}
+
 func TestCancelPendingOnDisconnect(t *testing.T) {
 	now := time.Now()
 	m := NewManager("b", time.Hour, time.Minute, 5*time.Second, 4)

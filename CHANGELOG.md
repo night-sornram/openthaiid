@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   personal fields; the peer can still read on its own connection
 - Go integration coverage that two authenticated WebSocket clients never
   share `card.read` results or session tokens
+- Pairing-only handshake: unauthenticated connections receive no reader
+  inventory or card events until `session.open` succeeds
+- Playwright bridge process restart (H9): personal data is cleared, reconnect
+  does not auto-read, a fresh read works against the new process
 - Eight concurrent async operations per connection (`RATE_LIMITED` on excess)
 - Event-queue overflow closes clients with WebSocket 1013 and requires a
   fresh snapshot after reconnect
@@ -61,9 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sessions are capped at the live grant expiry; an expired grant invalidates
   an otherwise unexpired token
+- Terminal `revoke <origin>` canonicalizes the origin (mixed-case hosts match
+  the handshake grant)
 - Approvals are bound to their originating connection and cancelled on disconnect
 - Trust revocation delivers `authorization.revoked` and closes affected clients
 - Duplicate / non-increasing request IDs are rejected
+- Unauthenticated clients no longer receive reader inventory in a
+  pre-auth `status.snapshot` (pairing-only until `session.open` succeeds)
 - Cancellation targets the real in-flight request id (SDK no longer sends `0`)
 - Receive loop stays responsive while approval and card operations run
 - Event sequences are contiguous per connection

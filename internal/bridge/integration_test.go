@@ -511,6 +511,53 @@ func assertNoCardFields(t *testing.T, frames []map[string]any) {
 	}
 }
 
+func TestIntegrationPairingOnlyNoInventory(t *testing.T) {
+	// Unapproved connections must not receive reader inventory, card-session
+	// ids, or personal fields (docs/security.md pairing-only; acceptance B1).
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID, card.FieldThaiName, card.FieldBirthDate},
+	})
+
+	for i := 0; i < 8; i++ {
+		msg := readMsg(t, ctx, conn)
+		raw, _ := json.Marshal(msg)
+		s := string(raw)
+		for _, needle := range []string{"1234567890121", "สมชาย", "ใจดี"} {
+			if strings.Contains(s, needle) {
+				t.Fatalf("pairing-only client received card field %q", needle)
+			}
+		}
+		typ, _ := msg["type"].(string)
+		if typ == "status.snapshot" {
+			payload, _ := msg["payload"].(map[string]any)
+			readers, _ := payload["readers"].([]any)
+			if len(readers) > 0 {
+				t.Fatalf("pairing-only client received reader inventory: %v", payload)
+			}
+		}
+		if typ == "card.inserted" || typ == "reader.connected" || typ == "card.removed" {
+			t.Fatalf("pairing-only client received device event %s", typ)
+		}
+		if typ == "approval.required" {
+			return
+		}
+		if msg["id"] != nil {
+			t.Fatalf("unexpected session.open response before approval: %v", msg)
+		}
+	}
+	t.Fatal("expected approval.required without inventory")
+}
+
 func TestIntegrationNoFieldExpansion(t *testing.T) {
 	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
 		mon.AddReader("r1", "A")

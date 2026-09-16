@@ -62,7 +62,7 @@ quit
 
 ```bash
 cd sdk/web
-npm install
+npm ci
 npm test
 npm run build
 ```

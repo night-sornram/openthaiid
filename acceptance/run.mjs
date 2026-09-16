@@ -186,6 +186,7 @@ function startBridge(policy) {
 
   const seen = new Set();
   let exited = null;
+  let stopping = false;
   let output = "";
 
   term.onData((chunk) => {
@@ -219,7 +220,11 @@ function startBridge(policy) {
     get exited() {
       return exited;
     },
+    get stopping() {
+      return stopping;
+    },
     async stop() {
+      stopping = true;
       if (exited) return;
       try {
         term.write("quit\r");
@@ -442,14 +447,62 @@ async function runTwoClientIsolation(browser, httpsBase, wsURL) {
   await ctxB.close();
 }
 
-async function runBridgeRestart(browser, httpsBase, wsURL) {
-  // Covered by Go tests for process ownership; browser-side reconnect after
-  // an explicit stop is exercised by the deny/unanswered phases below.
-  await scenario("bridge-restart-requires-fresh-snapshot", async () => {
-    // After the allow bridge stops, a new connection must not reuse state.
-    // This is asserted implicitly when a later phase starts a new bridge.
-    if (!existsSync(binPath())) throw new Error("missing bridge binary");
+async function runBridgeRestart(browser, httpsBase, wsURL, bridge, policy) {
+  let next = bridge;
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
+  const page = await context.newPage();
+  page.on("console", (msg) => {
+    diagnostics.push({ type: "console", level: msg.type(), text: msg.text().slice(0, 400) });
   });
+  page.on("pageerror", (err) => {
+    diagnostics.push({ type: "pageerror", text: String(err).slice(0, 400) });
+  });
+
+  await scenario("bridge-restart-requires-fresh-snapshot", async () => {
+    await connectAcceptancePage(page, httpsBase, wsURL);
+    await page.locator("#read").click();
+    await waitForSyntheticRead(page);
+
+    await bridge.stop();
+    next = startBridge(policy);
+    await waitForPort(PORT_BRIDGE);
+
+    await page.waitForFunction(
+      () => {
+        const t = document.getElementById("out")?.textContent || "";
+        const s = document.getElementById("status")?.textContent || "";
+        return t.includes("No card data") || s === "disconnected" || s === "reconnecting";
+      },
+      undefined,
+      { timeout: 20000 },
+    );
+    assertNoPersonalData("page after bridge process restart", await page.locator("#out").innerText());
+
+    await page.waitForFunction(
+      () => {
+        const s = document.getElementById("status")?.textContent || "";
+        return s === "disconnected" || s === "connected" || s === "awaiting-approval";
+      },
+      undefined,
+      { timeout: 20000 },
+    );
+    const s = await page.locator("#status").innerText();
+    if (s === "disconnected") {
+      await page.locator("#connect").click();
+    }
+    await page.waitForFunction(
+      () => document.getElementById("status")?.textContent === "connected",
+      undefined,
+      { timeout: 20000 },
+    );
+    await sleep(400);
+    assertNoPersonalData("reconnect after a new bridge process must not auto-read", await page.locator("#out").innerText());
+    await page.locator("#read").click();
+    await waitForSyntheticRead(page);
+  });
+
+  await context.close();
+  return next;
 }
 
 function sanitize(obj) {
@@ -507,12 +560,16 @@ async function main() {
 
   try {
     bridge = startBridge(POLICY);
-    // Fail immediately when the bridge exits unexpectedly.
-    bridge.term.onExit(({ exitCode }) => {
-      if (exitCode !== 0 && exitCode !== null) {
-        log("bridge exited unexpectedly", exitCode);
-      }
-    });
+    let unexpectedExit = null;
+    const watchExit = (b) => {
+      b.term.onExit(({ exitCode, signal }) => {
+        if (!b.stopping && exitCode !== 0 && exitCode !== null) {
+          unexpectedExit = `bridge exited unexpectedly code=${exitCode} signal=${signal}`;
+          log(unexpectedExit);
+        }
+      });
+    };
+    watchExit(bridge);
     await waitForPort(PORT_BRIDGE);
     log("bridge healthy");
 
@@ -523,7 +580,8 @@ async function main() {
     if (POLICY === "allow") {
       await runAllowScenarios(browser, httpsBase, wsURL);
       await runTwoClientIsolation(browser, httpsBase, wsURL);
-      await runBridgeRestart(browser, httpsBase, wsURL);
+      bridge = await runBridgeRestart(browser, httpsBase, wsURL, bridge, POLICY);
+      watchExit(bridge);
     } else if (POLICY === "deny") {
       const context = await browser.newContext({ ignoreHTTPSErrors: true });
       const page = await context.newPage();
@@ -531,10 +589,7 @@ async function main() {
         await page.goto(pageURL(httpsBase, wsURL), { waitUntil: "domcontentloaded" });
         await page.locator("#connect").click();
         await page.waitForFunction(
-          () => {
-            const t = document.getElementById("out")?.textContent || "";
-            return t.includes("APPROVAL_DENIED") || t.includes("denied");
-          },
+          () => (document.getElementById("out")?.textContent || "").includes("APPROVAL_DENIED"),
           undefined,
           { timeout: 15000 },
         );
@@ -566,6 +621,10 @@ async function main() {
     log("summary:", results.length - failed.length, "passed,", failed.length, "failed");
     for (const r of results) {
       log(r.ok ? "✓" : "✗", r.name, r.error || "");
+    }
+    if (unexpectedExit) {
+      log("FAIL", unexpectedExit);
+      process.exitCode = 1;
     }
     if (failed.length > 0) process.exitCode = 1;
   } catch (err) {

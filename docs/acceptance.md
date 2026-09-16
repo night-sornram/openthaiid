@@ -23,7 +23,7 @@ and evidence location.
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| B1 | Unapproved origin receives no reader inventory, events, or card data | Security integration tests | Done |
+| B1 | Unapproved origin receives no reader inventory, events, or card data | Pairing-only: no pre-auth snapshot; `TestIntegrationPairingOnlyNoInventory` | Done |
 | B2 | Missing/null Origin, lookalikes, wrong ports, rebinding-style Host rejected | Auth origin tests | Done |
 | B3 | Approval, denial, expiry, revocation behave as specified | Auth unit + integration | Done |
 | B4 | Field-set expansion requires a new approval | Auth tests | Done |
@@ -53,7 +53,7 @@ and evidence location.
 | C13 | `BACKEND_STALLED` after 2s post-cancel; recovery after worker finishes | Stall + recovery tests | Done |
 | C14 | Shutdown returns at deadline without releasing a context still in use | `TestStopRefusesReleaseWhileWorkerBlocked` | Done |
 | C15 | Non-cooperative backend (blocked open/begin/transmit/cleanup) | Synthetic `BlockPhase` tests | Done |
-| C16 | Formerly flaky integration cases ×20 | CI `go test -count=20` step | CI ready |
+| C16 | Formerly flaky integration cases ×50 | CI `go test -count=50` step | CI ready |
 
 ## SDK and example
 
@@ -83,7 +83,7 @@ No browser-cache path guessing.
 | H6 | Terminal denial (deny policy) | CI ready |
 | H7 | Approval stays pending (unanswered policy) | CI ready |
 | H8 | Full-page refresh | CI ready |
-| H9 | Bridge restart / fresh snapshot after new process | CI ready (allow phase restarts) |
+| H9 | Bridge restart / fresh snapshot after new process | Done (local Playwright process restart); multi-OS CI ready |
 | H10 | Disconnect clears fields | CI ready |
 | H11 | Two-client isolation | Done (local Playwright two-context + Go unicast); multi-OS CI ready |
 | H12 | Origin rejection independent of terminal denial | Done (Go `TestIntegrationBadOriginRejected`) |

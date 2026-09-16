@@ -51,6 +51,8 @@ make acceptance
 7. Two browser contexts: requester read is unicast (peer page and
    WebSocket frames stay free of card fields); peer can still read on its
    own connection
+8. Bridge process restart: displayed data is cleared, reconnect does not
+   auto-read, and a fresh read works against the new process
 
 Origin rejection (HTTP evil origin) is covered by Go integration tests
 (`TestIntegrationBadOriginRejected`), not the browser harness: browsers
