@@ -48,6 +48,10 @@ export type StaffCopy = {
   testingConnection: string;
   testOk: string;
   testFail: string;
+  testServiceOff: string;
+  testServiceStalled: string;
+  serviceBack: string;
+  serviceBackNext: string;
 };
 
 const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
@@ -62,10 +66,10 @@ const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
   readerUnknown: "เครื่องอ่านบัตร: ยังไม่ทราบ จนกว่าจะเปิด OpenThaiID",
   cardUnknown: "บัตร: ยังไม่ทราบ จนกว่าจะเปิด OpenThaiID",
   startHelper: "เปิด OpenThaiID บนเครื่องนี้",
-  serviceOff: "บริการอ่านบัตรปิดอยู่ ให้ช่างเทคนิคเปิดบริการ",
-  serviceStalled: "บริการอ่านบัตรไม่ตอบสนอง ให้ช่างเทคนิคช่วยตรวจ",
+  serviceOff: "บริการอ่านบัตรยังไม่พร้อม (หลังเครื่องหลับก็เจอได้) ไม่ต้องรีสตาร์ทเครื่อง",
+  serviceStalled: "บริการอ่านบัตรไม่ตอบสนอง ให้ช่างเทคนิคช่วยตรวจ — ไม่ต้องรีสตาร์ทเครื่อง",
   cardUntilService: "บัตร: ยังไม่ทราบ จนกว่าบริการอ่านบัตรจะทำงาน",
-  fixService: "ให้ช่างเทคนิคแก้ไขบริการอ่านบัตร",
+  fixService: "กด ทดสอบการเชื่อมต่อ หรือให้ช่างเทคนิคกด Reconnect card service แล้วรอ พร้อม",
   noReader: "ไม่พบเครื่องอ่านบัตร เสียบเครื่องอ่านเข้าเครื่องนี้",
   insertAfterReader: "เสียบบัตรหลังจากต่อเครื่องอ่านแล้ว",
   plugReader: "เสียบเครื่องอ่านบัตรเข้าเครื่องนี้",
@@ -90,6 +94,10 @@ const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
   testingConnection: "กำลังทดสอบการเชื่อมต่อ…",
   testOk: "การเชื่อมต่อปกติ — ไม่ได้อ่านข้อมูลบนบัตร",
   testFail: "ทดสอบการเชื่อมต่อไม่สำเร็จ เปิด OpenThaiID แล้วลองอีกครั้ง",
+  testServiceOff: "ตัวช่วยทำงาน แต่บริการอ่านบัตรยังไม่พร้อม — ไม่ได้อ่านข้อมูลบนบัตร",
+  testServiceStalled: "ตัวช่วยทำงาน แต่บริการอ่านบัตรไม่ตอบสนอง — ไม่ได้อ่านข้อมูลบนบัตร",
+  serviceBack: "บริการอ่านบัตรกลับมาแล้ว",
+  serviceBackNext: "กด กรอกข้อมูล ได้ตามปกติ",
 };
 
 const EN: typeof TH = {
@@ -102,10 +110,10 @@ const EN: typeof TH = {
   readerUnknown: "Card reader: unknown until OpenThaiID is running.",
   cardUnknown: "Card: unknown until OpenThaiID is running.",
   startHelper: "Start OpenThaiID on this computer.",
-  serviceOff: "The card service is off. Ask a technician to start it.",
-  serviceStalled: "The card service is not responding. Ask a technician.",
+  serviceOff: "The card service is not ready (this can happen after sleep). Do not reboot.",
+  serviceStalled: "The card service is not responding. Ask a technician — do not reboot.",
   cardUntilService: "Card: unknown until the card service is working.",
-  fixService: "Ask a technician to fix the card service.",
+  fixService: "Click Test connection, or ask a technician to click Reconnect card service, then wait until Ready.",
   noReader: "No card reader. Plug the reader into this computer.",
   insertAfterReader: "Insert the card after the reader is connected.",
   plugReader: "Plug the card reader into this computer.",
@@ -130,6 +138,10 @@ const EN: typeof TH = {
   testingConnection: "Testing connection…",
   testOk: "Connection is OK — no personal card fields were read.",
   testFail: "Connection test failed. Start OpenThaiID, then try again.",
+  testServiceOff: "The helper is running, but the card service is not ready — no personal card fields were read.",
+  testServiceStalled: "The helper is running, but the card service is not responding — no personal card fields were read.",
+  serviceBack: "The card service is back",
+  serviceBackNext: "Click Fill as usual.",
 };
 
 export function staffCopy(lang?: string | null): StaffCopy {
@@ -161,11 +173,11 @@ type ErrorPack = { message: string; next: string };
 const TH_ERRORS: Record<string, ErrorPack> = {
   BRIDGE_UNAVAILABLE: {
     message: "OpenThaiID ยังไม่ทำงานบนเครื่องนี้",
-    next: "เปิดโปรแกรม OpenThaiID แล้วกด กรอกข้อมูล อีกครั้ง — ถ้าเปิดค้างไว้ หน้านี้รอตัวช่วยกลับมาได้เอง",
+    next: "เปิดโปรแกรม OpenThaiID แล้วกด กรอกข้อมูล อีกครั้ง — หลังเครื่องหลับหรือตัวช่วยหลุด ไม่ต้องปิดหน้านี้ กด ทดสอบการเชื่อมต่อ ได้",
   },
   CONNECTION_FAILED: {
     message: "หน้าคลินิกติดต่อตัวช่วยไม่ได้",
-    next: "เปิด OpenThaiID บนเครื่องนี้ ถ้าเพิ่งรีสตาร์ท ให้รอไฟสถานะแล้วกด กรอกข้อมูล อีกครั้ง",
+    next: "เปิด OpenThaiID บนเครื่องนี้ หลังเครื่องหลับหรือเพิ่งรีสตาร์ทตัวช่วย ให้รอไฟสถานะ กด ทดสอบการเชื่อมต่อ แล้วกด กรอกข้อมูล อีกครั้ง",
   },
   PROTOCOL_MISMATCH: {
     message: "หน้าคลินิกกับตัวช่วยใช้โปรโตคอลคนละรุ่น",
@@ -192,8 +204,8 @@ const TH_ERRORS: Record<string, ErrorPack> = {
     next: "ให้ช่างเทคนิคตรวจสิทธิ์บนหน้า พร้อม แล้วกด อนุญาต ชุดช่องใหม่",
   },
   PCSC_UNAVAILABLE: {
-    message: "บริการอ่านบัตรปิดอยู่",
-    next: "ให้ช่างเทคนิคเปิดบริการอ่านบัตร",
+    message: "บริการอ่านบัตรยังไม่พร้อม",
+    next: "ไม่ต้องรีสตาร์ทเครื่อง กด ทดสอบการเชื่อมต่อ บนหน้า พร้อม — ถ้ายังไม่ขึ้น พร้อม ให้ช่างเทคนิคเปิด Technician tools แล้วกด Reconnect card service รอไฟ พร้อม",
   },
   NO_READER: {
     message: "ไม่พบเครื่องอ่านบัตร",
@@ -237,7 +249,7 @@ const TH_ERRORS: Record<string, ErrorPack> = {
   },
   BACKEND_STALLED: {
     message: "บริการอ่านบัตรไม่ตอบสนอง",
-    next: "ให้ช่างเทคนิคช่วยตรวจบริการอ่านบัตร",
+    next: "ไม่ต้องรีสตาร์ทเครื่อง ให้ช่างเทคนิคกด Reconnect card service บนหน้า Technician แล้วรอ พร้อม",
   },
   INVALID_REQUEST: {
     message: "คำขอกรอกข้อมูลไม่ถูกต้อง",
@@ -256,11 +268,11 @@ const TH_ERRORS: Record<string, ErrorPack> = {
 const EN_ERRORS: Record<string, ErrorPack> = {
   BRIDGE_UNAVAILABLE: {
     message: "OpenThaiID is not running on this computer.",
-    next: "Start OpenThaiID, then click Fill again. If this page stays open, it can detect the helper coming back.",
+    next: "Start OpenThaiID, then click Fill again. After sleep or a helper restart, leave this page open and click Test connection.",
   },
   CONNECTION_FAILED: {
     message: "This page could not reach the local helper.",
-    next: "Start OpenThaiID on this computer. If it just restarted, wait for the status lights, then click Fill again.",
+    next: "Start OpenThaiID on this computer. After sleep or a helper restart, wait for the status lights, click Test connection, then click Fill again.",
   },
   PROTOCOL_MISMATCH: {
     message: "This page and the helper speak different protocol versions.",
@@ -287,8 +299,8 @@ const EN_ERRORS: Record<string, ErrorPack> = {
     next: "Ask a technician to Allow the new field set on the Ready page.",
   },
   PCSC_UNAVAILABLE: {
-    message: "The card service is off.",
-    next: "Ask a technician to start the card service.",
+    message: "The card service is not ready.",
+    next: "Do not reboot. Click Test connection on the Ready page. If it is still not Ready, ask a technician to open Technician tools and click Reconnect card service, then wait until Ready.",
   },
   NO_READER: {
     message: "No card reader is connected.",
@@ -332,7 +344,7 @@ const EN_ERRORS: Record<string, ErrorPack> = {
   },
   BACKEND_STALLED: {
     message: "The card service is not responding.",
-    next: "Ask a technician to check the card service.",
+    next: "Do not reboot. Ask a technician to click Reconnect card service on Technician tools, then wait until Ready.",
   },
   INVALID_REQUEST: {
     message: "This Fill request is not set up correctly.",

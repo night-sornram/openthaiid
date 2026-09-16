@@ -54,38 +54,66 @@ Type pass, fail, or skip`,
 		{
 			ID:     "E5",
 			Name:   "browser refresh, bridge restart, sleep/wake",
-			Detail: "Fill, refresh ERP, quit+start helper, sleep/wake; PASS if reconnect works and logs have no field values",
+			Detail: "Fill, refresh ERP, quit+start helper, sleep/wake. Map: helper down → BRIDGE_UNAVAILABLE + Test connection; after wake Ready re-probes (no card fields) and returns to พร้อม. PASS if reconnect works and logs have no field values.",
 			Prompt: `E5 — Browser refresh, helper restart, sleep/wake
 รีเฟรชเบราว์เซอร์ รีสตาร์ทตัวช่วย sleep/wake
 
+Software maps Friday E5 to stable protocol codes and buttons (do not change the tokens):
+  ERP / Ready cannot reach helper     → BRIDGE_UNAVAILABLE
+  Ready / ทดสอบการเชื่อมต่อ while helper is down
+                                      → Test connection fails (same code)
+  After helper restart, leave Ready open
+                                      → ตัวช่วยหลุดการเชื่อมต่อ then ตัวช่วยกลับมาแล้ว
+  After OS sleep/wake                 → Ready re-probes (bridge.probe / status only,
+                                        never card.read). If the helper is up but the
+                                        card service is not → PCSC_UNAVAILABLE (see E6)
+
 Do:
   1. Fill once from the clinic page (Allow if asked). Do not screenshot the form.
-  2. Refresh the ERP tab. Fill again.
-  3. openthaiid quit — then start the helper again. Fill again.
-  4. Sleep the PC, wake it, confirm the helper / Ready lights, Fill again.
+  2. Refresh the ERP tab. Fill again. Test connection on Ready must still be probe-only.
+  3. openthaiid quit — Ready / clinic should show BRIDGE_UNAVAILABLE (Thai: ตัวช่วยยังไม่ทำงาน).
+     Start the helper again. Leave the page open. Wait until พร้อม, Test connection, Fill again.
+  4. Sleep the PC, wake it. Do not reboot. Confirm Ready re-probes by itself.
+     If lights stay ยังไม่พร้อม, click ทดสอบการเชื่อมต่อ / Test connection.
+     If the card service is down, use Technician tools → Reconnect card service, then wait for พร้อม.
 
-PASS if reconnect works and technician logs still have no citizen ID, names,
-address, or photo bytes.
-FAIL if the helper will not come back or Fill hangs.
+PASS if reconnect works without a reboot, Fill works after each step, and technician logs
+still have no citizen ID, names, address, or photo bytes.
+FAIL if the helper will not come back, Fill hangs, or Ready stays พร้อม while the helper
+or card service is down.
 SKIP if you cannot sleep/wake this PC right now (record which step you did).
+
+Never type citizen ID, names, address, dates of birth, or paste a photo.
 
 Type pass, fail, or skip`,
 		},
 		{
 			ID:     "E6",
 			Name:   "missing/stopped PC/SC recovery",
-			Detail: "stop pcscd / Smart Card service if safe; PASS on PCSC_UNAVAILABLE then recovery, or SKIP + reason",
+			Detail: "stop pcscd / Smart Card service if safe; Ready leaves พร้อม; Test connection stays probe-only and shows PCSC_UNAVAILABLE; Reconnect card service; PASS when Ready says พร้อม again, or SKIP + reason",
 			Prompt: `E6 — Missing/stopped PC/SC recovery
 บริการอ่านบัตรหยุดทำงาน แล้วกลับมา
 
-Do (only if safe on this PC):
-  Linux: stop pcscd briefly, confirm Ready / doctor shows PCSC_UNAVAILABLE,
-         start pcscd, confirm recovery.
-  Windows: stop the Smart Card service only if clinic IT allows it, then start it.
-  macOS: built-in PC/SC — SKIP if you cannot disable it; record SKIP.
+Software maps Friday E6 to stable protocol codes and buttons (do not change the tokens):
+  Helper reachable, card service down → PCSC_UNAVAILABLE
+  Ready / clinic ทดสอบการเชื่อมต่อ     → helper up, card service not ready (no personal fields)
+  Technician Reconnect card service   → POST /v1/manager/reconnect
+  After service is started again      → Ready must leave ยังไม่พร้อม and say พร้อม
+                                        when the reader and card are back (no reboot)
 
-PASS if you saw PCSC_UNAVAILABLE (or equivalent) and then recovery, helper still up.
-SKIP is expected on macOS when you cannot stop PC/SC; that is not a hardware fail.
+Do (only if safe on this PC):
+  Linux: stop pcscd briefly. Ready must leave พร้อม. doctor / Test connection / Fill
+         show PCSC_UNAVAILABLE. Start pcscd. If lights stay down, click
+         Reconnect card service. Wait until Ready says พร้อม. Fill again.
+  Windows: stop the Smart Card service only if clinic IT allows it, then start it
+         and Reconnect card service the same way.
+  macOS: built-in PC/SC — SKIP if you cannot disable it; record SKIP. That is not a hardware fail.
+
+PASS if you saw PCSC_UNAVAILABLE (or equivalent) and then recovery, helper still up,
+Ready says พร้อม again, and no personal fields were logged.
+FAIL if you needed a reboot, the helper crashed, or Ready stayed พร้อม while the
+card service was down.
+SKIP is expected on macOS when you cannot stop PC/SC.
 
 Never dump card fields while the service is down.
 

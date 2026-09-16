@@ -90,6 +90,16 @@ func TestSummarizePracticeAndNoReader(t *testing.T) {
 	if !strings.Contains(thStall.ReaderText, "ไม่ตอบสนอง") {
 		t.Fatalf("%+v", thStall)
 	}
+	unavailable := Summarize(Lights{Helper: true, Reader: true, Card: true, Backend: "unavailable", Lang: LangTH})
+	if unavailable.Headline != "ยังไม่พร้อม" || unavailable.Reader || unavailable.Card {
+		t.Fatalf("unavailable must not be Ready: %+v", unavailable)
+	}
+	if !strings.Contains(unavailable.Next, "ทดสอบการเชื่อมต่อ") || !strings.Contains(unavailable.Next, "Reconnect card service") {
+		t.Fatalf("next %q", unavailable.Next)
+	}
+	if strings.Contains(Format(unavailable), "PC/SC") || strings.Contains(Format(unavailable), "1234567890121") {
+		t.Fatalf("unavailable leaked jargon or PII: %s", Format(unavailable))
+	}
 	needPick := Summarize(Lights{
 		Helper:        true,
 		Reader:        true,

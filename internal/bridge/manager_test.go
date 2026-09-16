@@ -2,7 +2,9 @@ package bridge
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -78,6 +80,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	}
 	if !strings.Contains(js, "helperLostHeadline") || !strings.Contains(js, "bridge.probe") {
 		t.Fatal("missing reconnect copy or WS probe test")
+	}
+	if !strings.Contains(js, "gentleWakeRefresh") || !strings.Contains(js, "pageshow") {
+		t.Fatal("missing sleep/wake re-probe")
 	}
 	if !strings.Contains(js, "useThisReader") || !strings.Contains(js, "renderStaffReaders") {
 		t.Fatal("missing staff multi-reader picker")
@@ -370,6 +375,67 @@ func TestManagerDiagnosticsLogLevelAndReconnect(t *testing.T) {
 	readers, _ := st["readers"].([]any)
 	if len(readers) != 1 {
 		t.Fatalf("readers after reconnect=%v", st["readers"])
+	}
+}
+
+func TestManagerReconnectRecoversPCSCUnavailable(t *testing.T) {
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		rdb.SeedDemoCard()
+	})
+	tb.srv.SetRuntime("0.0.1-test", true)
+	waitReader(t, tb, "synthetic-acr39u")
+	token := csrfFrom(t, getBody(t, tb, "/"))
+
+	tb.mon.SetServiceDown(true)
+	if err := tb.mgr.Refresh(context.Background()); err == nil {
+		t.Fatal("refresh while card service is down must fail")
+	}
+	st := managerGET(t, tb, token, "/v1/manager/status")
+	backend, _ := st["backend"].(map[string]any)
+	if backend["status"] != "unavailable" {
+		t.Fatalf("status while down=%v", st["backend"])
+	}
+
+	out := managerPOST(t, tb, token, "/v1/manager/reconnect", nil)
+	if out["ok"] != false {
+		t.Fatalf("reconnect while down=%v", out)
+	}
+	if out["code"] != "PCSC_UNAVAILABLE" {
+		t.Fatalf("reconnect code=%v", out["code"])
+	}
+	raw, _ := json.Marshal(out)
+	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
+		t.Fatalf("reconnect leaked personal fields: %s", raw)
+	}
+
+	tb.mon.SetServiceDown(false)
+	out = managerPOST(t, tb, token, "/v1/manager/reconnect", nil)
+	if out["ok"] != true {
+		t.Fatalf("reconnect after restore=%v", out)
+	}
+	st = managerGET(t, tb, token, "/v1/manager/status")
+	backend, _ = st["backend"].(map[string]any)
+	if backend["status"] != "available" {
+		t.Fatalf("status after restore=%v", st["backend"])
+	}
+	readers, _ := st["readers"].([]any)
+	if len(readers) != 1 {
+		t.Fatalf("readers after restore=%v", st["readers"])
+	}
+	r0 := readers[0].(map[string]any)
+	if r0["presence"] != "present" {
+		t.Fatalf("presence after restore=%v", r0["presence"])
+	}
+	if bytes.Contains([]byte(fmt.Sprintf("%v", st)), []byte("1234567890121")) {
+		t.Fatalf("status leaked personal fields")
+	}
+
+	js := getBody(t, tb, "/manager/app.js")
+	if !strings.Contains(js, "pageshow") || !strings.Contains(js, "gentleWakeRefresh") {
+		t.Fatal("Ready page must re-probe after sleep/wake without card.read")
+	}
+	if !strings.Contains(js, "serviceBack") || !strings.Contains(js, "Reconnect card service") {
+		t.Fatal("Ready page missing card-service recovery copy")
 	}
 }
 

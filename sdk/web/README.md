@@ -41,9 +41,11 @@ staff; `{ lang: "en" }` for English; `{ mode: "advanced" }` adds technician deta
 
 `mountThaiIDStatus` keeps probing and, if the helper restarts mid-session,
 shows Thai **ตัวช่วยหลุดการเชื่อมต่อ** then **ตัวช่วยกลับมาแล้ว** without a
-page reload. While Ready (card present) it polls faster so a pulled card or
-unplug does not leave **พร้อม**. There is an optional **ทดสอบการเชื่อมต่อ**
-button (probe only).
+page reload. After sleep/wake it re-probes (`pageshow` / visibility /
+`online`) without reading card fields. While Ready (card present) it polls
+faster so a pulled card or unplug does not leave **พร้อม**. If the card
+service drops (`PCSC_UNAVAILABLE`) it leaves Ready and says **พร้อม** again
+after restore. There is an optional **ทดสอบการเชื่อมต่อ** button (probe only).
 `waitForThaiID()` / `watchThaiID()` are the same loop without DOM. `autofillThaiID`
 waits for the helper to come back before opening a session; it never auto-repeats
 a card read.

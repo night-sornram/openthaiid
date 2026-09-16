@@ -13,12 +13,13 @@ import (
 // Separate Backend contexts (monitor vs read) share one state so inventory
 // and card presence stay consistent.
 type SyntheticState struct {
-	mu       sync.Mutex
-	readers  map[string]string // id → name
-	present  map[string]bool
-	script   map[string][]byte
-	failOpen map[string]bool
-	stalled  bool
+	mu          sync.Mutex
+	readers     map[string]string // id → name
+	present     map[string]bool
+	script      map[string][]byte
+	failOpen    map[string]bool
+	stalled     bool
+	serviceDown bool
 
 	// block maps a lifecycle phase → channel closed to unblock it.
 	// Phases: open, begin, transmit, end, close.
@@ -70,6 +71,12 @@ func (s *SyntheticBackend) State() *SyntheticState { return s.state }
 func (s *SyntheticBackend) Name() string { return "synthetic" }
 
 func (s *SyntheticBackend) Establish(ctx context.Context) error {
+	s.state.mu.Lock()
+	down := s.state.serviceDown
+	s.state.mu.Unlock()
+	if down {
+		return card.NewError(card.ErrPCSCUnavailable, "synthetic card service is down")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Mirror the OS backend: Release + Establish is a reconnect, not a
@@ -94,9 +101,13 @@ func (s *SyntheticBackend) Supported() error {
 	s.mu.Unlock()
 	s.state.mu.Lock()
 	stalled := s.state.stalled
+	down := s.state.serviceDown
 	s.state.mu.Unlock()
 	if stalled {
 		return card.NewError(card.ErrBackendStalled, "synthetic backend stalled")
+	}
+	if down {
+		return card.NewError(card.ErrPCSCUnavailable, "synthetic card service is down")
 	}
 	if closed || !ready {
 		return card.NewError(card.ErrPCSCUnavailable, "synthetic backend not established")
@@ -212,6 +223,14 @@ func (s *SyntheticBackend) RemoveCard(id string) {
 // SetStalled simulates a hung native call surface.
 func (s *SyntheticBackend) SetStalled(v bool) {
 	s.state.SetStalled(v)
+}
+
+// SetServiceDown simulates a stopped PC/SC daemon / Smart Card service.
+// Establish and Supported fail with PCSC_UNAVAILABLE until it is cleared.
+// Shared across monitor/read backends. Does not model OS sleep itself.
+func (s *SyntheticBackend) SetServiceDown(v bool) {
+	s.state.SetServiceDown(v)
+	s.notifyAll()
 }
 
 // BlockPhase parks the named lifecycle phase until UnblockPhase is called.
@@ -336,6 +355,12 @@ func (st *SyntheticState) SetStalled(v bool) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	st.stalled = v
+}
+
+func (st *SyntheticState) SetServiceDown(v bool) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	st.serviceDown = v
 }
 
 func (st *SyntheticState) SetScriptResponse(cmd string, resp []byte) {

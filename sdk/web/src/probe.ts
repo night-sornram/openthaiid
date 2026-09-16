@@ -50,7 +50,13 @@ export type WaitForThaiIDOptions = ProbeThaiIDOptions & {
   probeTimeoutMs?: number;
 };
 
-export type HelperWatchPhase = "checking" | "offline" | "online" | "waiting" | "reconnected";
+export type HelperWatchPhase =
+  | "checking"
+  | "offline"
+  | "online"
+  | "waiting"
+  | "reconnected"
+  | "service-reconnected";
 
 export type HelperWatchUpdate = {
   probe: ProbeResult;
@@ -70,6 +76,11 @@ export type WatchThaiIDOptions = ProbeThaiIDOptions & {
   readyIntervalMs?: number;
   /** Poll interval while waiting for the helper to return. Default 500ms. */
   offlineIntervalMs?: number;
+  /**
+   * Poll interval while the helper is up but the card service is
+   * unavailable/stalled. Default matches `offlineIntervalMs`.
+   */
+  serviceIntervalMs?: number;
 };
 
 /** Derive the loopback manager URL from a WebSocket endpoint. */
@@ -89,6 +100,24 @@ function probeError(
   retryable = false,
 ): ThaiIDError {
   return new ThaiIDError(code, formatStaffError({ code }, lang), retryable);
+}
+
+function withBackendError(result: ProbeResult, lang?: StaffLang | string | null): ProbeResult {
+  if (!result.reachable || result.error) return result;
+  const status = result.backend?.status;
+  if (status === "unavailable") {
+    return { ...result, error: probeError("PCSC_UNAVAILABLE", lang, true) };
+  }
+  if (status === "stalled") {
+    return { ...result, error: probeError("BACKEND_STALLED", lang, true) };
+  }
+  return result;
+}
+
+function backendNeedsRecovery(probe: ProbeResult): boolean {
+  if (!probe.reachable) return false;
+  const status = probe.backend?.status;
+  return status === "unavailable" || status === "stalled";
 }
 
 /**
@@ -203,16 +232,21 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
       const r = msg.result ?? {};
       const backend = r.backend as ProbeBackend | undefined;
       const readers = Array.isArray(r.readers) ? (r.readers as ProbeReader[]) : [];
-      finish({
-        reachable: true,
-        version: typeof r.version === "string" ? r.version : undefined,
-        instanceId: typeof r.instanceId === "string" ? r.instanceId : undefined,
-        synthetic: Boolean(r.synthetic),
-        backend,
-        readers,
-        managerUrl: typeof r.managerUrl === "string" ? r.managerUrl : managerUrlFromEndpoint(endpoint),
-        wsUrl: typeof r.wsUrl === "string" ? r.wsUrl : endpoint,
-      });
+      finish(
+        withBackendError(
+          {
+            reachable: true,
+            version: typeof r.version === "string" ? r.version : undefined,
+            instanceId: typeof r.instanceId === "string" ? r.instanceId : undefined,
+            synthetic: Boolean(r.synthetic),
+            backend,
+            readers,
+            managerUrl: typeof r.managerUrl === "string" ? r.managerUrl : managerUrlFromEndpoint(endpoint),
+            wsUrl: typeof r.wsUrl === "string" ? r.wsUrl : endpoint,
+          },
+          lang,
+        ),
+      );
     };
   });
 }
@@ -346,6 +380,13 @@ export function summarizeHelperWatch(
       next: base.ready ? c.helperBackNext : base.next,
     };
   }
+  if (phase === "service-reconnected") {
+    return {
+      ...base,
+      headline: base.ready ? base.headline : c.serviceBack,
+      next: base.ready ? c.serviceBackNext : base.next,
+    };
+  }
   return base;
 }
 
@@ -355,6 +396,9 @@ export function formatTestConnection(probe: ProbeResult, lang?: StaffLang | stri
   if (!probe.reachable) {
     return c.testFail;
   }
+  const status = probe.backend?.status;
+  if (status === "unavailable") return c.testServiceOff;
+  if (status === "stalled") return c.testServiceStalled;
   const summary = summarizeProbe(probe, lang);
   return summary.ready ? c.testOk : `${c.testOk} ${summary.next}`.trim();
 }
@@ -417,7 +461,9 @@ export async function waitForThaiID(options: WaitForThaiIDOptions = {}): Promise
 
 /**
  * Keep probing the helper and report Thai (default) staff copy as it drops
- * and comes back. Faster while waiting for a restart. Never reads card fields.
+ * and comes back — including after sleep/wake or a card-service hiccup.
+ * Faster while waiting for a restart or while the card service is down.
+ * Never reads card fields.
  */
 export function watchThaiID(
   onUpdate: (update: HelperWatchUpdate) => void,
@@ -427,11 +473,13 @@ export function watchThaiID(
   const onlineInterval = options.intervalMs ?? 2000;
   const readyInterval = options.readyIntervalMs ?? 400;
   const offlineInterval = options.offlineIntervalMs ?? 500;
+  const serviceInterval = options.serviceIntervalMs ?? offlineInterval;
   let stopped = false;
   let inFlight = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let sawOnline = false;
   let lastReachable = false;
+  let sawServiceDown = false;
   let abort: AbortController | null = null;
 
   const emit = (probe: ProbeResult, phase: HelperWatchPhase, recovered: boolean) => {
@@ -472,11 +520,18 @@ export function watchThaiID(
 
     let phase: HelperWatchPhase;
     let recovered = false;
+    const serviceDown = backendNeedsRecovery(probe);
     if (probe.reachable) {
-      recovered = sawOnline && !lastReachable;
+      const helperRecovered = sawOnline && !lastReachable;
+      const serviceRecovered = sawServiceDown && probe.backend?.status === "available";
+      recovered = helperRecovered || serviceRecovered;
       sawOnline = true;
       lastReachable = true;
-      phase = recovered ? "reconnected" : "online";
+      if (serviceDown) sawServiceDown = true;
+      else if (probe.backend?.status === "available") sawServiceDown = false;
+      if (helperRecovered) phase = "reconnected";
+      else if (serviceRecovered) phase = "service-reconnected";
+      else phase = "online";
     } else if (sawOnline) {
       lastReachable = false;
       phase = "waiting";
@@ -488,14 +543,34 @@ export function watchThaiID(
     emit(probe, phase, recovered);
     const nextMs = !probe.reachable
       ? offlineInterval
-      : summarizeProbe(probe, lang).ready
-        ? readyInterval
-        : onlineInterval;
+      : serviceDown
+        ? serviceInterval
+        : summarizeProbe(probe, lang).ready
+          ? readyInterval
+          : onlineInterval;
     schedule(nextMs);
+  };
+
+  const onWake = () => {
+    if (stopped) return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    void tick();
   };
 
   emit({ reachable: false }, "checking", false);
   void tick();
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", onWake);
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("pageshow", onWake);
+    window.addEventListener("online", onWake);
+  }
 
   return () => {
     stopped = true;
@@ -504,6 +579,13 @@ export function watchThaiID(
       timer = null;
     }
     abort?.abort();
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", onWake);
+    }
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pageshow", onWake);
+      window.removeEventListener("online", onWake);
+    }
   };
 }
 

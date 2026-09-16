@@ -61,6 +61,25 @@ func TestOperatorPromptsHaveNoPII(t *testing.T) {
 			t.Fatalf("E4 mapping missing %s", token)
 		}
 	}
+	var e5, e6 OperatorStep
+	for _, step := range OperatorChecks() {
+		switch step.ID {
+		case "E5":
+			e5 = step
+		case "E6":
+			e6 = step
+		}
+	}
+	for _, token := range []string{"BRIDGE_UNAVAILABLE", "ทดสอบการเชื่อมต่อ", "Test connection", "พร้อม", "sleep"} {
+		if !strings.Contains(e5.Prompt, token) && !strings.Contains(e5.Detail, token) {
+			t.Fatalf("E5 mapping missing %s", token)
+		}
+	}
+	for _, token := range []string{"PCSC_UNAVAILABLE", "Reconnect card service", "ทดสอบการเชื่อมต่อ", "พร้อม"} {
+		if !strings.Contains(e6.Prompt, token) && !strings.Contains(e6.Detail, token) {
+			t.Fatalf("E6 mapping missing %s", token)
+		}
+	}
 }
 
 func TestFirstForbiddenJPEGBytesAndPNG(t *testing.T) {

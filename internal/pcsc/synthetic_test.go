@@ -187,6 +187,38 @@ func TestSyntheticStalled(t *testing.T) {
 	}
 }
 
+func TestSyntheticServiceDownThenRestore(t *testing.T) {
+	ctx := context.Background()
+	sb := NewSynthetic()
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sb.AddReader("r1", "ACR39U")
+	sb.InsertCard("r1")
+	sb.SetServiceDown(true)
+	if err := sb.Supported(); err == nil || card.AsError(err).Code != card.ErrPCSCUnavailable {
+		t.Fatalf("down Supported: %v", err)
+	}
+	if err := sb.Establish(ctx); err == nil || card.AsError(err).Code != card.ErrPCSCUnavailable {
+		t.Fatalf("down Establish: %v", err)
+	}
+	if _, err := sb.Readers(ctx); err == nil || card.AsError(err).Code != card.ErrPCSCUnavailable {
+		t.Fatalf("down Readers: %v", err)
+	}
+	sb.SetServiceDown(false)
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	readers, err := sb.Readers(ctx)
+	if err != nil || len(readers) != 1 {
+		t.Fatalf("readers after restore=%v err=%v", readers, err)
+	}
+	present, err := sb.CardPresent(ctx, "r1")
+	if err != nil || !present {
+		t.Fatalf("card after restore present=%v err=%v", present, err)
+	}
+}
+
 func TestSyntheticWaitForChange(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

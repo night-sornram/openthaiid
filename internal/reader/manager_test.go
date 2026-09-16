@@ -182,6 +182,81 @@ func TestReconnectKeepsInventory(t *testing.T) {
 	}
 }
 
+func TestReconnectRecoversAfterServiceDown(t *testing.T) {
+	ctx := context.Background()
+	m, mon, _, _ := startPair(t)
+	mon.AddReader("r1", "ACR39U")
+	mon.InsertCard("r1")
+	if err := m.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if snap := m.Snapshot(); snap.Backend != "available" {
+		t.Fatalf("before down backend=%s", snap.Backend)
+	}
+
+	mon.SetServiceDown(true)
+	if err := m.Refresh(ctx); err == nil {
+		t.Fatal("refresh while down must fail")
+	}
+	if snap := m.Snapshot(); snap.Backend != "unavailable" {
+		t.Fatalf("while down backend=%s", snap.Backend)
+	}
+	if err := m.Reconnect(ctx); err == nil {
+		t.Fatal("reconnect while service is down must fail")
+	} else if ce := card.AsError(err); ce.Code != card.ErrPCSCUnavailable {
+		t.Fatalf("reconnect while down code=%s err=%v", ce.Code, err)
+	}
+
+	mon.SetServiceDown(false)
+	if err := m.Reconnect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	snap := m.Snapshot()
+	if snap.Backend != "available" {
+		t.Fatalf("after restore backend=%s", snap.Backend)
+	}
+	if len(snap.Readers) != 1 {
+		t.Fatalf("readers after restore=%v", snap.Readers)
+	}
+	if snap.Readers[0].Presence != pcsc.PresencePresent {
+		t.Fatalf("presence after restore=%s", snap.Readers[0].Presence)
+	}
+}
+
+func TestMonitorRecoversAfterServiceDown(t *testing.T) {
+	ctx := context.Background()
+	m, mon, _, _ := startPair(t)
+	mon.AddReader("r1", "ACR39U")
+	mon.InsertCard("r1")
+	if err := m.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	mon.SetServiceDown(true)
+	deadline := time.Now().Add(4 * time.Second)
+	for time.Now().Before(deadline) {
+		if m.Snapshot().Backend == "unavailable" {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if m.Snapshot().Backend != "unavailable" {
+		t.Fatalf("monitor did not mark unavailable, backend=%s", m.Snapshot().Backend)
+	}
+
+	mon.SetServiceDown(false)
+	deadline = time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		snap := m.Snapshot()
+		if snap.Backend == "available" && len(snap.Readers) == 1 && snap.Readers[0].Presence == pcsc.PresencePresent {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	snap := m.Snapshot()
+	t.Fatalf("monitor did not restore Ready inventory: backend=%s readers=%v", snap.Backend, snap.Readers)
+}
+
 func TestPreferredReaderSelection(t *testing.T) {
 	ctx := context.Background()
 	m, mon, _, _ := startPair(t)

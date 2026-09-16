@@ -353,11 +353,24 @@ func (m *Manager) recoverBackend(ctx context.Context) bool {
 			return false
 		}
 	}
+	// Drop idle contexts first so a stale PC/SC handle after sleep/wake or
+	// a stopped card service is not treated as already established.
+	m.tryReleaseBackends(ctx)
 	if err := m.backend.Establish(ctx); err != nil {
+		m.mu.Lock()
+		if !m.stalled {
+			m.backendStatus = "unavailable"
+		}
+		m.mu.Unlock()
 		return false
 	}
 	if err := m.readerBackend.Establish(ctx); err != nil {
 		_ = m.backend.Release(ctx)
+		m.mu.Lock()
+		if !m.stalled {
+			m.backendStatus = "unavailable"
+		}
+		m.mu.Unlock()
 		return false
 	}
 	m.mu.Lock()
