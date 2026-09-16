@@ -28,7 +28,7 @@ import (
 )
 
 // version is injected via -ldflags at release build time.
-var version = "0.1.0-rc.1"
+var version = "0.1.0-rc.2"
 
 func main() {
 	if maybeRunWindowsService() {
@@ -516,7 +516,7 @@ Helper page:   http://127.0.0.1:17891/
 WebSocket:     ws://127.0.0.1:17891/v1/ws
 
 Clinic staff: install once, start the helper (tray or Start menu), plug reader, Fill.
-Technicians:  see docs/user.md and docs/technician.md.
+Technicians:  see docs/technician.md, docs/friday-checklist.md, and docs/hardware-qualification.md.
 
 There is no backend or frontend to deploy. The ERP calls autofillThaiID.
 The helper listens on loopback only. Approvals are unchanged.

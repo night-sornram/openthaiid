@@ -26,6 +26,8 @@ The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
 `reachable: false`.
 
 - Start `openthaiid tray` (clinic) or `openthaiid` on **this** PC (the one with the reader).
+  Always-on kiosk: `openthaiid service status` — if installed, skip the tray
+  ([installation.md](installation.md)).
 - Confirm `http://127.0.0.1:17891/` loads, or use tray **Open Ready page**.
 - `openthaiid status` prints helper / reader / card without personal fields.
 - There is no cloud service to restart.
@@ -33,8 +35,11 @@ The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
 ```bash
 ./openthaiid tray         # background helper
 ./openthaiid              # terminal helper
+./openthaiid serve        # headless (Windows service / systemd)
 ./openthaiid -synthetic   # practice reader (no hardware)
 ./openthaiid doctor       # card service only; never reads personal fields
+./openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
+./openthaiid audit        # redacted operator trail JSON
 ```
 
 ### 2. No reader / card service down
@@ -109,8 +114,23 @@ Recorded:
 Never stored: citizen ID, names, address, portrait / photo bytes, raw APDUs,
 or Fill error *messages*. Forbidden payloads are dropped rather than written.
 
-Use this JSON with Copy diagnostics on Friday tickets. See
-[friday-checklist.md](friday-checklist.md).
+Use this JSON with Copy diagnostics on Friday tickets, next to the
+redacted `openthaiid qualify` report. See
+[friday-checklist.md](friday-checklist.md) and
+[hardware-qualification.md](hardware-qualification.md).
+
+## Friday qualify
+
+When the ACR39U is on the desk (never `-synthetic` for a hardware claim):
+
+```bash
+./openthaiid qualify -operator -report ./openthaiid-qualify.json
+# Windows package: Qualify-OpenThaiID.bat
+```
+
+Type only `pass` / `fail` / `skip`. Attach the printed `report:` JSON and
+the audit JSON. One-page: [friday-checklist.md](friday-checklist.md).
+Full kit: [hardware-qualification.md](hardware-qualification.md).
 
 ## Verbose logging
 
@@ -136,4 +156,6 @@ Always-on without a logged-in tray (clinic IT): `openthaiid service install`
 
 See [clinic.md](clinic.md), [erp-integration.md](erp-integration.md),
 [user.md](user.md), [training.md](training.md),
-and [friday-checklist.md](friday-checklist.md).
+[friday-checklist.md](friday-checklist.md), and
+[hardware-qualification.md](hardware-qualification.md)
+(`openthaiid qualify`).

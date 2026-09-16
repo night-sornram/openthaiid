@@ -32,8 +32,11 @@ Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
 
 Never type or save citizen ID, names, address, or photo bytes. One JSON
 report path is printed as `report: ...`. One-page sheet: docs/friday-checklist.md
-(full kit: docs/hardware-qualification.md). Practice without a reader:
-docs/training.md (`openthaiid -synthetic`).
+(full kit: docs/hardware-qualification.md). Always-on without a tray:
+docs/installation.md (`openthaiid service install`). Technician audit JSON:
+./openthaiid audit  (or Technician tools → Copy JSON). Practice without a
+reader: docs/training.md (`openthaiid -synthetic`). Docs also ship in this
+archive as docs/technician.md.
 
 Start at login (opt-in, off by default)
 ---------------------------------------
@@ -49,13 +52,12 @@ Always-on without a tray:
   loginctl enable-linger $USER
 
 Kiosk system unit template: openthaiid-system.service
-Technician audit JSON: ./openthaiid audit  (or Technician tools → Copy JSON)
 
 Need pcscd, for example:
   sudo apt install pcscd libpcsclite1
   sudo systemctl enable --now pcscd
 
-Commands: openthaiid status | quit | open | open technician | autostart | update check | qualify
+Commands: openthaiid status | quit | open | open technician | autostart | service | audit | update check | qualify | serve
 
 Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).

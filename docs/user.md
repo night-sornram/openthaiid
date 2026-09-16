@@ -21,7 +21,8 @@
 5. **เสียบบัตรประชาชนของผู้ป่วย**
 6. กด **กรอกข้อมูล** (Fill / Fill from Thai ID)
 
-ถ้าแผนก IT เปิด **เริ่มเมื่อเข้าสู่ระบบ** ข้ามข้อ 1 หลังลงชื่อเข้าใช้
+ถ้าแผนก IT เปิด **เริ่มเมื่อเข้าสู่ระบบ** หรือติดตั้ง always-on
+(`openthaiid service install`) ข้ามข้อ 1
 
 ครั้งแรกที่หน้าคลินิกขออ่านบัตร OpenThaiID จะแสดง
 **เว็บไซต์ต้องการอ่านบัตร** อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้
@@ -92,7 +93,8 @@ Technician tools stay English.
 5. **Insert the patient’s Thai ID card.**
 6. Click **Fill** (กรอกข้อมูล).
 
-If clinic IT turned on **Start at login**, skip step 1 after you sign in.
+If clinic IT turned on **Start at login** or installed the always-on
+service (`openthaiid service install`), skip step 1.
 
 The first time that clinic page asks to read a card, OpenThaiID shows
 **เว็บไซต์ต้องการอ่านบัตร / A website wants to read the card**. Allow only

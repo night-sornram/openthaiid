@@ -194,14 +194,17 @@ Browser (HTTPS ERP page)
 
 | Package | Role |
 |---|---|
-| `cmd/openthaiid` | CLI, tray, autostart, signals, wiring |
+| `cmd/openthaiid` | CLI, tray, serve/service, audit, qualify, autostart |
 | `internal/desktop` | Tray host, login items, staff-safe status |
 | `internal/card` | Thai profile, APDU engine, TIS-620 parsers |
 | `internal/reader` | Inventory, generations, single-read slot |
 | `internal/pcsc` | OS PC/SC + synthetic backends |
 | `internal/auth` | Grants, sessions, pending approvals |
+| `internal/audit` | Redacted operator trail (codes, origins, presence) |
 | `internal/protocol` | Protocol v1 envelopes |
 | `internal/bridge` | Loopback HTTP + WebSocket dispatch |
+| `internal/qualify` | Friday E1–E7 / M1 kit (redacted JSON report) |
+| `internal/update` | GitHub Releases unsigned auto-update |
 | `sdk/web` | `@openthaiid/web` |
 | `sdk/react` | `@openthaiid/react` hooks wrapping the web SDK |
 
@@ -228,7 +231,7 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 | [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill |
 | [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives |
 | [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → what to send |
-| [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails |
+| [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, service, qualify) |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
 | [docs/security.md](docs/security.md) | Threat model |
 | [docs/protocol.md](docs/protocol.md) | Protocol v1 |
@@ -237,6 +240,7 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 | [docs/acceptance.md](docs/acceptance.md) | Acceptance gates |
 | [docs/hardware-qualification.md](docs/hardware-qualification.md) | Friday E1–E7 / M1 operator kit (no personal data) |
 | [docs/installation.md](docs/installation.md) | Clinic package + source build (`make package-macos` on a Mac) |
+| [docs/signing.md](docs/signing.md) | Unsigned packages; future Authenticode / Developer ID checklist |
 | [docs/dependency-audit.md](docs/dependency-audit.md) | Binding audit checklist |
 
 ## Tests

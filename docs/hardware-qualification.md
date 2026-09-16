@@ -29,10 +29,10 @@ or Linux.
 | Step | What | Pass looks like |
 |---|---|---|
 | B1 | Unsigned clinic package on this PC | START-HERE.txt followed; helper starts. Not signed / not notarized. |
-| B2 | `openthaiid version` | Prints the package version (for example `0.1.0-rc.1`). |
+| B2 | `openthaiid version` | Prints the package version (for example `0.1.0-rc.2`). |
 | B3 | `openthaiid doctor` | `pcsc: OK` and the **reader name** only. Line `personal fields: not read`. |
 | B4 | Plug ACR39U, insert a Thai ID | Doctor lists the reader. Do not run a dump tool that prints fields. |
-| B5 | Helper running | `openthaiid tray` or OpenThaiID.app / Start menu. Ready page `http://127.0.0.1:17891/`. |
+| B5 | Helper running | `openthaiid tray`, OpenThaiID.app / Start menu, or always-on `openthaiid serve` / `openthaiid service status`. Ready page `http://127.0.0.1:17891/`. |
 
 Record: OS, arch, reader variant, driver/version if any, helper version,
 commit SHA. No card field values.
@@ -124,17 +124,25 @@ From the helper: **Technician / developer → Copy diagnostics**.
 Or the bottom of `openthaiid qualify` output / `openthaiid status` /
 `openthaiid doctor`.
 
+Also attach the redacted **operator audit trail**: Technician tools
+**Copy JSON** / **Download JSON**, or `openthaiid audit`. Error codes and
+origins only — never card values. See [technician.md](technician.md).
+
 Paste that text into the ticket. It is versions, OS, card-service state,
 reader *names*, presence, error **codes**. It is not card content.
 
 Do not paste ERP form dumps, HAR files with `card.read` payloads, or
 photos of the card.
 
+Always-on clinic PCs (no tray): [installation.md](installation.md)
+(`openthaiid service install`).
+
 ## Report attachment
 
 Attach the single `report: …` JSON path when the command wrote one. Confirm
-the `"pii"` field says values are omitted. If a tool ever printed a citizen
-ID, **delete that file** and re-run; do not redact by hand in chat.
+the `"pii"` field says values are omitted. Attach `openthaiid audit` JSON
+the same way. If a tool ever printed a citizen ID, **delete that file**
+and re-run; do not redact by hand in chat.
 
 ## After macOS
 

@@ -88,6 +88,7 @@ flowchart LR
 | `internal/bridge` | Loopback listener, Manager HTML, WebSocket connections, dispatch |
 | `internal/config` | Typed configuration and validation |
 | `internal/update` | GitHub Releases version check / unsigned download / apply |
+| `internal/qualify` | Friday E1–E7 / M1 kit (`openthaiid qualify`; redacted JSON report) |
 | `sdk/web` | `@openthaiid/web` (includes clinic JSON Schema + `parseAutofillClinicConfig`) |
 | `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |
 | `examples/vanilla` | Minimal demonstration app |

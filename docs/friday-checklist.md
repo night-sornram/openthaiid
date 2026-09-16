@@ -9,6 +9,9 @@
 ## 1. เสียบเครื่องอ่าน → พร้อม
 
 - เสียบ **ACR39U** เข้าเครื่องนี้ เปิด OpenThaiID (**ไม่ใช้** `-synthetic`)
+  ถ้าแผนก IT ติดตั้ง always-on แล้ว (`openthaiid service install` /
+  `Install-OpenThaiID-Service.ps1`) ไม่ต้องเปิดถาด — ดู
+  [installation.md](installation.md)
 - `openthaiid version` และ `openthaiid doctor` — `pcsc: OK` + ชื่อเครื่องอ่าน
   บรรทัด `personal fields: not read`
 - หน้า Ready `http://127.0.0.1:17891/` ขึ้น **พร้อม** หลังเสียบบัตรประชาชน
