@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_FIELDS, SUPPORTED_FIELDS, TEXTUAL_FIELDS, ThaiID, ThaiIDError, portraitBlob, portraitDataUrl } from "../src/index";
+import { setPageWsContextForTests } from "../src/browser";
 
 type FakeWS = {
   readyState: number;
@@ -107,6 +108,7 @@ function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean;
 
 afterEach(() => {
   vi.restoreAllMocks();
+  setPageWsContextForTests(null);
 });
 
 describe("ThaiID", () => {
@@ -228,6 +230,24 @@ describe("ThaiID", () => {
       await expect(p).rejects.toMatchObject({ code: "CANCELLED" });
       expect(id.state()).toBe("disconnected");
     } finally {
+      fake.restore();
+    }
+  });
+
+  it("maps Firefox HTTPS loopback failures to HTTPS_WS_BLOCKED, not helper-off", async () => {
+    const fake = installFakeWebSocket({ autoOpen: false });
+    setPageWsContextForTests({
+      pageProtocol: "https:",
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.0; rv:128.0) Gecko/20100101 Firefox/128.0",
+    });
+    try {
+      const id = new ThaiID();
+      const p = id.connect();
+      await Promise.resolve();
+      fake.sockets[0]!.onerror?.();
+      await expect(p).rejects.toMatchObject({ code: "HTTPS_WS_BLOCKED", retryable: false });
+    } finally {
+      setPageWsContextForTests(null);
       fake.restore();
     }
   });

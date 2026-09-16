@@ -114,9 +114,11 @@ within browser security rules only.
 - Never require disabled browser security, public tunnels, bundled TLS private
   keys, or installed root certificates.
 - Firefox mixed-content: `ws://127.0.0.1` from an HTTPS origin is blocked
-  unless the browser allows insecure WebSockets from HTTPS (harness sets
-  `network.websocket.allowInsecureFromHTTPS`). This does not weaken origin
-  approval or loopback bind.
+  on Firefox and Safari. The SDK reports `HTTPS_WS_BLOCKED` instead of
+  helper-down. The acceptance harness may set
+  `network.websocket.allowInsecureFromHTTPS` (**tests only**). This does not
+  weaken origin approval or loopback bind. Chromium still allows localhost
+  mixed WebSockets and may prompt for Local Network Access.
 - Portrait `<img>` data URLs need CSP `img-src data:` (or `blob:` with
   `portraitBlob()`). That is display-only; grants and loopback bind are
   unchanged. Never log photo bytes.

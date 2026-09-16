@@ -21,6 +21,9 @@
 หน้า พร้อม ของตัวช่วย: `http://127.0.0.1:17891/`
 ไฟสามดวงมีคำว่า **ปกติ / รอ / ยังไม่พร้อม** ไม่ใช้สีอย่างเดียว
 ปุ่ม **ใช้เครื่องนี้** · **ทดสอบการเชื่อมต่อ** · สลับภาษา ไทย / English กดง่ายขึ้น
+Firefox / Safari ใช้หน้า พร้อม ได้; กรอกข้อมูลจากหน้าคลินิก **HTTPS** ไม่ได้
+(`HTTPS_WS_BLOCKED`) — ใช้ Chrome/Edge หรือหน้าคลินิก http
+([compatibility.md](compatibility.md))
 
 ## ถ้ายังไม่มี ACR39U
 
@@ -75,6 +78,8 @@ No GitHub Actions in this round (minutes exhausted). No Laser-id / NHSO.
 Ready page: `http://127.0.0.1:17891/`. The three lights include **OK /
 Waiting / Not ready** text (not color alone). **Use this reader**, **Test
 connection**, and the ไทย / English toggle are large tap targets.
+Firefox/Safari: Ready works; Fill from an **https://** ERP is blocked
+(`HTTPS_WS_BLOCKED`). Use Chrome/Edge or an http ERP.
 
 Without hardware: `make friday-dry-run` then [training.md](training.md)
 (ซ้อมก่อนได้เครื่อง). With ACR39U: follow

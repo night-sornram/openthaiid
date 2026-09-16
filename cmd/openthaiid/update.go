@@ -44,11 +44,13 @@ Usage:
   openthaiid update apply [--stable] [--yes]
 
 check asks GitHub whether a newer unsigned package exists and prints the
-release URL. It does not download. Offline / rate-limited checks fail soft
+release URL. It does not download. Prereleases (rc/beta) count unless
+--stable. Offline / rate-limited / private-repo 404 checks fail soft
 (Fill still works). download/apply stay explicit technician steps.
 
 Packages are unsigned. No card data is sent.
 Repo: night-sornram/openthaiid (override with OPENTHAIID_UPDATE_REPO=owner/name)
+Private repo: OPENTHAIID_GITHUB_TOKEN or GITHUB_TOKEN (helper env only).
 Future Store/code-signing steps: docs/signing.md
 `
 

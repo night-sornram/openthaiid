@@ -1,19 +1,18 @@
 # Not done
 
-Last updated after **v0.1.0-rc.4 prep**: Friday-morning getting-started hub
-+ Ready a11y, synthetic `make friday-dry-run`, and loopback helper HTTP
-hardening (Origin / CSRF / cross-site fetch / reconnect bounds / PII JSON
-tests). Physical ACR39U execution (including Friday E4–E6 on hardware)
-is still blocked. This tree is **tag-ready** for `v0.1.0-rc.4` after
-review.
+Last updated after **Firefox/Safari clinic Fill/Ready** (pre-hardware) plus
+the update-check prerelease/404 fix. Physical ACR39U execution (including
+Friday E4–E6 on hardware) is still blocked. Published **v0.1.0-rc.4** is
+on GitHub; this tree stays on that helper version.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
 portrait (synthetic), the qualification *kit*, unsigned macOS packaging
 instructions, reconnect/test-connection staff UX, multi-reader select,
-card-removed / unplug clinic UX, and sleep/wake + PC/SC recovery mapping
-are implemented. This file lists everything that is **not** complete for a
-**hardware-qualified** release.
+card-removed / unplug clinic UX, sleep/wake + PC/SC recovery mapping,
+operator GitHub Releases **check**, and honest Firefox/Safari HTTPS Fill
+errors are implemented. This file lists everything that is **not** complete
+for a **hardware-qualified** release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,

@@ -85,6 +85,18 @@ map. JSON Schema + samples + import/export:
 [erp-integration.md](erp-integration.md). Worked example:
 `examples/clinic-patient/`.
 
+## Browsers (Fill / Ready)
+
+| | Chrome / Edge | Firefox | Safari 16+ |
+|---|---|---|---|
+| Ready page (`http://127.0.0.1:17891/`) | yes | yes | yes |
+| Fill from an **http** clinic page | yes | yes | yes |
+| Fill from an **https** clinic page | yes (may ask for local network) | **no** — mixed content | **no** — mixed content |
+
+Firefox/Safari + HTTPS does **not** mean the helper is down. The page shows
+`HTTPS_WS_BLOCKED` and tells staff to use Chrome/Edge or an http ERP. Do not
+disable mixed-content checks. Details: [compatibility.md](compatibility.md).
+
 React:
 
 ```tsx

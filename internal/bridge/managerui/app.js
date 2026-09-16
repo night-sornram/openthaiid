@@ -11,6 +11,45 @@ function setCsrf(token) {
   if (csrfMeta) csrfMeta.content = csrf;
 }
 
+function clearChildren(el) {
+  if (!el) return;
+  if (typeof el.replaceChildren === "function") {
+    el.replaceChildren();
+    return;
+  }
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+async function copyText(text, promptLabel) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Firefox/Safari may deny clipboard.writeText; fall through.
+    }
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "0";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = typeof document.execCommand === "function" && document.execCommand("copy");
+    ta.remove();
+    if (ok) return true;
+  } catch {
+    // ignore
+  }
+  window.prompt(promptLabel || "Copy", text);
+  return false;
+}
+
 const I18N = {
   th: {
     title: "ตัวช่วย OpenThaiID",
@@ -747,7 +786,7 @@ function allowRow(p, { detailed }) {
 
 function renderUserPending(data) {
   const pending = data.pending || [];
-  els.userPending.replaceChildren();
+  clearChildren(els.userPending);
   if (!pending.length) {
     els.userPendingCard.hidden = true;
     return;
@@ -763,11 +802,11 @@ function renderStaffReaders(data) {
   if (!els.staffReadersCard || !els.staffReaders) return;
   if (readers.length <= 1) {
     els.staffReadersCard.hidden = true;
-    els.staffReaders.replaceChildren();
+    clearChildren(els.staffReaders);
     return;
   }
   els.staffReadersCard.hidden = false;
-  els.staffReaders.replaceChildren();
+  clearChildren(els.staffReaders);
   for (const r of readers) {
     const li = document.createElement("li");
     const row = document.createElement("div");
@@ -800,7 +839,7 @@ function renderStaffReaders(data) {
 
 function renderReaders(data) {
   const readers = data.readers || [];
-  els.readers.replaceChildren();
+  clearChildren(els.readers);
   if (!readers.length) {
     els.readersEmpty.hidden = false;
     if (data.backend && data.backend.status === "unavailable") {
@@ -852,7 +891,7 @@ function renderReaders(data) {
 function renderPending(data) {
   const pending = data.pending || [];
   els.pendingCount.textContent = String(pending.length);
-  els.pending.replaceChildren();
+  clearChildren(els.pending);
   if (!pending.length) {
     const li = document.createElement("li");
     li.className = "muted";
@@ -867,7 +906,7 @@ function renderPending(data) {
 
 function renderTrusted(data) {
   const trusted = data.trusted || [];
-  els.trusted.replaceChildren();
+  clearChildren(els.trusted);
   els.revokeAll.hidden = trusted.length === 0;
   if (!trusted.length) {
     const li = document.createElement("li");
@@ -929,7 +968,7 @@ function renderAudit(data) {
   events.reverse();
   if (els.auditEmpty) els.auditEmpty.hidden = events.length > 0;
   if (!els.auditEvents) return;
-  els.auditEvents.replaceChildren();
+  clearChildren(els.auditEvents);
   for (const ev of events) {
     const li = document.createElement("li");
     const bits = [ev.at || "", ev.kind || "", ev.code || "", ev.origin || "", ev.readerId || "", ev.reader || ""]
@@ -1003,13 +1042,13 @@ function render(data) {
   setText(els.instance, data.instanceId || "");
   setText(els.os, data.os || "");
   setText(els.connections, String(data.connections ?? 0));
-  els.bridge.replaceChildren();
+  clearChildren(els.bridge);
   els.bridge.append(pill(data.running ? "running" : "stopped", data.running ? "ok" : "bad"));
   if (data.synthetic) {
     els.bridge.append(document.createTextNode(" "));
     els.bridge.append(pill("practice reader", "demo"));
   }
-  els.pcsc.replaceChildren();
+  clearChildren(els.pcsc);
   const st = (data.backend && data.backend.status) || "unavailable";
   els.pcsc.append(pill(pcscLabel(st, data.synthetic), pcscKind(st)));
   setText(els.listen, data.listenAddr || "");
@@ -1189,18 +1228,12 @@ async function copyDiagnostics() {
   const data = window.__lastStatus;
   if (!data) return;
   const text = diagnosticsText(data);
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      throw new Error("no clipboard");
-    }
-    els.copyDiag.textContent = "Copied";
-  } catch {
-    window.prompt("Copy diagnostics", text);
+  const copied = await copyText(text, "Copy diagnostics");
+  if (!copied) {
     els.copyDiag.textContent = "Copy diagnostics";
     return;
   }
+  els.copyDiag.textContent = "Copied";
   setTimeout(() => {
     els.copyDiag.textContent = "Copy diagnostics";
   }, 1500);
@@ -1210,18 +1243,12 @@ async function copyAuditJSON() {
   const data = window.__lastStatus;
   if (!data) return;
   const text = JSON.stringify(auditExportPayload(data), null, 2);
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      throw new Error("no clipboard");
-    }
-    if (els.copyAudit) els.copyAudit.textContent = "Copied";
-  } catch {
-    window.prompt("Copy audit JSON", text);
+  const copied = await copyText(text, "Copy audit JSON");
+  if (!copied) {
     if (els.copyAudit) els.copyAudit.textContent = "Copy JSON";
     return;
   }
+  if (els.copyAudit) els.copyAudit.textContent = "Copied";
   setTimeout(() => {
     if (els.copyAudit) els.copyAudit.textContent = "Copy JSON";
   }, 1500);

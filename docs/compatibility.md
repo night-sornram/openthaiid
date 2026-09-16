@@ -24,6 +24,38 @@ workflow is enabled) run Firefox on ubuntu only; the full lane adds Chrome
 on macOS/Windows and Edge on Windows. Do not add Safari rows (macOS
 multiplier).
 
+### Clinic Fill / Ready (software)
+
+SDK and Ready page assume a current desktop engine: **Firefox 115+**,
+**Chrome / Edge 120+**, **Safari 16+** (macOS). No IE. No iOS Safari as a
+clinic desk target.
+
+| Surface | Chrome / Edge | Firefox | Safari 16+ (macOS) |
+|---|---|---|---|
+| Ready page `http://127.0.0.1:17891/` | Works | Works | Works |
+| Fill / `probeThaiID` from **http** ERP (intranet / localhost) | Works | Works | Works |
+| Fill / `probeThaiID` from **https** ERP | Works (may prompt Local Network Access) | **Blocked** (mixed content) | **Blocked** (mixed content; macOS Sequoia may also prompt Local Network) |
+| Technician Copy diagnostics on Ready | Clipboard API | Clipboard API, then `execCommand`, then prompt | Same fallbacks |
+
+Firefox and Safari treat `ws://127.0.0.1` from an `https://` clinic page as
+mixed active content. Chromium still allows loopback mixed WebSockets.
+OpenThaiID does **not** ship a helper TLS cert, a Firefox pref, or a
+mixed-content bypass. The library returns `HTTPS_WS_BLOCKED` (not
+“helper is not running”) so staff are not told to restart OpenThaiID.
+
+Workable clinic paths on Firefox/Safari today:
+
+1. Keep the ERP on `http://` on that PC (typical intranet), **or**
+2. Use Chrome/Edge for the HTTPS ERP, **or**
+3. Use the Ready page (always `http://127.0.0.1`) for lights / Allow / version check; Fill still needs a browser that can open the loopback WebSocket.
+
+Do not tell clinics to set `network.websocket.allowInsecureFromHTTPS` — that
+pref is **acceptance-harness only**.
+
+Automated coverage without GitHub Actions: `sdk/web` vitest (jsdom UA
+matrix + `replaceChildren` fallback) and `make acceptance-firefox` locally.
+Real Safari UI stays a headed macOS check (`NOT_DONE.md`).
+
 ## Reader
 
 - Primary physical reader: **ACS ACR39U**.
@@ -81,9 +113,9 @@ Document distro-specific permissions if a user cannot access the PC/SC daemon.
 - Application CSP must allow `connect-src` to the loopback WebSocket origin.
 - Firefox treats `ws://127.0.0.1` from an `https://` page as mixed active
   content. The acceptance harness sets
-  `network.websocket.allowInsecureFromHTTPS`. Real Firefox users may need to
-  allow the loopback WebSocket (or serve the ERP from http://localhost in
-  development). Chrome is more lenient for localhost mixed content.
+  `network.websocket.allowInsecureFromHTTPS` (**tests only**). Real Firefox
+  and Safari clinic pages on HTTPS get `HTTPS_WS_BLOCKED`; use Chrome/Edge
+  or an http ERP. Chrome is more lenient for localhost mixed content.
 - Firefox is strict about ES module MIME types (`text/javascript`). Serve SDK
   `.js` with that type; an empty Content-Type (including a 404) is a hard
   block. Chrome often still executes the graph.

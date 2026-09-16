@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -137,6 +138,120 @@ func TestCheckNoReleases(t *testing.T) {
 	}
 	if res.State != StateNone || res.Newer {
 		t.Fatalf("%+v", res)
+	}
+}
+
+func TestCheckGitHub404IsUnavailableNotEmpty(t *testing.T) {
+	// Unauthenticated private-repo 404, or /releases/latest when every
+	// release is a prerelease, must not print "no releases published."
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Not Found"}`))
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.4", Options{API: srv.URL, HTTPClient: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != StateUnavailable || res.Reason != ReasonNotFound {
+		t.Fatalf("%+v", res)
+	}
+	if strings.Contains(res.Message, "No GitHub Releases published") {
+		t.Fatalf("404 must not look like an empty catalog: %s", res.Message)
+	}
+	if !strings.Contains(res.Message, "Prereleases count") {
+		t.Fatalf("expected prerelease hint: %s", res.Message)
+	}
+	if !strings.Contains(res.MessageTH, "กรอกข้อมูลได้ตามปกติ") {
+		t.Fatalf("%s", res.MessageTH)
+	}
+}
+
+func TestCheckListEndpointNotLatest(t *testing.T) {
+	var gotPath, gotQuery, gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotQuery = r.URL.RawQuery
+		gotAuth = r.Header.Get("Authorization")
+		_ = json.NewEncoder(w).Encode([]ghRelease{
+			{TagName: "v0.1.0-rc.4", Prerelease: true, HTMLURL: "https://example.test/r/v0.1.0-rc.4"},
+		})
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.1", Options{
+		API:        srv.URL + "/releases",
+		HTTPClient: srv.Client(),
+		Token:      "test-token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != StateNewer || res.Tag != "v0.1.0-rc.4" || !res.Prerelease {
+		t.Fatalf("%+v", res)
+	}
+	if gotPath != "/releases" || strings.Contains(gotPath, "latest") {
+		t.Fatalf("must list /releases not /releases/latest, path=%s", gotPath)
+	}
+	if !strings.Contains(gotQuery, "per_page=100") {
+		t.Fatalf("query %s", gotQuery)
+	}
+	if gotAuth != "Bearer test-token" {
+		t.Fatalf("auth %q", gotAuth)
+	}
+}
+
+func TestCheckPaginatesAndKeepsPrereleases(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page := r.URL.Query().Get("page")
+		if page == "2" {
+			_ = json.NewEncoder(w).Encode([]ghRelease{
+				{TagName: "v0.1.0-rc.4", Prerelease: true, HTMLURL: "https://example.test/r/v0.1.0-rc.4"},
+			})
+			return
+		}
+		w.Header().Set("Link", fmt.Sprintf(`<%s?page=2>; rel="next"`, "http://"+r.Host+"/releases"))
+		_ = json.NewEncoder(w).Encode([]ghRelease{
+			{TagName: "v0.1.0-rc.1", Prerelease: true},
+			{TagName: "v0.1.0-rc.3", Prerelease: true},
+		})
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.2", Options{
+		API:        srv.URL + "/releases",
+		HTTPClient: srv.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Tag != "v0.1.0-rc.4" || !res.Newer || !res.Prerelease {
+		t.Fatalf("pagination missed rc.4: %+v", res)
+	}
+}
+
+func TestCheckStableOnlyMentionsSkippedPrereleases(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode([]ghRelease{
+			{TagName: "v0.1.0-rc.1", Prerelease: true},
+			{TagName: "v0.1.0-rc.4", Prerelease: true},
+		})
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.4", Options{
+		API:        srv.URL,
+		HTTPClient: srv.Client(),
+		StableOnly: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != StateNone || !res.SkippedPrereleases {
+		t.Fatalf("%+v", res)
+	}
+	if !strings.Contains(res.Message, "omit --stable") {
+		t.Fatalf("%s", res.Message)
+	}
+	if !strings.Contains(res.MessageTH, "รุ่นทดลอง") {
+		t.Fatalf("%s", res.MessageTH)
 	}
 }
 

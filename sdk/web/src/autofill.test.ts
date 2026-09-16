@@ -243,6 +243,9 @@ describe("autofill mapping", () => {
     expect(formatAutofillValue(SYNTHETIC_FIELDS, "thaiName.familyName")).toBe("ใจดี");
     expect(formatAutofillValue(SYNTHETIC_FIELDS, "englishName")).toBe("Mr. Somchai Jaidee");
     expect(formatAutofillValue(SYNTHETIC_FIELDS, "birthDate")).toBe("1990-04-12");
+    expect(formatAutofillValue(SYNTHETIC_FIELDS, "birthDate", { dateFormat: "locale", dateLocale: "not a locale" })).toMatch(
+      /1990/,
+    );
     expect(formatAutofillValue(SYNTHETIC_FIELDS, "gender")).toBe("male");
     expect(formatAutofillValue(SYNTHETIC_FIELDS, "gender.code")).toBe("1");
     expect(formatAutofillValue(SYNTHETIC_FIELDS, "issuer")).toBe("เทศบาลนครนิทาน");

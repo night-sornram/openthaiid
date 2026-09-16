@@ -32,6 +32,7 @@ describe("staffLang", () => {
     expect(staffLang("th-TH")).toBe("th");
     expect(staffLang("en")).toBe("en");
     expect(staffLang("en-GB")).toBe("en");
+    expect(staffLang("en_GB")).toBe("en");
   });
 });
 
@@ -109,6 +110,7 @@ describe("staffErrorGuidance", () => {
       "UNSUPPORTED_FIELD",
       "READ_FAILED",
       "READ_TIMEOUT",
+      "HTTPS_WS_BLOCKED",
     ];
     for (const code of codes) {
       assertNoPII(formatStaffError({ code }));
@@ -165,5 +167,10 @@ describe("staffCopy status strings", () => {
     expect(c.fixService).toContain("Reconnect card service");
     expect(c.serviceBack).toContain("กลับมา");
     expect(JSON.stringify(c)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
+    const blocked = staffErrorGuidance({ code: "HTTPS_WS_BLOCKED" });
+    expect(blocked.code).toBe("HTTPS_WS_BLOCKED");
+    expect(blocked.message).toContain("HTTPS");
+    expect(`${blocked.message} ${blocked.next}`).not.toMatch(/WebSocket|PC\/SC|bridge/i);
+    expect(staffErrorGuidance({ code: "HTTPS_WS_BLOCKED" }, "en").next).toMatch(/Chrome or Edge/i);
   });
 });

@@ -12,6 +12,12 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
 ### Added
 
+- Firefox / Safari clinic Fill/Ready honesty: `@openthaiid/web` reports
+  `HTTPS_WS_BLOCKED` when an **https://** ERP cannot open `ws://127.0.0.1`
+  (Firefox/Safari mixed content). Ready (`http://127.0.0.1:17891/`) still
+  works. No helper TLS cert and no “turn off mixed content” staff copy.
+  Ready page clipboard falls back to `execCommand` / prompt; `replaceChildren`
+  is guarded. Matrix: [docs/compatibility.md](docs/compatibility.md).
 - Operator-initiated GitHub Releases **version check** (no auto-download or
   install): Ready page **ตรวจเวอร์ชัน**, technician **Check GitHub Releases**,
   tray **ตรวจเวอร์ชัน**, and `openthaiid update check`. Compares the running
@@ -23,6 +29,10 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
 ### Changed
 
+- `openthaiid update check` lists `/releases` (not `/releases/latest`) so
+  prereleases `v0.1.0-rc.1`–`rc.4` count unless `--stable`. GitHub HTTP 404
+  (private repo, unauthenticated) is **unavailable**, not “no releases”.
+  Optional `OPENTHAIID_GITHUB_TOKEN` / `GITHUB_TOKEN` on the helper.
 - Check copy is Thai for staff (and English fallback). It does not tell
   clinics to `update apply`. Existing `update download` / `update apply --yes`
   stay technician CLI only.
