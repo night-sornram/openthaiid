@@ -1,10 +1,10 @@
 # Not done
 
-Last updated after **v0.1.0-rc.3 prep**: software maps multi-reader select,
-card-removed / unplug mid-Fill recovery, and sleep/wake + PC/SC recovery
-(Thai staff copy, Ready re-probe without card fields, synthetic tests).
-Physical ACR39U execution (including Friday E4–E6 on hardware) is still
-blocked. This tree is **tag-ready** for `v0.1.0-rc.3` after review.
+Last updated after the **Getting started + Ready accessibility** pass on
+`dev` (post v0.1.0-rc.3 prep). Friday-morning doc hub and larger Ready
+controls are in tree. Physical ACR39U execution (including Friday E4–E6 on
+hardware) is still blocked. This tree remains **tag-ready** for
+`v0.1.0-rc.3` after review of that RC; this pass is Unreleased polish.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional

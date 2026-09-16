@@ -1,5 +1,7 @@
 # วิธีใช้ OpenThaiID (เจ้าหน้าที่คลินิก)
 
+เช้าวันศุกร์เปิด [getting-started.md](getting-started.md) ก่อน ถ้ายังไม่แน่ใจว่าเอกสารไหน
+
 ใช้ได้เฉพาะคอมพิวเตอร์ที่ต่อเครื่องอ่านบัตร ไม่มีเว็บไซต์ OpenThaiID
 และไม่มีอะไรต้องติดตั้งบนคลาวด์
 
@@ -47,6 +49,8 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 | บัตรประชาชนไทย | เสียบบัตรแล้ว |
 
 หน้าเหล่านี้ไม่แสดงเลขบัตร ชื่อ หรือข้อมูลส่วนบุคคลอื่น
+แต่ละดวงมีคำว่า **ปกติ / รอ / ยังไม่พร้อม** (หรือ **ต้องตรวจ**) ไม่ใช้สีอย่างเดียว
+ปุ่ม **ใช้เครื่องนี้** · **ทดสอบการเชื่อมต่อ** · สลับภาษา กดได้ใหญ่ขึ้น
 
 ## ถ้ายังไม่พร้อม
 
@@ -74,10 +78,13 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต
 
 วันศุกร์ที่มีเครื่องอ่าน: [friday-checklist.md](friday-checklist.md)
+ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)
 
 ---
 
 # Using OpenThaiID (clinic staff) — English
+
+Friday-morning index: [getting-started.md](getting-started.md).
 
 You only need the computer next to the card reader. There is no OpenThaiID
 website to visit and nothing to deploy in the cloud.
@@ -125,4 +132,5 @@ Friday with ACR39U (multi-reader, E4 card-removed / unplug, E5/E6 sleep and
 PC/SC recovery): [friday-checklist.md](friday-checklist.md).
 Technicians (Reconnect card service, **Use this reader**):
 [technician.md](technician.md).
+Friday-morning index: [getting-started.md](getting-started.md).
 

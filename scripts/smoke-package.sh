@@ -72,6 +72,20 @@ grep -q "CARD_REMOVED" docs/user.md
 grep -q "PCSC_UNAVAILABLE" docs/user.md
 grep -q "friday-checklist.md" docs/user.md
 grep -q "technician.md" docs/user.md
+grep -q "getting-started.md" README.md
+grep -q "user.md" docs/getting-started.md
+grep -q "training.md" docs/getting-started.md
+grep -q "friday-checklist.md" docs/getting-started.md
+grep -q "erp-integration.md" docs/getting-started.md
+grep -q "technician.md" docs/getting-started.md
+grep -q "getting-started.md" docs/friday-checklist.md
+grep -q "getting-started.md" docs/user.md
+grep -q "getting-started.md" docs/training.md
+grep -q "getting-started.md" docs/erp-integration.md
+grep -q "getting-started.md" docs/technician.md
+grep -q "getting-started.md" packaging/START-HERE.linux.txt
+grep -q "getting-started.md" packaging/START-HERE.windows.txt
+grep -q "getting-started.md" packaging/START-HERE.darwin.txt
 grep -q "0.1.0-rc.3" cmd/openthaiid/main.go
 grep -q "0.1.0-rc.3" Makefile
 

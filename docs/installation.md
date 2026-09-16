@@ -9,6 +9,7 @@ OpenThaiID website or backend to deploy. The helper listens only on
 1. Get a per-OS archive from `scripts/package.sh` (or an internal share of
    `dist/openthaiid-<version>-<os>-<arch>.tar.gz` / `.zip`).
 2. Follow **START-HERE.txt** in that archive.
+   Friday-morning index in the same archive: `docs/getting-started.md`.
 
 | OS | What staff run | Notes |
 |---|---|---|

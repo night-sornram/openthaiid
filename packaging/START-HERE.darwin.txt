@@ -56,7 +56,8 @@ Technicians
 ./openthaiid qualify -operator -report ./openthaiid-qualify.json
                              same, and record pass/fail/skip from the keyboard
                              (never type citizen ID, names, address, or photo)
-See docs/technician.md, docs/friday-checklist.md, docs/user.md
+See docs/getting-started.md, docs/technician.md, docs/friday-checklist.md,
+docs/user.md
 (multi-reader, CARD_REMOVED / sleep-wake / PC/SC recovery), and
 docs/hardware-qualification.md. Always-on without a menu-bar session:
 docs/installation.md (`openthaiid service install`). Technician audit JSON:

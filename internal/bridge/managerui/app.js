@@ -27,6 +27,10 @@ const I18N = {
     ready: "พร้อม",
     readyPractice: "พร้อม (บัตรฝึกซ้อม)",
     notReady: "ยังไม่พร้อม",
+    lightOk: "ปกติ",
+    lightWait: "รอ",
+    lightWarn: "ต้องตรวจ",
+    lightBad: "ยังไม่พร้อม",
     helperOn: "OpenThaiID กำลังทำงานบนเครื่องนี้",
     helperOff: "OpenThaiID ยังไม่ทำงาน",
     plugReader: "เสียบเครื่องอ่านบัตรเข้าเครื่องนี้",
@@ -106,6 +110,10 @@ const I18N = {
     ready: "Ready",
     readyPractice: "Ready (practice card)",
     notReady: "Not ready yet",
+    lightOk: "OK",
+    lightWait: "Waiting",
+    lightWarn: "Check",
+    lightBad: "Not ready",
     helperOn: "OpenThaiID is running on this computer.",
     helperOff: "OpenThaiID is not running.",
     plugReader: "Plug the card reader into this computer.",
@@ -373,8 +381,8 @@ function renderOffline() {
   els.headline.className = "headline wait";
   setText(els.next, t("helperWaiting"));
   setLight(els.lightHelper, "bad", t("helperOff"));
-  setLight(els.lightReader, "", t("readerUnknown"));
-  setLight(els.lightCard, "", t("cardUnknown"));
+  setLight(els.lightReader, "wait", t("readerUnknown"));
+  setLight(els.lightCard, "wait", t("cardUnknown"));
   if (els.userPendingCard) els.userPendingCard.hidden = true;
   if (els.staffReadersCard) els.staffReadersCard.hidden = true;
   if (!wasOnline) {
@@ -510,10 +518,22 @@ function setTechnician(open) {
   }
 }
 
+function lightStateWord(kind) {
+  if (kind === "ok") return t("lightOk");
+  if (kind === "warn") return t("lightWarn");
+  if (kind === "bad") return t("lightBad");
+  return t("lightWait");
+}
+
 function setLight(el, kind, text) {
-  el.className = kind ? `light-${kind}` : "";
+  const resolved = kind || "wait";
+  el.className = `light-${resolved}`;
+  const state = el.querySelector(".light-state");
   const label = el.querySelector(".light-text");
+  const word = lightStateWord(resolved);
+  if (state) state.textContent = word;
   if (label) label.textContent = text;
+  el.setAttribute("aria-label", `${word}. ${text}`);
 }
 
 function pcscLabel(status, synthetic) {
@@ -578,7 +598,7 @@ function summarize(data) {
   }
 
   let cardText = t("insertCard");
-  let cardKind = "";
+  let cardKind = "wait";
   if (!readerOk || !serviceOk) {
     cardText = t("insertAfterReader");
   } else if (needChoice) {
@@ -705,7 +725,7 @@ function renderStaffReaders(data) {
     actions.className = "actions";
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = r.selected ? "btn" : "btn btn-ok";
+    btn.className = r.selected ? "btn btn-staff" : "btn btn-ok btn-staff";
     btn.textContent = r.selected ? t("usingThisReader") : t("useThisReader");
     btn.disabled = Boolean(r.selected);
     btn.addEventListener("click", () => selectReader(r.readerId));
@@ -755,7 +775,7 @@ function renderReaders(data) {
     if (showSelect) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = r.selected ? "btn" : "btn btn-ok";
+      btn.className = r.selected ? "btn btn-staff" : "btn btn-ok btn-staff";
       btn.textContent = r.selected ? "Selected" : "Use this reader";
       btn.disabled = Boolean(r.selected);
       btn.addEventListener("click", () => selectReader(r.readerId));

@@ -68,6 +68,15 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, `id="staff-readers"`) {
 		t.Fatal("missing staff multi-reader list")
 	}
+	if !strings.Contains(page, `class="light-state"`) {
+		t.Fatal("lights must include text status, not color alone")
+	}
+	if !strings.Contains(page, `class="btn btn-staff"`) {
+		t.Fatal("test-connection must be a large staff tap target")
+	}
+	if !strings.Contains(page, `aria-label="ภาษา / Language"`) {
+		t.Fatal("language toggle must have a bilingual accessible name")
+	}
 	js := getBody(t, tb, "/manager/app.js")
 	if !strings.Contains(js, "trainingTitle") || !strings.Contains(js, "Practice before the real reader arrives") {
 		t.Fatal("missing training i18n")
@@ -87,6 +96,12 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(js, "useThisReader") || !strings.Contains(js, "renderStaffReaders") {
 		t.Fatal("missing staff multi-reader picker")
 	}
+	if !strings.Contains(js, "lightOk") || !strings.Contains(js, "lightStateWord") {
+		t.Fatal("lights must expose text status words, not color alone")
+	}
+	if !strings.Contains(js, "btn-staff") {
+		t.Fatal("ใช้เครื่องนี้ must be a large staff tap target")
+	}
 	if strings.Contains(js, "card.read") {
 		t.Fatal("Ready-page test connection must not issue card.read")
 	}
@@ -96,6 +111,15 @@ func TestManagerPageAndStatus(t *testing.T) {
 	css := getBody(t, tb, "/manager/style.css")
 	if !strings.Contains(css, ".tech[hidden]") {
 		t.Fatal("technician section must stay display:none while hidden")
+	}
+	if !strings.Contains(css, ":focus-visible") {
+		t.Fatal("missing focus-visible styles")
+	}
+	if !strings.Contains(css, "min-height: 2.75rem") {
+		t.Fatal("staff tap targets should be at least 44px")
+	}
+	if !strings.Contains(css, ".light-state") {
+		t.Fatal("lights must style a text status, not color alone")
 	}
 	if strings.Contains(page, "1234567890121") || strings.Contains(page, "สมชาย") {
 		t.Fatal("manager HTML must not embed card field values")

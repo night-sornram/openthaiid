@@ -1,7 +1,10 @@
 # Technician / developer guide
 
+Friday-morning index (Thai-first): [getting-started.md](getting-started.md).
+
 Clinic staff should stay on the simple Ready view (Thai **พร้อม** lights by
-default; English toggle on that page). This page is the debug checklist when
+default; English toggle on that page). Lights include **OK / Waiting / Not
+ready** text, not color alone. This page is the debug checklist when
 **Fill fails**. Technician chrome on this page stays English.
 
 Open technician tools on the PC: `http://127.0.0.1:17891/#technician`
