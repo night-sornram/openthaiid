@@ -458,11 +458,20 @@ async function runAllowScenarios(browser, httpsBase, wsURL) {
         waitUntil: "domcontentloaded",
       });
       await extraPage.locator("#connect").click();
-      await extraPage.waitForFunction(
-        () => document.getElementById("status")?.textContent === "connected",
-        undefined,
-        { timeout: 20000 },
-      );
+      try {
+        await extraPage.waitForFunction(
+          () => document.getElementById("status")?.textContent === "connected",
+          undefined,
+          { timeout: 20000 },
+        );
+      } catch (err) {
+        const status = await extraPage.locator("#status").innerText();
+        const approval = await extraPage.locator("#approval").innerText();
+        const out = (await extraPage.locator("#out").innerText()).slice(0, 240);
+        throw new Error(
+          `extra-fields connect failed status=${status} approval=${approval} out=${out} (${err && err.message ? err.message : err})`,
+        );
+      }
       await extraPage.waitForFunction(
         () => (document.getElementById("out")?.textContent || "").includes("readers"),
         undefined,

@@ -45,7 +45,7 @@ workflow on `dev` for an on-demand full matrix.
 | B1 | Unapproved origin receives no reader inventory, events, or card data | Pairing-only: no pre-auth snapshot; `TestIntegrationPairingOnlyNoInventory` | Done |
 | B2 | Missing/null Origin, lookalikes, wrong ports, rebinding-style Host rejected | Auth origin tests | Done |
 | B3 | Approval, denial, expiry, revocation behave as specified | Auth unit + integration | Done |
-| B4 | Field-set expansion requires a new approval | Auth tests | Done |
+| B4 | Field-set expansion requires a new approval | Auth tests + `TestIntegrationSessionOpenFieldExpansionPrompts`; Playwright extra-fields allow scenario | Done |
 | B5 | Pending approval cannot be claimed by another connection | Connection-bound approvals | Done |
 | B6 | Tokens fail across origins and bridge restarts | Auth tests | Done |
 | B7 | Grant expiry/revocation during a read suppresses the result | Auth Session() + recheck | Done |

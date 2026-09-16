@@ -27,8 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform acceptance: Playwright `chrome` / `msedge` channels,
   approval policies (allow / deny / unanswered), allowlisted reports
 - Allow-policy scenario that requests extra textual fields (`englishName`,
-  `gender`, `issuer`, `issueDate`, `expireDate`, `address`) under a new
+  `gender`, `issuer`, `issueDate`, `expireDate`, `address`) via a new
   terminal grant; default pages still request the original three fields
+- `session.open` with a field set that is not a subset of the live grant
+  prompts for a new terminal approval (card.read of ungranted fields stays
+  `FIELD_NOT_ALLOWED`)
 - Playwright two-browser-context isolation (H11): a card read is unicast
   to the requester; the idle peer page and WebSocket frames stay free of
   personal fields; the peer can still read on its own connection

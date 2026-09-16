@@ -414,7 +414,10 @@ func (s *Server) opSessionOpen(ctx context.Context, cc *clientConn, req protocol
 		return
 	}
 	cerr := card.AsError(err)
-	if cerr.Code != card.ErrApprovalRequired {
+	// No grant, or the requested set is not a subset of the live grant:
+	// prompt for a new terminal approval (field-set expansion). card.read
+	// of ungranted fields stays FIELD_NOT_ALLOWED.
+	if cerr.Code != card.ErrApprovalRequired && cerr.Code != card.ErrFieldNotAllowed {
 		s.writeError(cc, req.ID, cerr)
 		return
 	}

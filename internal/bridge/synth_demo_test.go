@@ -186,3 +186,86 @@ func TestIntegrationUngrantedTextualFieldRejected(t *testing.T) {
 		t.Fatal("gender must not appear without a grant")
 	}
 }
+
+func TestIntegrationSessionOpenFieldExpansionPrompts(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	conn1, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn1.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, conn1, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: card.DefaultFields,
+	})
+	token1 := readToken(t, ctx, conn1, 1)
+	if token1 == "" {
+		t.Fatal("missing default-grant token")
+	}
+
+	conn2, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn2.Close(websocket.StatusNormalClosure, "") }()
+	expanded := append(append([]card.Field(nil), card.DefaultFields...), card.FieldGender)
+	writeReq(t, ctx, conn2, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: expanded,
+	})
+
+	sawApproval := false
+	var open map[string]any
+	deadline := time.Now().Add(4 * time.Second)
+	for open == nil && time.Now().Before(deadline) {
+		msg := readMsg(t, ctx, conn2)
+		typ, _ := msg["type"].(string)
+		if typ == "approval.required" {
+			sawApproval = true
+			pending := tb.authMgr.Pending(time.Now())
+			if len(pending) == 0 {
+				t.Fatal("approval.required without pending request")
+			}
+			if _, err := tb.authMgr.Resolve(pending[0].ID, true, time.Now()); err != nil {
+				t.Fatalf("resolve expansion: %v", err)
+			}
+			continue
+		}
+		if msg["id"] != nil && int64(msg["id"].(float64)) == 1 {
+			open = msg
+		}
+	}
+	if !sawApproval {
+		t.Fatal("session.open field expansion must prompt for a new approval")
+	}
+	if open == nil {
+		t.Fatal("missing session.open response after expansion approval")
+	}
+	if open["error"] != nil {
+		t.Fatalf("expansion session.open error: %v", open["error"])
+	}
+	token2, _ := open["result"].(map[string]any)["token"].(string)
+	if token2 == "" {
+		t.Fatal("missing expansion token")
+	}
+
+	writeReq(t, ctx, conn2, 2, "card.read", token2, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldGender},
+	})
+	read := readByID(t, ctx, conn2, 2)
+	if read["error"] != nil {
+		t.Fatalf("expanded read error: %v", read["error"])
+	}
+	fields := read["result"].(map[string]any)["fields"].(map[string]any)
+	gender, _ := fields["gender"].(map[string]any)
+	if gender == nil || gender["code"] != "1" || gender["value"] != "male" {
+		t.Fatalf("gender %v", gender)
+	}
+
+	writeReq(t, ctx, conn1, 2, "card.read", token1, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	prior := readByID(t, ctx, conn1, 2)
+	if prior["error"] != nil {
+		t.Fatalf("original grant read failed after expansion: %v", prior["error"])
+	}
+}
