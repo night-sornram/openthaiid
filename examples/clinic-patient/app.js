@@ -4,6 +4,7 @@ import {
   CLINIC_PATIENT_MAP,
   CLINIC_PATIENT_REQUEST,
   OPTIONAL_PATIENT_REQUEST,
+  OPTIONAL_PORTRAIT_REQUEST,
   clinicPatientAutofill,
 } from "./settings.js";
 
@@ -19,7 +20,7 @@ const genderLabelsSelect = document.getElementById("gender-labels");
 const qs = new URLSearchParams(location.search);
 const endpoint = qs.get("ws") || undefined;
 
-const requestable = [...CLINIC_PATIENT_REQUEST, ...OPTIONAL_PATIENT_REQUEST];
+const requestable = [...CLINIC_PATIENT_REQUEST, ...OPTIONAL_PATIENT_REQUEST, ...OPTIONAL_PORTRAIT_REQUEST];
 const selected = new Set(CLINIC_PATIENT_REQUEST);
 
 function showBanner(kind, text) {
@@ -72,6 +73,12 @@ function renderSettings() {
       renderPreview();
     });
     label.append(input, document.createTextNode(field));
+    if (field === "portrait") {
+      const hint = document.createElement("span");
+      hint.className = "hint";
+      hint.textContent = " (opt-in; example <img> preview only)";
+      label.append(hint);
+    }
     requestHost.append(label);
   }
 
@@ -116,10 +123,17 @@ fillBtn.addEventListener("click", async () => {
         showBanner("error", `${code}: ${message}`);
       },
     });
+    const photo = document.getElementById("patient-photo");
+    const filledPortrait = filled.some((f) => f.slot === "portrait" || f.slot.startsWith("portrait."));
+    if (photo) {
+      photo.hidden = !filledPortrait || !photo.getAttribute("src");
+    }
     showBanner(
       "ok",
       filled.length
-        ? `Filled ${filled.length} field(s) from Thai ID. Phone and HN were left blank.`
+        ? `Filled ${filled.length} field(s) from Thai ID. Phone and HN were left blank.${
+            filledPortrait ? " Portrait preview is example-only — do not screenshot it." : ""
+          }`
         : "Connected, but no values to fill.",
     );
   } catch {
@@ -132,6 +146,11 @@ fillBtn.addEventListener("click", async () => {
 resetBtn.addEventListener("click", () => {
   form.reset();
   hideBanner();
+  const photo = document.getElementById("patient-photo");
+  if (photo) {
+    photo.removeAttribute("src");
+    photo.hidden = true;
+  }
 });
 
 function syncGenderOptions() {

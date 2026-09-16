@@ -49,6 +49,8 @@ func main() {
 			os.Exit(runOpenCmd(os.Args[2:]))
 		case "update":
 			os.Exit(runUpdate(os.Args[2:]))
+		case "qualify":
+			os.Exit(runQualify(os.Args[2:]))
 		}
 	}
 
@@ -448,6 +450,7 @@ Usage:
   openthaiid autostart       enable | disable | status   (opt-in start at login)
   openthaiid update          check | download | apply   (GitHub Releases; unsigned)
   openthaiid doctor          Check the card service (no personal fields)
+  openthaiid qualify         E1–E7 kit: pass/fail + timing + error codes (no personal fields)
   openthaiid version         Print version
 
 Flags (run / tray mode):

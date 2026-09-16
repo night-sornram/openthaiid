@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Clinic-prep on `dev` while ACR39U hardware is in transit. **Do not enable
+GitHub Actions.** Physical E1–E7 execution still waits on the reader.
+Packages remain **unsigned** (not notarized).
+
+### Added
+
+- Friday hardware qualification kit: `docs/hardware-qualification.md`,
+  `openthaiid qualify`, `scripts/hardware-qualify.sh`, `make qualify-smoke`.
+  Reports are pass/fail + timing + error codes + technician diagnostics.
+  Citizen ID, names, address text, and portrait bytes are never stored;
+  the writer refuses output that contains those payloads.
+- Clinic / vanilla example portrait **opt-in**: default `request` stays
+  without `portrait`. The example UI can show an `<img>` preview when the
+  integrator ticks portrait. Production grant is unchanged unless requested.
+- `make package-macos` and a hard error from `scripts/package.sh` when
+  `OS=darwin` is set on a non-Mac host (`ebfe/scard` + Cocoa cgo). Mac
+  START-HERE documents the unsigned `.app` and `start-openthaiid.sh`.
+
+### Changed
+
+- Technician docs no longer call portrait “out of scope”; it is optional
+  and off by default.
+- macOS `Info.plist` version is injected from the package `VERSION`.
+
 ## [0.1.0-rc.1] — software release candidate (unreleased tag)
 
 Software RC against `dev`. **Do not enable GitHub Actions** on this change

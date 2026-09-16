@@ -69,7 +69,10 @@ Grant is for a different site than the page staff opened
 - The ERP `request` allowlist and `map` must include the slot.
 - The PC grant must include that field. Expanding fields prompts a **new**
   Allow (the live grant is an exact set, not a silent superset).
-- Phone / HN are not on the card. Portrait is out of scope.
+- Phone / HN are not on the card. Portrait is optional and **off by
+  default**; if the ERP adds `"portrait"` to `request`, staff must Allow
+  that expanded set. Preview belongs in the example/ERP UI only — never
+  in logs or tickets.
 
 ### 6. Practice vs real hardware
 

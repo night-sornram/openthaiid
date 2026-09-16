@@ -34,6 +34,10 @@ make build
 # Check PC/SC (never reads personal fields)
 ./dist/openthaiid doctor
 
+# Friday qualification kit (no personal fields; synthetic smoke or real reader)
+./dist/openthaiid qualify -synthetic -e2-count 3 -e3-count 2 -report dist/openthaiid-qualify.json
+# With ACR39U + card inserted: ./scripts/hardware-qualify.sh
+
 # Run with real hardware (terminal; technicians)
 ./dist/openthaiid
 
@@ -215,7 +219,8 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 | [docs/provenance.md](docs/provenance.md) | APDU sources and licenses |
 | [docs/compatibility.md](docs/compatibility.md) | OS/browser/reader matrix |
 | [docs/acceptance.md](docs/acceptance.md) | Acceptance gates |
-| [docs/installation.md](docs/installation.md) | Clinic package + source build |
+| [docs/hardware-qualification.md](docs/hardware-qualification.md) | Friday E1–E7 / M1 operator kit (no personal data) |
+| [docs/installation.md](docs/installation.md) | Clinic package + source build (`make package-macos` on a Mac) |
 | [docs/dependency-audit.md](docs/dependency-audit.md) | Binding audit checklist |
 
 ## Tests
@@ -223,7 +228,10 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 ```bash
 make test          # Go unit + integration (synthetic hardware)
 make smoke-helper  # Linux tray/background + package-free status/quit/autostart
+make qualify-smoke # synthetic E1–E3 kit (no personal fields in the report)
+make smoke-package # native archive + darwin cross-compile refusal on Linux
 make package       # clinic archive (START-HERE + OS launch files)
+make package-macos # Darwin archive; Mac host only; unsigned / not notarized
 make race          # race detector
 make test-repeat   # bridge/reader tests ×50 (local determinism; full CI too)
 cd sdk/web && npm test
@@ -243,7 +251,8 @@ PTY via node-pty for terminal approval. Approval policies: allow, deny,
 unanswered. See [acceptance/README.md](acceptance/README.md).
 
 Hardware acceptance (ACR39U on Windows/Linux/macOS) is still required before
-a production release claim. See
+a production release claim. The operator kit is
+[docs/hardware-qualification.md](docs/hardware-qualification.md). See
 [docs/acceptance.md](docs/acceptance.md) for the current evidence status.
 
 ## License

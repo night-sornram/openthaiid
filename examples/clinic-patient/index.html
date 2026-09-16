@@ -185,6 +185,22 @@
         margin: 0 0 0.85rem;
         font-size: 0.92rem;
       }
+      .portrait-preview {
+        margin: 0.4rem 0 0;
+        padding: 0.55rem 0.65rem;
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+      }
+      .portrait-preview img {
+        display: block;
+        max-width: 96px;
+        max-height: 96px;
+        border-radius: 6px;
+        background: #8882;
+      }
+      .portrait-preview img[hidden] {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -253,6 +269,11 @@
             Address
             <textarea id="patient-address" name="address"></textarea>
           </label>
+          <div class="portrait-preview">
+            <span class="hint">Portrait (opt-in) — example UI preview only</span>
+            <img id="patient-photo" alt="Thai ID portrait preview (example only)" hidden width="96" height="96" />
+            <span class="hint">Off by default. Enable <code>portrait</code> in request, then Fill. Do not screenshot or store the photo.</span>
+          </div>
           <label>
             Phone
             <input id="patient-phone" name="phone" inputmode="tel" />

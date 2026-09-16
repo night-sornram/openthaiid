@@ -39,11 +39,13 @@ multiplier).
 | `openthaiid-windows-amd64.exe` | Windows amd64 | System WinSCard; cgo disabled (tray is Win32) |
 | `openthaiid-linux-amd64` | Linux amd64 | cgo + libpcsclite headers (no GTK tray) |
 | `openthaiid-linux-arm64` | Linux arm64 | cgo + libpcsclite headers (no GTK tray) |
-| `openthaiid-darwin-arm64` | macOS arm64 | cgo + PCSC.framework + Cocoa tray |
-| `openthaiid-darwin-amd64` | macOS Intel | cgo + PCSC.framework + Cocoa tray |
+| `openthaiid-darwin-arm64` | macOS arm64 **host** (`make package-macos`) | cgo + PCSC.framework + Cocoa tray |
+| `openthaiid-darwin-amd64` | macOS Intel **host** | cgo + PCSC.framework + Cocoa tray |
 
 Clinic archives from `scripts/package.sh` rename the binary to `openthaiid` /
 `openthaiid.exe` and add START-HERE + launch files. Unsigned. Not notarized.
+`OS=darwin` on Linux/Windows exits with an error: darwin cannot be
+cross-compiled (`ebfe/scard` + Cocoa cgo).
 
 Linux binaries are **not** advertised as fully static or universally compatible
 across libc variants.
