@@ -7,11 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Clinic-prep on `dev` while ACR39U hardware is in transit. **Do not enable
-GitHub Actions.** Physical E1–E7 execution still waits on the reader.
-Packages remain **unsigned** (not notarized).
+Thai staff UX and a stronger Friday qualify kit on `dev` while ACR39U
+hardware is in transit. **Do not enable GitHub Actions.** Physical E1–E7
+execution still waits on the reader. Packages remain **unsigned** (not
+notarized).
 
 ### Added
+
+- Clinic-staff Ready copy defaults to **Thai** (พร้อม / ยังไม่พร้อม) on the
+  helper page, `mountThaiIDStatus` / `summarizeProbe`, tray **แสดงสถานะ**,
+  and `openthaiid status`. English fallback: Ready page ไทย/English toggle,
+  `{ lang: "en" }` in the SDK, or `OPENTHAIID_LANG=en`. Technician / debug
+  chrome stays English (bilingual toggle label). Staff user doc is Thai-first.
+- `openthaiid qualify -operator` records E4–E7 / M1 as pass/fail/skip from
+  the keyboard (those words only; pasted card data is refused). Hardware
+  mode prints the bilingual operator prompts even without `-operator`.
+  Hardware E3 can be driven with Enter (remove / seat) instead of only
+  `-synthetic`. Always writes **one** redacted JSON report (default
+  `./openthaiid-qualify.json`) and prints `report: <absolute path>`.
+- Windows clinic wrappers: `Qualify-OpenThaiID.bat` /
+  `Qualify-OpenThaiID.ps1`, plus `scripts/hardware-qualify.ps1`.
+  `scripts/hardware-qualify.sh --operator`.
+
+### Changed
+
+- JPEG SOI bytes, `FFD8FF`, and PNG Base64 prefixes are refused in qualify
+  output in addition to the existing citizen-ID / synthetic / `data:image`
+  blockers.
+- Windows/Linux START-HERE document Friday `qualify`; Mac START-HERE keeps
+  `make package-macos` accuracy and the same qualify command.
+
+### Added (clinic-prep)
 
 - Friday hardware qualification kit: `docs/hardware-qualification.md`,
   `openthaiid qualify`, `scripts/hardware-qualify.sh`, `make qualify-smoke`.

@@ -67,8 +67,9 @@ This page’s copy-paste config lives in `settings.js`
 clinic can drop gender or opt into `englishName` without changing selectors.
 
 `probeThaiID()` / `mountThaiIDStatus()` show helper up/down, reader, and card
-present/absent in clinic-staff language. They never display personal field
-values. Pass `{ mode: "advanced" }` for technician details.
+present/absent in clinic-staff Thai (พร้อม). Pass `{ lang: "en" }` for English.
+They never display personal field values. Pass `{ mode: "advanced" }` for
+technician details.
 
 ## Run
 

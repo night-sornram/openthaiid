@@ -33,7 +33,7 @@ await autofillThaiID({
 `connect()` still runs from that click (local-network permission). Origin
 Allow still happens on this PC (helper page at `http://127.0.0.1:17891/`,
 or the terminal). The page cannot approve itself. `mountThaiIDStatus`
-shows Ready / not ready in clinic-staff language.
+shows พร้อม / ยังไม่พร้อม in clinic-staff Thai (pass `{ lang: "en" }` for English).
 
 ## Run
 

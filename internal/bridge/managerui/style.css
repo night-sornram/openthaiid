@@ -75,8 +75,26 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.15rem;
+  gap: 0.35rem;
   font-size: 0.85rem;
+}
+
+.lang-switch {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lang-switch .lang-btn {
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+}
+
+.lang-switch .lang-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .muted {

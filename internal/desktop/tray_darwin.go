@@ -51,7 +51,7 @@ func openthaiidTrayAction(item C.int) {
 	case 2:
 		h.openTechnician()
 	case 3:
-		h.alert("OpenThaiID status", h.Status())
+		h.alert(StaffCopy(StaffLang()).StatusTitle, h.Status())
 	case 4:
 		h.toggleAutostart()
 	case 5:

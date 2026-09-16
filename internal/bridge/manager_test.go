@@ -30,13 +30,19 @@ func TestManagerPageAndStatus(t *testing.T) {
 		t.Fatal("missing helper title")
 	}
 	if !strings.Contains(page, "Technician / developer") {
-		t.Fatal("missing technician toggle")
+		t.Fatal("missing technician heading")
 	}
 	if !strings.Contains(page, `id="technician"`) {
 		t.Fatal("missing technician section")
 	}
-	if !strings.Contains(page, "OpenThaiID on this computer") {
-		t.Fatal("missing user-mode helper light")
+	if !strings.Contains(page, "OpenThaiID บนเครื่องนี้") {
+		t.Fatal("missing Thai user-mode helper light")
+	}
+	if !strings.Contains(page, `id="lang-th"`) || !strings.Contains(page, `id="lang-en"`) {
+		t.Fatal("missing language toggle")
+	}
+	if !strings.Contains(page, `lang="th"`) {
+		t.Fatal("default html lang should be Thai")
 	}
 	css := getBody(t, tb, "/manager/style.css")
 	if !strings.Contains(css, ".tech[hidden]") {

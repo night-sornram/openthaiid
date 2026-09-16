@@ -4,6 +4,7 @@
  */
 
 import { ThaiIDError, type ReaderView } from "./index.js";
+import { staffCopy, staffLang, type StaffLang } from "./staffCopy.js";
 
 export const DEFAULT_ENDPOINT = "ws://127.0.0.1:17891/v1/ws";
 const SUBPROTOCOL = "openthaiid.v1";
@@ -185,19 +186,18 @@ export type StatusSummary = {
   next: string;
 };
 
-/** Plain-language helper / reader / card state. No protocol jargon. */
-export function summarizeProbe(probe: ProbeResult): StatusSummary {
+/** Plain-language helper / reader / card state. Default Thai; pass `"en"` for English. */
+export function summarizeProbe(probe: ProbeResult, lang?: StaffLang | string | null): StatusSummary {
+  const c = staffCopy(lang);
   if (!probe.reachable) {
     const cancelled = probe.error?.code === "CANCELLED";
     return {
       ready: false,
-      headline: cancelled ? "Cancelled" : "Not ready yet",
-      helper: cancelled
-        ? "Cancelled."
-        : "OpenThaiID is not running on this computer. Start it, then try again.",
-      reader: "Card reader: unknown until OpenThaiID is running.",
-      card: "Card: unknown until OpenThaiID is running.",
-      next: cancelled ? "" : "Start OpenThaiID on this computer.",
+      headline: cancelled ? c.cancelled : c.notReady,
+      helper: cancelled ? c.cancelled + (c.lang === "th" ? "" : ".") : c.helperOff,
+      reader: c.readerUnknown,
+      card: c.cardUnknown,
+      next: cancelled ? "" : c.startHelper,
     };
   }
   const readers = probe.readers ?? [];
@@ -205,58 +205,55 @@ export function summarizeProbe(probe: ProbeResult): StatusSummary {
   if (backend === "unavailable" || backend === "stalled") {
     return {
       ready: false,
-      headline: "Not ready yet",
-      helper: "OpenThaiID is running on this computer.",
-      reader:
-        backend === "stalled"
-          ? "The card service is not responding. Ask a technician."
-          : "The card service is off. Ask a technician to start it.",
-      card: "Card: unknown until the card service is working.",
-      next: "Ask a technician to fix the card service.",
+      headline: c.notReady,
+      helper: c.helperOn,
+      reader: backend === "stalled" ? c.serviceStalled : c.serviceOff,
+      card: c.cardUntilService,
+      next: c.fixService,
     };
   }
   if (readers.length === 0) {
     return {
       ready: false,
-      headline: "Not ready yet",
-      helper: "OpenThaiID is running on this computer.",
-      reader: "No card reader. Plug the reader into this computer.",
-      card: "Insert the card after the reader is connected.",
-      next: "Plug the card reader into this computer.",
+      headline: c.notReady,
+      helper: c.helperOn,
+      reader: c.noReader,
+      card: c.insertAfterReader,
+      next: c.plugReader,
     };
   }
   const selected = readers.find((r) => r.selected) ?? readers[0];
   const present = readers.some((r) => r.presence === "present");
   const unsupported = readers.some((r) => r.presence === "unsupported");
-  const readerLine = `Reader connected: ${selected?.name ?? "card reader"}`;
+  const defaultName = c.lang === "th" ? "เครื่องอ่านบัตร" : "card reader";
+  const readerLine = c.readerConnected(selected?.name ?? defaultName);
   if (unsupported && !present) {
     return {
       ready: false,
-      headline: "Not ready yet",
-      helper: "OpenThaiID is running on this computer.",
+      headline: c.notReady,
+      helper: c.helperOn,
       reader: readerLine,
-      card: "This card is not a Thai National ID.",
-      next: "Insert a Thai National ID card.",
+      card: c.unsupportedCard,
+      next: c.insertThaiID,
     };
   }
   if (!present) {
     return {
       ready: false,
-      headline: "Not ready yet",
-      helper: "OpenThaiID is running on this computer.",
+      headline: c.notReady,
+      helper: c.helperOn,
       reader: readerLine,
-      card: "Insert the Thai ID card.",
-      next: "Insert the patient’s Thai ID card, then click Fill.",
+      card: c.insertCard,
+      next: c.insertThenFill,
     };
   }
-  const demo = probe.synthetic ? " (practice card)" : "";
   return {
     ready: true,
-    headline: `Ready${demo}`,
-    helper: "OpenThaiID is running on this computer.",
+    headline: probe.synthetic ? c.readyPractice : c.ready,
+    helper: c.helperOn,
     reader: readerLine,
-    card: "Card is inserted.",
-    next: "Click Fill.",
+    card: c.cardInserted,
+    next: c.clickFill,
   };
 }
 
@@ -268,6 +265,11 @@ export type MountThaiIDStatusOptions = ProbeThaiIDOptions & {
    * `advanced` also shows backend, version, and the local helper link.
    */
   mode?: "user" | "advanced";
+  /**
+   * Staff language. Default `"th"`. Pass `"en"` for English.
+   * Technician chrome stays English when `mode` is `advanced`.
+   */
+  lang?: StaffLang | string;
 };
 
 /**
@@ -277,15 +279,18 @@ export type MountThaiIDStatusOptions = ProbeThaiIDOptions & {
 export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptions = {}): () => void {
   const intervalMs = options.intervalMs ?? 2000;
   const mode = options.mode ?? "user";
+  const lang = staffLang(options.lang);
+  const copy = staffCopy(lang);
   let stopped = false;
   let timer: ReturnType<typeof setInterval> | null = null;
 
   const render = (probe: ProbeResult) => {
-    const summary = summarizeProbe(probe);
+    const summary = summarizeProbe(probe, lang);
     root.replaceChildren();
     const box = document.createElement("div");
     box.setAttribute("data-openthaiid-status", "1");
     box.setAttribute("data-openthaiid-status-mode", mode);
+    box.setAttribute("data-openthaiid-lang", lang);
     box.style.fontFamily = "system-ui, sans-serif";
     box.style.fontSize = "0.95rem";
     box.style.lineHeight = "1.4";
@@ -312,13 +317,13 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
     }
     box.append(ul);
 
+    const pcsc = probe.backend?.status ?? "unknown";
+    const ver = probe.version ? `v${probe.version}` : "";
     if (mode === "advanced" && probe.reachable) {
       const details = document.createElement("p");
       details.style.margin = "0.55rem 0 0";
       details.style.opacity = "0.78";
       details.style.fontSize = "0.85rem";
-      const pcsc = probe.backend?.status ?? "unknown";
-      const ver = probe.version ? `v${probe.version}` : "";
       details.textContent = `Technician: card service ${pcsc}${ver ? ` · ${ver}` : ""}${
         probe.synthetic ? " · practice reader" : ""
       }`;
@@ -336,7 +341,7 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
       const details = document.createElement("details");
       details.style.marginTop = "0.55rem";
       const summaryEl = document.createElement("summary");
-      summaryEl.textContent = "Technician details";
+      summaryEl.textContent = copy.technicianDetails;
       summaryEl.style.cursor = "pointer";
       summaryEl.style.color = "inherit";
       summaryEl.style.opacity = "0.72";
@@ -347,17 +352,15 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
       extra.style.fontSize = "0.85rem";
       extra.style.opacity = "0.78";
       if (!probe.reachable) {
-        extra.textContent = "Helper is not reachable from this page.";
+        extra.textContent = copy.helperUnreachable;
       } else {
-        extra.textContent = `Card service ${probe.backend?.status ?? "unknown"}${
-          probe.version ? ` · v${probe.version}` : ""
-        }${probe.synthetic ? " · practice reader" : ""}`;
+        extra.textContent = copy.technicianLine(pcsc, ver, Boolean(probe.synthetic));
       }
       details.append(extra);
       if (probe.managerUrl) {
         const link = document.createElement("a");
         link.href = `${probe.managerUrl}#technician`;
-        link.textContent = "Open technician tools on this PC";
+        link.textContent = copy.openTechnician;
         link.style.display = "inline-block";
         link.style.marginTop = "0.3rem";
         link.style.fontSize = "0.85rem";

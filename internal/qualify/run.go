@@ -3,12 +3,20 @@ package qualify
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/night-sornram/openthaiid/internal/card"
 	"github.com/night-sornram/openthaiid/internal/pcsc"
 	"github.com/night-sornram/openthaiid/internal/reader"
 )
+
+// OperatorIO is the Friday keyboard for E3 (hardware) and E4–E7 / M1.
+// Implementations must refuse to store free text or personal data.
+type OperatorIO interface {
+	Ask(step OperatorStep) Result
+	Pause(prompt string) error
+}
 
 // Options control a qualification run.
 type Options struct {
@@ -21,6 +29,7 @@ type Options struct {
 	SkipOperator bool
 	// ToggleCard, when set (synthetic), inserts/removes the demo card.
 	ToggleCard func(present bool) error
+	Operator   OperatorIO
 	Log        func(string)
 }
 
@@ -81,22 +90,7 @@ func Run(ctx context.Context, hw Hardware, opt Options) (*Report, error) {
 		rep.AddCheck(Check{ID: "E3", Name: "insertion/removal cycles", Result: ResultSkip, Detail: "skipped; E1 failed"})
 	}
 
-	operator := []struct {
-		id, name, detail string
-	}{
-		{"E4", "removal during read / reader unplug", "operator checklist"},
-		{"E5", "browser refresh, bridge restart, sleep/wake", "operator checklist"},
-		{"E6", "missing/stopped PC/SC recovery", "operator checklist"},
-		{"E7", "local visual verification", "operator checklist"},
-		{"M1", "public HTTPS origin local-network permission", "operator checklist"},
-	}
-	for _, o := range operator {
-		detail := "see docs/hardware-qualification.md"
-		if opt.SkipOperator {
-			detail = "operator check not run (-skip-operator)"
-		}
-		rep.AddCheck(Check{ID: o.id, Name: o.name, Result: ResultSkip, Detail: detail})
-	}
+	runOperatorChecks(rep, opt)
 
 	fillDiagnostics(rep, mgr, opt)
 	rep.Finalize()
@@ -293,15 +287,59 @@ func runE2(ctx context.Context, rep *Report, mgr *reader.Manager, engine *card.E
 	rep.AddCheck(c)
 }
 
+func runOperatorChecks(rep *Report, opt Options) {
+	if opt.Synthetic {
+		opt.Log("E4–E7 / M1 skipped (synthetic smoke). Friday hardware: openthaiid qualify -operator")
+		opt.Log("Never record citizen ID, names, address, or photo bytes. See docs/hardware-qualification.md")
+	} else {
+		opt.Log("E4–E7 / M1 operator prompts (never type card data / never paste a photo)")
+	}
+	for _, step := range OperatorChecks() {
+		if opt.Synthetic {
+			rep.AddCheck(Check{ID: step.ID, Name: step.Name, Result: ResultSkip, Detail: "synthetic smoke; not a hardware pass. " + step.Detail})
+			continue
+		}
+		if !opt.SkipOperator && opt.Operator != nil {
+			opt.Log("prompt " + step.ID)
+			res := opt.Operator.Ask(step)
+			detail := step.Detail
+			switch res {
+			case ResultPass:
+				detail = "operator recorded PASS — " + step.Detail
+			case ResultFail:
+				detail = "operator recorded FAIL — " + step.Detail
+			default:
+				res = ResultSkip
+				detail = "operator recorded SKIP — " + step.Detail
+			}
+			rep.AddCheck(Check{ID: step.ID, Name: step.Name, Result: res, Detail: detail})
+			continue
+		}
+		opt.Log(step.Prompt)
+		opt.Log("Recording SKIP. Re-run with -operator on the clinic PC to store pass/fail/skip.")
+		rep.AddCheck(Check{
+			ID:     step.ID,
+			Name:   step.Name,
+			Result: ResultSkip,
+			Detail: "printed operator prompt; not scored (-skip-operator). " + step.Detail,
+		})
+	}
+}
+
 func runE3(ctx context.Context, rep *Report, mgr *reader.Manager, opt Options) {
 	opt.Log(fmt.Sprintf("E3 %d insertion/removal cycles", opt.E3Count))
 	t0 := time.Now()
 	if opt.ToggleCard == nil {
+		if !opt.SkipOperator && opt.Operator != nil {
+			runE3Hardware(ctx, rep, mgr, opt, t0)
+			return
+		}
+		opt.Log(e3HardwarePrompt)
 		rep.AddCheck(Check{
 			ID:     "E3",
 			Name:   "insertion/removal cycles",
 			Result: ResultSkip,
-			Detail: "needs operator card remove/insert (or -synthetic). See docs/hardware-qualification.md",
+			Detail: "needs operator card remove/insert: openthaiid qualify -operator (or -synthetic). Never type card data. See docs/hardware-qualification.md",
 		})
 		return
 	}
@@ -342,6 +380,76 @@ func runE3(ctx context.Context, rep *Report, mgr *reader.Manager, opt Options) {
 			"requested":  opt.E3Count,
 			"ok":         ok,
 			"maxCycleMs": maxCycle,
+		},
+	}
+	if ok >= opt.E3Count {
+		c.Result = ResultPass
+		c.Detail = fmt.Sprintf("%d/%d cycles ok", ok, opt.E3Count)
+	} else {
+		c.Result = ResultFail
+		if c.ErrorCode == "" {
+			c.ErrorCode = "CARD_REMOVED"
+		}
+		c.Detail = fmt.Sprintf("%d/%d cycles ok", ok, opt.E3Count)
+	}
+	rep.AddCheck(c)
+}
+
+const e3HardwarePrompt = `E3 — Insertion / removal cycles (≥20)
+ถอดบัตรจนสถานะบอกให้เสียบ แล้วเสียบให้สุด ทำซ้ำ
+
+For each cycle: remove the card fully, then seat it fully.
+Do not type citizen ID, names, address, or paste a photo.
+Run: openthaiid qualify -operator
+Synthetic kit toggles a practice card automatically.`
+
+func runE3Hardware(ctx context.Context, rep *Report, mgr *reader.Manager, opt Options, t0 time.Time) {
+	ok := 0
+	var lastCode string
+	var maxCycle int64
+	opt.Log(e3HardwarePrompt)
+	for i := 1; i <= opt.E3Count; i++ {
+		ct0 := time.Now()
+		prompt := fmt.Sprintf("E3 cycle %d/%d — remove the card fully, then press Enter.\nรอบที่ %d/%d — ถอดบัตรออกให้สุด แล้วกด Enter", i, opt.E3Count, i, opt.E3Count)
+		if err := opt.Operator.Pause(prompt); err != nil {
+			lastCode, _ = errCode(err)
+			if lastCode == "" {
+				lastCode = "OPERATOR_REFUSED"
+			}
+			break
+		}
+		if err := waitPresence(ctx, mgr, false, opt.StepTimeout); err != nil {
+			lastCode, _ = errCode(err)
+			break
+		}
+		prompt = fmt.Sprintf("E3 cycle %d/%d — seat the card fully, then press Enter.\nรอบที่ %d/%d — เสียบบัตรให้สุด แล้วกด Enter", i, opt.E3Count, i, opt.E3Count)
+		if err := opt.Operator.Pause(prompt); err != nil {
+			lastCode, _ = errCode(err)
+			if lastCode == "" {
+				lastCode = "OPERATOR_REFUSED"
+			}
+			break
+		}
+		if err := waitPresence(ctx, mgr, true, opt.StepTimeout); err != nil {
+			lastCode, _ = errCode(err)
+			break
+		}
+		cycle := time.Since(ct0).Milliseconds()
+		if cycle > maxCycle {
+			maxCycle = cycle
+		}
+		ok++
+	}
+	c := Check{
+		ID:         "E3",
+		Name:       "insertion/removal cycles",
+		DurationMS: time.Since(t0).Milliseconds(),
+		ErrorCode:  lastCode,
+		Metrics: map[string]any{
+			"requested":  opt.E3Count,
+			"ok":         ok,
+			"maxCycleMs": maxCycle,
+			"mode":       "operator",
 		},
 	}
 	if ok >= opt.E3Count {
@@ -413,6 +521,14 @@ func errCode(err error) (string, string) {
 	}
 	if e := card.AsError(err); e != nil {
 		return string(e.Code), SanitizeLine(e.Message)
+	}
+	msg := SanitizeLine(err.Error())
+	low := strings.ToLower(msg)
+	if strings.Contains(low, "personal") || strings.Contains(low, "photo") {
+		return "OPERATOR_REFUSED", msg
+	}
+	if strings.Contains(low, "not a terminal") {
+		return "NO_TTY", msg
 	}
 	return "READ_FAILED", "operation failed"
 }

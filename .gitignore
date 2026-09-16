@@ -30,6 +30,7 @@ config.local.json
 *.atr.bin
 *.apdu.bin
 captured-*/
+openthaiid-qualify.json
 
 # Acceptance harness local artifacts
 acceptance/reports/

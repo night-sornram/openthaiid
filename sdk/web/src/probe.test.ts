@@ -136,10 +136,10 @@ describe("managerUrlFromEndpoint", () => {
 });
 
 describe("summarizeProbe", () => {
-  it("uses plain language and no protocol jargon", () => {
+  it("defaults to Thai staff copy with no protocol jargon", () => {
     const down = summarizeProbe({ reachable: false });
-    expect(down.headline).toBe("Not ready yet");
-    expect(down.helper).toContain("not running");
+    expect(down.headline).toBe("ยังไม่พร้อม");
+    expect(down.helper).toContain("ยังไม่ทำงาน");
     expect(JSON.stringify(down)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
 
     const ready = summarizeProbe({
@@ -149,6 +149,23 @@ describe("summarizeProbe", () => {
       readers: [{ readerId: "r1", name: "SYNTHETIC ACR39U", presence: "present", selected: true }],
     });
     expect(ready.ready).toBe(true);
+    expect(ready.headline).toBe("พร้อม (บัตรฝึกซ้อม)");
+    expect(ready.next).toContain("กรอกข้อมูล");
+  });
+
+  it("English fallback when lang is en", () => {
+    const down = summarizeProbe({ reachable: false }, "en");
+    expect(down.headline).toBe("Not ready yet");
+    expect(down.helper).toContain("not running");
+    const ready = summarizeProbe(
+      {
+        reachable: true,
+        synthetic: true,
+        backend: { name: "synthetic", status: "available" },
+        readers: [{ readerId: "r1", name: "SYNTHETIC ACR39U", presence: "present", selected: true }],
+      },
+      "en",
+    );
     expect(ready.headline).toContain("Ready");
     expect(ready.next).toContain("Fill");
   });
@@ -161,13 +178,29 @@ describe("mountThaiIDStatus", () => {
     try {
       const stop = mountThaiIDStatus(root, { intervalMs: 60_000 });
       await vi.waitFor(() => {
-        expect(root.textContent).toContain("Ready");
+        expect(root.textContent).toContain("พร้อม");
         expect(root.textContent).toContain("SYNTHETIC ACR39U");
-        expect(root.textContent).toContain("Card is inserted");
+        expect(root.textContent).toContain("เสียบบัตรแล้ว");
       });
       expect(root.textContent).not.toContain("1234567890121");
       expect(root.textContent).not.toContain("PC/SC");
       expect(root.querySelector("[data-openthaiid-status-mode='user']")).not.toBeNull();
+      expect(root.querySelector("[data-openthaiid-lang='th']")).not.toBeNull();
+      stop();
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("English fallback on the status mount", async () => {
+    const fake = installFakeWebSocket();
+    const root = document.createElement("div");
+    try {
+      const stop = mountThaiIDStatus(root, { intervalMs: 60_000, lang: "en" });
+      await vi.waitFor(() => {
+        expect(root.textContent).toContain("Ready");
+        expect(root.querySelector("[data-openthaiid-lang='en']")).not.toBeNull();
+      });
       stop();
     } finally {
       fake.restore();

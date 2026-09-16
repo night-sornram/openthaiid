@@ -33,10 +33,17 @@ var ForbiddenSubstrings = []string{
 	"/9j/", // JPEG SOI in standard Base64
 	"data:image",
 	"image/jpeg;base64,",
+	"iVBORw0KGgo", // PNG Base64
+	"FFD8FF",      // JPEG SOI hex dump
 }
+
+var jpegSOI = []byte{0xFF, 0xD8, 0xFF}
 
 // FirstForbidden reports the first forbidden substring in p, or "".
 func FirstForbidden(p []byte) string {
+	if bytes.Contains(p, jpegSOI) {
+		return "jpeg-soi"
+	}
 	for _, s := range ForbiddenSubstrings {
 		if s == "" {
 			continue

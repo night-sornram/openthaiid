@@ -14,6 +14,7 @@ import (
 )
 
 func TestHelperSummaryNoPII(t *testing.T) {
+	t.Setenv("OPENTHAIID_LANG", "th")
 	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
 		rdb.SeedDemoCard()
 	})
@@ -47,7 +48,10 @@ func TestHelperSummaryNoPII(t *testing.T) {
 	if s["practice"] != true {
 		t.Fatalf("practice %+v", s)
 	}
-	if !strings.Contains(s["headline"].(string), "Ready") {
+	if s["lang"] != "th" {
+		t.Fatalf("lang %v", s["lang"])
+	}
+	if !strings.Contains(s["headline"].(string), "พร้อม") {
 		t.Fatalf("headline %v", s["headline"])
 	}
 	if _, ok := s["pending"]; ok {

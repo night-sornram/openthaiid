@@ -263,7 +263,7 @@ func addNotifyIcon(hwnd, hIcon uintptr) error {
 	nid.uFlags = nifMessage | nifIcon | nifTip
 	nid.uCallbackMessage = wmTrayIcon
 	nid.hIcon = hIcon
-	tip, _ := syscall.UTF16FromString("OpenThaiID helper")
+	tip, _ := syscall.UTF16FromString(StaffCopy(StaffLang()).Tooltip)
 	copy(nid.szTip[:], tip)
 	r, _, err := procShellNotifyIconW.Call(nimAdd, uintptr(unsafe.Pointer(&nid)))
 	if r == 0 {
@@ -286,20 +286,21 @@ func showTrayMenu(hwnd uintptr, host Host) {
 		return
 	}
 	defer procDestroyMenu.Call(hMenu)
-	appendMenu(hMenu, mfString, idReady, "Open Ready page")
-	appendMenu(hMenu, mfString, idTech, "Open Technician tools")
-	appendMenu(hMenu, mfString, idStatus, "Show status")
+	c := StaffCopy(StaffLang())
+	appendMenu(hMenu, mfString, idReady, c.MenuReady)
+	appendMenu(hMenu, mfString, idTech, c.MenuTechnician)
+	appendMenu(hMenu, mfString, idStatus, c.MenuStatus)
 	appendMenu(hMenu, mfSeparator, 0, "")
 	autoFlags := uintptr(mfString)
 	if host.AutostartOn() {
 		autoFlags |= mfChecked
 	}
-	appendMenu(hMenu, autoFlags, idAutostart, "Start at login")
+	appendMenu(hMenu, autoFlags, idAutostart, c.MenuAutostart)
 	appendMenu(hMenu, mfSeparator, 0, "")
-	appendMenu(hMenu, mfString, idUpdate, "Check for updates")
-	appendMenu(hMenu, mfString, idReleases, "Open GitHub Releases")
+	appendMenu(hMenu, mfString, idUpdate, c.MenuUpdate)
+	appendMenu(hMenu, mfString, idReleases, c.MenuReleases)
 	appendMenu(hMenu, mfSeparator, 0, "")
-	appendMenu(hMenu, mfString, idQuit, "Quit")
+	appendMenu(hMenu, mfString, idQuit, c.MenuQuit)
 
 	var pt point
 	_, _, _ = procGetCursorPos.Call(uintptr(unsafe.Pointer(&pt)))
@@ -325,7 +326,7 @@ func appendMenu(hMenu uintptr, flags uintptr, id uint16, title string) {
 }
 
 func showStatusDialog(host Host) {
-	showAlert("OpenThaiID status", host.Status())
+	showAlert(StaffCopy(StaffLang()).StatusTitle, host.Status())
 }
 
 func showAlert(title, body string) {

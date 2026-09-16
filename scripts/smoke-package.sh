@@ -37,4 +37,11 @@ if [ "$HOST_OS" != "darwin" ]; then
   echo "$out" | grep -q "must run on a Mac"
 fi
 
+echo "== START-HERE Friday qualify command =="
+grep -q "qualify" packaging/START-HERE.linux.txt
+grep -q "qualify" packaging/START-HERE.windows.txt
+grep -q "qualify" packaging/START-HERE.darwin.txt
+test -f packaging/windows/Qualify-OpenThaiID.bat
+test -f packaging/windows/Qualify-OpenThaiID.ps1
+
 echo "OK smoke-package"
