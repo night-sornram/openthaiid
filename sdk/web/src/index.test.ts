@@ -5,6 +5,7 @@ import { setPageWsContextForTests } from "../src/browser";
 type FakeWS = {
   readyState: number;
   sent: string[];
+  url?: string;
   instanceId?: string;
   onopen: (() => void) | null;
   onerror: (() => void) | null;
@@ -244,8 +245,28 @@ describe("ThaiID", () => {
       const id = new ThaiID();
       const p = id.connect();
       await Promise.resolve();
+      expect(fake.sockets[0]!.url).toMatch(/^wss:\/\//);
       fake.sockets[0]!.onerror?.();
       await expect(p).rejects.toMatchObject({ code: "HTTPS_WS_BLOCKED", retryable: false });
+    } finally {
+      setPageWsContextForTests(null);
+      fake.restore();
+    }
+  });
+
+  it("maps asserted loopback WSS failures to TLS_UNTRUSTED", async () => {
+    const fake = installFakeWebSocket({ autoOpen: false });
+    setPageWsContextForTests({
+      pageProtocol: "https:",
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.0; rv:128.0) Gecko/20100101 Firefox/128.0",
+    });
+    try {
+      const id = new ThaiID({ preferLoopbackTls: true });
+      const p = id.connect();
+      await Promise.resolve();
+      expect(id.endpoint).toMatch(/^wss:\/\//);
+      fake.sockets[0]!.onerror?.();
+      await expect(p).rejects.toMatchObject({ code: "TLS_UNTRUSTED", retryable: false });
     } finally {
       setPageWsContextForTests(null);
       fake.restore();

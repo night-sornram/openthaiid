@@ -111,11 +111,14 @@ within browser security rules only.
 - Applications need a real HTTPS origin talking to loopback.
 - CSP must allow the bridge WebSocket; document recovery when permission is
   denied.
-- Never require disabled browser security, public tunnels, bundled TLS private
-  keys, or installed root certificates.
+- Never require disabled browser security, public tunnels, or a **bundled**
+  TLS private key. Optional loopback HTTPS/WSS uses a **technician-managed**
+  cert on that PC only ([loopback-tls.md](loopback-tls.md)).
 - Firefox mixed-content: `ws://127.0.0.1` from an HTTPS origin is blocked
   on Firefox and Safari. The SDK reports `HTTPS_WS_BLOCKED` instead of
-  helper-down. The acceptance harness may set
+  helper-down unless loopback TLS is enabled. With a trusted local cert the
+  SDK uses `wss://127.0.0.1:17892`. An untrusted cert is `TLS_UNTRUSTED`.
+  The acceptance harness may set
   `network.websocket.allowInsecureFromHTTPS` (**tests only**). This does not
   weaken origin approval or loopback bind. Chromium still allows localhost
   mixed WebSockets and may prompt for Local Network Access.
@@ -155,6 +158,10 @@ Endpoints:
 | `POST /v1/manager/log-level` | technician | yes | CSRF + manager origin |
 | `POST /v1/manager/update/check` | Ready / technician / tray-adjacent | no (lookup only) | CSRF + manager origin; rate-limited; never on page load; no download |
 | `GET /v1/ws` | ERP JavaScript | via protocol | eligible `Origin`; approval before card fields |
+
+Optional second listener when `tlsCertFile` + `tlsKeyFile` are set: same
+paths on `127.0.0.1:17892` over HTTPS/WSS. Ready stays on HTTP. Healthz
+advertises `"tls": true` and `wssUrl`. No CORS. No bundled key.
 
 ## Residual risk
 

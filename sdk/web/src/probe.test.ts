@@ -176,6 +176,23 @@ describe("probeThaiID", () => {
     }
   });
 
+  it("preferLoopbackTls probe failures are TLS_UNTRUSTED, not helper-off", async () => {
+    const fake = installFakeWebSocket("fail-open");
+    const restore = stubHttpsFirefox();
+    try {
+      const r = await probeThaiID({ timeoutMs: 200, preferLoopbackTls: true });
+      expect(r.reachable).toBe(false);
+      expect(r.error?.code).toBe("TLS_UNTRUSTED");
+      expect(r.error?.retryable).toBe(false);
+      expect(r.error?.message).not.toMatch(/WebSocket|PC\/SC|bridge/i);
+      expect(summarizeProbe(r).next).toMatch(/ใบรับรอง/);
+      expect(formatTestConnection(r, "en")).toMatch(/Do not turn off browser security/i);
+    } finally {
+      restore();
+      fake.restore();
+    }
+  });
+
   it("waitForThaiID returns HTTPS_WS_BLOCKED without polling the budget", async () => {
     const fake = installFakeWebSocket("fail-open");
     const restore = stubHttpsFirefox();
@@ -237,6 +254,10 @@ describe("probeThaiID", () => {
 describe("managerUrlFromEndpoint", () => {
   it("maps the default ws endpoint to loopback http", () => {
     expect(managerUrlFromEndpoint()).toBe("http://127.0.0.1:17891/");
+  });
+
+  it("maps wss to https Ready is still derived from the socket host", () => {
+    expect(managerUrlFromEndpoint("wss://127.0.0.1:17892/v1/ws")).toBe("https://127.0.0.1:17892/");
   });
 });
 

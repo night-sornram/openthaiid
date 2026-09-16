@@ -54,6 +54,16 @@ export function pageBlocksInsecureLoopbackWs(endpoint: string): boolean {
   return insecureLoopbackWsBlocked({ pageProtocol: protocol, userAgent: ua, endpoint });
 }
 
+export function currentPageProtocol(): string {
+  if (pageContextOverride?.pageProtocol) return pageContextOverride.pageProtocol;
+  return typeof location !== "undefined" ? location.protocol : "";
+}
+
+export function currentUserAgent(): string {
+  if (pageContextOverride?.userAgent) return pageContextOverride.userAgent;
+  return typeof navigator !== "undefined" ? navigator.userAgent : "";
+}
+
 /** `Element.replaceChildren` is missing on some older Safari engines. */
 export function replaceElementChildren(el: Element, ...nodes: Node[]): void {
   const anyEl = el as Element & { replaceChildren?: (...args: Node[]) => void };

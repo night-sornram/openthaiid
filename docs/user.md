@@ -67,7 +67,7 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 | มีเครื่องอ่านมากกว่าหนึ่งเครื่อง | กด **ใช้เครื่องนี้** บนหน้า พร้อม — ช่างเทคนิค **Use this reader**: [technician.md](technician.md) |
 | เว็บไซต์ต้องการอ่านบัตร | กดอนุญาตหน้าคลินิก (ให้รหัสตรงกัน) |
 | ยังติด | เรียกช่างเทคนิค — **Technician tools** จากถาด หรือ `#technician` ([technician.md](technician.md)) |
-| หน้าคลินิกเป็น HTTPS บน Firefox / Safari | ตัวช่วยยังทำงานอยู่ — เบราว์เซอร์บล็อกการติดต่อ `127.0.0.1` ใช้ Chrome/Edge หรือหน้าคลินิกที่เป็น http (`HTTPS_WS_BLOCKED`) |
+| หน้าคลินิกเป็น HTTPS บน Firefox / Safari | ตัวช่วยยังทำงานอยู่ — ใช้ Chrome/Edge หรือหน้า http หรือให้ช่างเทคนิคเปิด HTTPS ของตัวช่วย (`HTTPS_WS_BLOCKED` / `TLS_UNTRUSTED`) อย่าปิดความปลอดภัยของเบราว์เซอร์ |
 
 ห้ามส่งภาพหน้าจอของบัตรผู้ป่วย หรือของช่องที่กรอกแล้ว
 หน้าตัวช่วยไม่ต้องการค่านั้นเพื่อหาสาเหตุ
@@ -119,10 +119,11 @@ Technician tools stay English.
 5. **Insert the patient’s Thai ID card.**
 6. Click **Fill** (กรอกข้อมูล).
 
-Firefox or Safari on an **https://** clinic page cannot reach the helper
-(mixed content: `HTTPS_WS_BLOCKED`). Use Chrome/Edge, or an **http** ERP
-on that PC. The Ready page at `http://127.0.0.1:17891/` still works. This
-does not mean OpenThaiID is stopped.
+Firefox or Safari on an **https://** clinic page cannot use `ws://127.0.0.1`
+(mixed content: `HTTPS_WS_BLOCKED`) unless a technician enabled local helper
+HTTPS ([loopback-tls.md](loopback-tls.md)). Use Chrome/Edge, an **http** ERP,
+or that local cert. Do not turn off browser security. The Ready page at
+`http://127.0.0.1:17891/` still works. This does not mean OpenThaiID is stopped.
 
 If clinic IT turned on **Start at login** or installed the always-on
 service (`openthaiid service install`), skip step 1.

@@ -118,7 +118,11 @@
     "endpoint": {
       "type": "string",
       "minLength": 1,
-      "description": "WebSocket URL of the local helper. Default ws://127.0.0.1:17891/v1/ws."
+      "description": "WebSocket URL of the local helper. Default ws://127.0.0.1:17891/v1/ws. On https ERP pages, omit this and set preferLoopbackTls when the helper has a technician-managed local cert."
+    },
+    "preferLoopbackTls": {
+      "type": "boolean",
+      "description": "If true, https clinic pages use wss://127.0.0.1:17892/v1/ws (technician-managed loopback TLS). Default false. Do not disable browser mixed-content checks."
     },
     "connectTimeoutMs": { "type": "integer", "minimum": 0 },
     "renewLeadMs": { "type": "integer", "minimum": 0 },

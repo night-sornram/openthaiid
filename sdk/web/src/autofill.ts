@@ -95,7 +95,7 @@ export type AutofillResult = {
 };
 
 export type AutofillThaiIDOptions = AutofillFormatOptions &
-  Pick<ThaiIDOptions, "endpoint" | "connectTimeoutMs" | "renewLeadMs"> & {
+  Pick<ThaiIDOptions, "endpoint" | "preferLoopbackTls" | "helperTls" | "wssUrl" | "connectTimeoutMs" | "renewLeadMs"> & {
     /**
      * Slot → CSS selector, element, or list. Combined with any top-level
      * slot keys on this object (`citizenId: "#id"`). Prefer `map` in new
@@ -161,6 +161,9 @@ const OPTION_KEYS = new Set<string>([
   "discover",
   "client",
   "endpoint",
+  "preferLoopbackTls",
+  "helperTls",
+  "wssUrl",
   "connectTimeoutMs",
   "renewLeadMs",
   "onApprovalRequired",
@@ -712,6 +715,9 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
       new ThaiID({
         fields: requested,
         endpoint: options.endpoint,
+        preferLoopbackTls: options.preferLoopbackTls,
+        helperTls: options.helperTls,
+        wssUrl: options.wssUrl,
         connectTimeoutMs: options.connectTimeoutMs,
         renewLeadMs: options.renewLeadMs,
         autoReconnect: false,
@@ -740,6 +746,9 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
         options.onConnectionChanged?.("connecting");
         const helper = await waitForThaiID({
           endpoint: options.endpoint ?? (ownsClient ? undefined : client.endpoint),
+          preferLoopbackTls: options.preferLoopbackTls,
+          helperTls: options.helperTls,
+          wssUrl: options.wssUrl,
           signal: options.signal,
           lang: options.lang,
           timeoutMs: options.connectTimeoutMs ?? 30_000,

@@ -38,6 +38,9 @@ type probeView struct {
 	Readers    []managerReader `json:"readers"`
 	ManagerURL string          `json:"managerUrl"`
 	WSURL      string          `json:"wsUrl"`
+	TLS        bool            `json:"tls"`
+	WSSURL     string          `json:"wssUrl,omitempty"`
+	HTTPSURL   string          `json:"httpsUrl,omitempty"`
 }
 
 type managerStatus struct {
@@ -48,6 +51,10 @@ type managerStatus struct {
 	ListenAddr    string             `json:"listenAddr"`
 	ManagerURL    string             `json:"managerUrl"`
 	WSURL         string             `json:"wsUrl"`
+	TLS           bool               `json:"tls"`
+	TLSAddr       string             `json:"tlsAddr,omitempty"`
+	WSSURL        string             `json:"wssUrl,omitempty"`
+	HTTPSURL      string             `json:"httpsUrl,omitempty"`
 	OS            string             `json:"os"`
 	LogLevel      string             `json:"logLevel"`
 	Connections   int                `json:"connections"`
@@ -436,6 +443,9 @@ func (s *Server) probeView() probeView {
 		Readers:    readers,
 		ManagerURL: s.ManagerURL(),
 		WSURL:      s.cfg.WSURL(),
+		TLS:        s.cfg.TLSEnabled(),
+		WSSURL:     s.cfg.WSSURL(),
+		HTTPSURL:   s.cfg.HTTPSURL(),
 	}
 }
 
@@ -515,6 +525,10 @@ func (s *Server) managerStatus() managerStatus {
 		ListenAddr:    s.Addr(),
 		ManagerURL:    "http://" + s.Addr() + "/",
 		WSURL:         s.cfg.WSURL(),
+		TLS:           s.cfg.TLSEnabled(),
+		TLSAddr:       s.TLSAddr(),
+		WSSURL:        s.cfg.WSSURL(),
+		HTTPSURL:      s.cfg.HTTPSURL(),
 		OS:            runtime.GOOS + "/" + runtime.GOARCH,
 		LogLevel:      s.currentLogLevel(),
 		Connections:   connections,

@@ -32,15 +32,15 @@ Work top to bottom. Most failures are the first four. Clinic ERP pages should
 show `formatStaffError(err)` (Thai by default) and keep the protocol **code**
 for tickets (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `CARD_REMOVED`,
 `READER_REMOVED`, `PCSC_UNAVAILABLE`, `APPROVAL_DENIED`, `FIELD_NOT_ALLOWED`,
-`HTTPS_WS_BLOCKED`). Staff Thai tables: [user.md](user.md). Friday one-page (E4–E6):
+`HTTPS_WS_BLOCKED`, `TLS_UNTRUSTED`). Staff Thai tables: [user.md](user.md). Friday one-page (E4–E6):
 [friday-checklist.md](friday-checklist.md).
 
 ### 1. Helper not running
 
 The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
-`reachable: false`. If the code is `HTTPS_WS_BLOCKED`, the helper **is**
-running — Firefox/Safari blocked the HTTPS page (see below). Do not restart
-the helper for that.
+`reachable: false`. If the code is `HTTPS_WS_BLOCKED` or `TLS_UNTRUSTED`, the helper **is**
+running — Firefox/Safari blocked insecure loopback or the local certificate
+is not trusted (see below). Do not restart the helper for that.
 
 - Start `openthaiid tray` (clinic) or `openthaiid` on **this** PC (the one with the reader).
   Always-on kiosk: `openthaiid service status` — if installed, skip the tray
@@ -151,12 +151,13 @@ implemented ([signing.md](signing.md)).
 ## Firefox / Safari clinic pages
 
 Ready (`http://127.0.0.1:17891/`) works in Firefox and Safari. Fill /
-`probeThaiID` from an **https://** ERP does not: those browsers block
-`ws://127.0.0.1` as mixed content. The page must show `HTTPS_WS_BLOCKED`,
-not “start OpenThaiID”. Fixes that are in software: honest error, clipboard
-`execCommand` fallback on Ready. Fixes that are **not**: bundled TLS,
-telling staff to flip Firefox prefs. Use Chrome/Edge for HTTPS ERP, or keep
-the ERP on http. Matrix: [compatibility.md](compatibility.md).
+`probeThaiID` from an **https://** ERP needs optional loopback **HTTPS + WSS**
+on this PC (`wss://127.0.0.1:17892/v1/ws`). Without that, those browsers
+block `ws://127.0.0.1` as mixed content (`HTTPS_WS_BLOCKED`). Do not tell
+staff to flip Firefox prefs. Generate and trust a **local** cert once —
+never a shared private key: [loopback-tls.md](loopback-tls.md). If the cert
+is present but untrusted, the page shows `TLS_UNTRUSTED`. Chrome/Edge still
+work with plain `ws://`. Matrix: [compatibility.md](compatibility.md).
 
 ## Copy diagnostics
 

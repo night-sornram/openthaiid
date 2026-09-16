@@ -12,10 +12,17 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
 ### Added
 
+- Optional loopback **HTTPS + WSS** on `127.0.0.1:17892` (technician-managed
+  cert + key; never a shared private key). Plain HTTP/WS on 17891 stays the
+  default for Ready and http ERP. `@openthaiid/web` prefers
+  `wss://127.0.0.1` on https Firefox/Safari pages and when
+  `preferLoopbackTls` / helper TLS advertisement is set. Untrusted certs
+  surface as `TLS_UNTRUSTED`. Docs: [docs/loopback-tls.md](docs/loopback-tls.md).
 - Firefox / Safari clinic Fill/Ready honesty: `@openthaiid/web` reports
   `HTTPS_WS_BLOCKED` when an **https://** ERP cannot open `ws://127.0.0.1`
-  (Firefox/Safari mixed content). Ready (`http://127.0.0.1:17891/`) still
-  works. No helper TLS cert and no “turn off mixed content” staff copy.
+  (Firefox/Safari mixed content) and helper TLS is not trusted/enabled.
+  Ready (`http://127.0.0.1:17891/`) still works. No bundled TLS private key
+  and no “turn off mixed content” staff copy.
   Ready page clipboard falls back to `execCommand` / prompt; `replaceChildren`
   is guarded. Matrix: [docs/compatibility.md](docs/compatibility.md).
 - Operator-initiated GitHub Releases **version check** (no auto-download or

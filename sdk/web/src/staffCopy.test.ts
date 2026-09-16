@@ -111,6 +111,7 @@ describe("staffErrorGuidance", () => {
       "READ_FAILED",
       "READ_TIMEOUT",
       "HTTPS_WS_BLOCKED",
+      "TLS_UNTRUSTED",
     ];
     for (const code of codes) {
       assertNoPII(formatStaffError({ code }));
@@ -172,5 +173,9 @@ describe("staffCopy status strings", () => {
     expect(blocked.message).toContain("HTTPS");
     expect(`${blocked.message} ${blocked.next}`).not.toMatch(/WebSocket|PC\/SC|bridge/i);
     expect(staffErrorGuidance({ code: "HTTPS_WS_BLOCKED" }, "en").next).toMatch(/Chrome or Edge/i);
+    expect(staffErrorGuidance({ code: "TLS_UNTRUSTED" }, "en").next).toMatch(/Do not turn off browser security/i);
+    expect(`${staffErrorGuidance({ code: "TLS_UNTRUSTED" }).message} ${staffErrorGuidance({ code: "TLS_UNTRUSTED" }).next}`).not.toMatch(
+      /WebSocket|PC\/SC|bridge/i,
+    );
   });
 });

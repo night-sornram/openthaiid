@@ -54,6 +54,8 @@ export type StaffCopy = {
   serviceBackNext: string;
   httpsWsBlocked: string;
   httpsWsBlockedNext: string;
+  tlsUntrusted: string;
+  tlsUntrustedNext: string;
 };
 
 const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
@@ -102,7 +104,10 @@ const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
   serviceBackNext: "กด กรอกข้อมูล ได้ตามปกติ",
   httpsWsBlocked: "หน้าคลินิกเป็น HTTPS — Firefox และ Safari บล็อกการติดต่อตัวช่วยบนเครื่องนี้",
   httpsWsBlockedNext:
-    "ใช้ Chrome หรือ Edge หรือเปิดหน้าคลินิกเป็น http บนเครื่องนี้ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ ไม่ต้องปิดตัวช่วย",
+    "ใช้ Chrome หรือ Edge หรือหน้าคลินิก http หรือให้ช่างเทคนิคเปิด HTTPS ของตัวช่วยบนเครื่องนี้ อย่าปิดความปลอดภัยของเบราว์เซอร์ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ",
+  tlsUntrusted: "ใบรับรองของตัวช่วยบนเครื่องนี้ยังไม่ถูกเชื่อถือ",
+  tlsUntrustedNext:
+    "ให้ช่างเทคนิคติดตั้งใบรับรองของเครื่องนี้ครั้งเดียว อย่าปิดความปลอดภัยของเบราว์เซอร์ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ",
 };
 
 const EN: typeof TH = {
@@ -150,7 +155,10 @@ const EN: typeof TH = {
   httpsWsBlocked:
     "This clinic page is HTTPS — Firefox and Safari block reaching the helper on this computer.",
   httpsWsBlockedNext:
-    "Use Chrome or Edge, or open the clinic page over http on this computer. The Ready page at 127.0.0.1 still works. Leave the helper running.",
+    "Use Chrome or Edge, or an http clinic page, or ask a technician to enable the local helper HTTPS. Do not turn off browser security. The Ready page at 127.0.0.1 still works.",
+  tlsUntrusted: "This computer’s OpenThaiID certificate is not trusted in this browser.",
+  tlsUntrustedNext:
+    "Ask a technician to trust this PC’s OpenThaiID certificate once. Do not turn off browser security. The Ready page at 127.0.0.1 still works.",
 };
 
 export function staffCopy(lang?: string | null): StaffCopy {
@@ -190,7 +198,11 @@ const TH_ERRORS: Record<string, ErrorPack> = {
   },
   HTTPS_WS_BLOCKED: {
     message: "หน้าคลินิกเป็น HTTPS — Firefox และ Safari บล็อกการติดต่อตัวช่วยบนเครื่องนี้",
-    next: "ใช้ Chrome หรือ Edge หรือเปิดหน้าคลินิกเป็น http บนเครื่องนี้ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ ไม่ต้องปิดตัวช่วย",
+    next: "ใช้ Chrome หรือ Edge หรือหน้าคลินิก http หรือให้ช่างเทคนิคเปิด HTTPS ของตัวช่วยบนเครื่องนี้ อย่าปิดความปลอดภัยของเบราว์เซอร์ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ",
+  },
+  TLS_UNTRUSTED: {
+    message: "ใบรับรองของตัวช่วยบนเครื่องนี้ยังไม่ถูกเชื่อถือ",
+    next: "ให้ช่างเทคนิคติดตั้งใบรับรองของเครื่องนี้ครั้งเดียว อย่าปิดความปลอดภัยของเบราว์เซอร์ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ",
   },
   PROTOCOL_MISMATCH: {
     message: "หน้าคลินิกกับตัวช่วยใช้โปรโตคอลคนละรุ่น",
@@ -289,7 +301,11 @@ const EN_ERRORS: Record<string, ErrorPack> = {
   },
   HTTPS_WS_BLOCKED: {
     message: "This clinic page is HTTPS — Firefox and Safari block reaching the helper on this computer.",
-    next: "Use Chrome or Edge, or open the clinic page over http on this computer. The Ready page at 127.0.0.1 still works. Leave the helper running.",
+    next: "Use Chrome or Edge, or an http clinic page, or ask a technician to enable the local helper HTTPS. Do not turn off browser security. The Ready page at 127.0.0.1 still works.",
+  },
+  TLS_UNTRUSTED: {
+    message: "This computer’s OpenThaiID certificate is not trusted in this browser.",
+    next: "Ask a technician to trust this PC’s OpenThaiID certificate once. Do not turn off browser security. The Ready page at 127.0.0.1 still works.",
   },
   PROTOCOL_MISMATCH: {
     message: "This page and the helper speak different protocol versions.",

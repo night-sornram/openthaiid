@@ -11,9 +11,11 @@ browser can prompt for local-network access).
 **Browsers:** Ready (`http://127.0.0.1:17891/`) works in current Firefox,
 Safari 16+, and Chrome/Edge. Fill from an **http** clinic page works in all
 three. Fill from an **https** clinic page works in Chrome/Edge; Firefox and
-Safari block `ws://127.0.0.1` (mixed content) and the library returns
-`HTTPS_WS_BLOCKED` instead of “helper not running”. See
-`docs/compatibility.md`. Do not disable mixed-content checks.
+Safari block `ws://127.0.0.1` (mixed content) unless optional helper TLS is
+on (`wss://127.0.0.1:17892`). Without a trusted local cert the library
+returns `HTTPS_WS_BLOCKED` or `TLS_UNTRUSTED` instead of “helper not
+running”. See `docs/compatibility.md` and `docs/loopback-tls.md`. Do not
+disable mixed-content checks.
 
 Origin + field Allow is still required before personal fields are returned.
 This package does not bypass the local helper. Portrait is optional: request

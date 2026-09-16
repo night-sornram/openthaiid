@@ -95,6 +95,9 @@ func runHelperCtx(parent context.Context, args []string) {
 		bind      string
 		logLevel  string
 		synthetic bool
+		tlsCert   string
+		tlsKey    string
+		tlsPort   int
 	)
 	fs.StringVar(&cfgPath, "config", "", "path to config.json")
 	fs.IntVar(&port, "port", 0, "listen port (default 17891)")
@@ -104,6 +107,9 @@ func runHelperCtx(parent context.Context, args []string) {
 	fs.BoolVar(&openManager, "open", openManager, "open the local manager in a browser")
 	fs.BoolVar(&tray, "tray", tray, "run as a background helper (tray icon on Windows/macOS)")
 	fs.BoolVar(&serve, "serve", serve, "run headless (no tray, no terminal) for a service / always-on helper")
+	fs.StringVar(&tlsCert, "tls-cert", "", "PEM cert for optional loopback HTTPS/WSS (with -tls-key)")
+	fs.StringVar(&tlsKey, "tls-key", "", "PEM private key for optional loopback HTTPS/WSS")
+	fs.IntVar(&tlsPort, "tls-port", 0, "HTTPS/WSS port (default 17892; requires cert+key)")
 	_ = fs.Parse(args)
 
 	cfg := config.Default()
@@ -120,6 +126,7 @@ func runHelperCtx(parent context.Context, args []string) {
 		}
 		cfg = loaded
 	}
+	config.OverlayEnv(&cfg)
 	if port != 0 {
 		cfg.Port = port
 	}
@@ -128,6 +135,15 @@ func runHelperCtx(parent context.Context, args []string) {
 	}
 	if logLevel != "" {
 		cfg.LogLevel = logLevel
+	}
+	if tlsCert != "" {
+		cfg.TLSCertFile = tlsCert
+	}
+	if tlsKey != "" {
+		cfg.TLSKeyFile = tlsKey
+	}
+	if tlsPort != 0 {
+		cfg.TLSPort = tlsPort
 	}
 	if err := cfg.Validate(); err != nil {
 		fatal("config", err)
@@ -262,6 +278,8 @@ func runHelperCtx(parent context.Context, args []string) {
 		"addr", srv.Addr(),
 		"manager", managerURL,
 		"ws", cfg.WSURL(),
+		"tls", cfg.TLSEnabled(),
+		"wss", cfg.WSSURL(),
 		"instance", instanceID,
 		"backend", backendName(synthetic),
 		"tray", tray,
@@ -272,6 +290,9 @@ func runHelperCtx(parent context.Context, args []string) {
 		fmt.Printf("Clinic staff: keep this window open, plug in the reader, then Fill in the ERP.\n")
 		fmt.Printf("Helper page:  %s  (Technician / developer tools are hidden there)\n", managerURL)
 		fmt.Printf("WebSocket:    %s\n", cfg.WSURL())
+		if cfg.TLSEnabled() {
+			fmt.Printf("HTTPS/WSS:    %s  (technician-managed local cert; Firefox/Safari https ERP)\n", cfg.WSSURL())
+		}
 		fmt.Println("The first time a clinic page asks to read the card, Allow it on the helper page.")
 		fmt.Println("Technician commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
 		fmt.Println("This is an independent open-source project and is not affiliated with or endorsed by the Department of Provincial Administration.")
@@ -513,11 +534,15 @@ Flags (run / tray mode):
   -open               Open the Ready page in a browser
   -tray               Same as the tray subcommand
   -serve              Same as the serve subcommand
+  -tls-cert path      Optional loopback HTTPS/WSS certificate (PEM)
+  -tls-key path       Matching private key (never commit; see docs/loopback-tls.md)
+  -tls-port n         HTTPS/WSS port (default 17892)
 
 Helper page:   http://127.0.0.1:17891/
                Default view is for clinic staff. Technician / developer tools
                are behind a toggle (or #technician).
 WebSocket:     ws://127.0.0.1:17891/v1/ws
+Optional WSS:  wss://127.0.0.1:17892/v1/ws  (technician-managed local cert)
 
 Clinic staff: install once, start the helper (tray or Start menu), plug reader, Fill.
 Technicians:  see docs/technician.md, docs/friday-checklist.md, and docs/hardware-qualification.md.

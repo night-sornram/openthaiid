@@ -24,6 +24,9 @@ type fileShape struct {
 	MaxFrameBytes        int      `json:"maxFrameBytes"`
 	LogLevel             string   `json:"logLevel"`
 	Fields               []string `json:"fields"`
+	TLSCertFile          string   `json:"tlsCertFile"`
+	TLSKeyFile           string   `json:"tlsKeyFile"`
+	TLSPort              int      `json:"tlsPort"`
 }
 
 // LoadFile reads a versioned JSON config on top of defaults.
@@ -80,6 +83,15 @@ func LoadFile(path string) (Config, error) {
 	}
 	if f.LogLevel != "" {
 		cfg.LogLevel = f.LogLevel
+	}
+	if f.TLSCertFile != "" {
+		cfg.TLSCertFile = f.TLSCertFile
+	}
+	if f.TLSKeyFile != "" {
+		cfg.TLSKeyFile = f.TLSKeyFile
+	}
+	if f.TLSPort != 0 {
+		cfg.TLSPort = f.TLSPort
 	}
 	if len(f.Fields) > 0 {
 		cfg.Fields = cfg.Fields[:0]
