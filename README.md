@@ -48,6 +48,37 @@ trust (8 hours or until the bridge stops).
 
 ## Browser SDK
 
+For a HTML form, one click is enough — `autofillThaiID` connects (from that
+gesture), waits for terminal approval, reads, fills inputs, then disconnects:
+
+```html
+<form id="kyc">
+  <input data-openthaiid="citizenId" />
+  <input data-openthaiid="thaiName" />
+  <input type="date" data-openthaiid="birthDate" />
+</form>
+<button type="button" id="fill">Autofill from Thai ID</button>
+```
+
+```js
+import { autofillThaiID } from "@openthaiid/web";
+
+document.getElementById("fill").addEventListener("click", async () => {
+  await autofillThaiID({
+    root: document.getElementById("kyc"),
+    onApprovalRequired: ({ comparisonCode }) => {
+      console.log("Approve in the terminal, code", comparisonCode);
+    },
+  });
+});
+```
+
+Selectors work too: `await autofillThaiID({ citizenId: "#cid", thaiName: "#name", birthDate: "#dob" })`.
+Call it from a user gesture. Origin + field approval still happens in the
+bridge terminal. See `sdk/web/README.md` and `examples/vanilla/autofill.html`.
+
+The `ThaiID` class is unchanged when you need connect / read / status yourself:
+
 ```ts
 import { ThaiID } from "@openthaiid/web";
 
@@ -96,7 +127,8 @@ cd sdk/web && npm install && npm test && npm run build
 cd sdk/react && npm install && npm test && npm run build
 ```
 
-Open `examples/vanilla/index.html` via the built SDK for a minimal demo
+Open `examples/vanilla/autofill.html` for the form helper, or
+`examples/vanilla/index.html` for Connect / Read / Disconnect
 (serve from HTTPS for real browser tests; localhost HTTP is development-only).
 Copy-paste React usage is in `examples/react/README.md` and `sdk/react/README.md`.
 

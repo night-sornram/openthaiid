@@ -821,4 +821,25 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+export {
+  AUTOFILL_ATTRIBUTE,
+  applyAutofillValues,
+  autofillThaiID,
+  collectAutofillTargets,
+  discoverAutofillTargets,
+  formatAutofillValue,
+  formatCardDateIso,
+  parseSlot,
+  slotsToFields,
+  type AutofillFieldMap,
+  type AutofillFilled,
+  type AutofillFormatOptions,
+  type AutofillResult,
+  type AutofillSlot,
+  type AutofillTarget,
+  type AutofillTargetList,
+  type AutofillThaiIDOptions,
+  type GenderLabels,
+} from "./autofill.js";
+
 export default ThaiID;
