@@ -53,6 +53,9 @@ cp -R docs "$STAGE/docs"
 if [ -f sdk/web/package-lock.json ]; then
   cp sdk/web/package-lock.json "$STAGE/sdk-web-package-lock.json"
 fi
+if [ -f sdk/react/package-lock.json ]; then
+  cp sdk/react/package-lock.json "$STAGE/sdk-react-package-lock.json"
+fi
 
 if command -v shasum >/dev/null 2>&1; then
   (cd "$STAGE" && shasum -a 256 "$BIN_NAME" > SHA256SUMS)

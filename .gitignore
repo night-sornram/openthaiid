@@ -8,6 +8,7 @@ coverage.*
 # Node
 node_modules/
 sdk/web/dist/
+sdk/react/dist/
 examples/vanilla/dist/
 examples/vanilla/node_modules/
 # Keep sdk/web/package-lock.json for reproducible CI (npm ci).

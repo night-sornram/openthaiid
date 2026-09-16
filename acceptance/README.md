@@ -42,16 +42,19 @@ make acceptance
 ## Scenarios (allow policy)
 
 1. Connect → terminal allow → Read → assert citizenId, full Thai name,
-   Gregorian birth date
+   Gregorian birth date; extra textual fields stay omitted
 2. Disconnect clears displayed personal data
 3. Reconnect does not automatically repeat a card read
 4. Full-page refresh reuses the active grant
 5. Connection failure on a closed port
 6. CSP allows `ws://127.0.0.1`
-7. Two browser contexts: requester read is unicast (peer page and
+7. Extra textual fields (`englishName`, `gender`, `issuer`, `issueDate`,
+   `expireDate`, `address`) via `?fields=` — new terminal grant, then
+   assert synthetic values (default pages still request the original three)
+8. Two browser contexts: requester read is unicast (peer page and
    WebSocket frames stay free of card fields); peer can still read on its
    own connection
-8. Bridge process restart: displayed data is cleared, reconnect does not
+9. Bridge process restart: displayed data is cleared, reconnect does not
    auto-read, and a fresh read works against the new process
 
 Origin rejection (HTTP evil origin) is covered by Go integration tests
@@ -73,7 +76,7 @@ this localhost HTTPS automation. See `docs/acceptance.md`.
 | `OPENTHAIID_APPROVAL_POLICY` | `allow` | `allow` / `deny` / `unanswered` |
 | `OPENTHAIID_REPORT_DIR` | `./reports` | Allowlisted JSON report |
 | `OPENTHAIID_LOG_DIR` | `./logs` | Harness diagnostics |
-| `OPENTHAIID_HARNESS_TIMEOUT_MS` | `120000` | Hard process deadline (Windows ConPTY/keep-alive must not hang CI) |
+| `OPENTHAIID_HARNESS_TIMEOUT_MS` | `150000` | Hard process deadline (Windows ConPTY/keep-alive must not hang CI) |
 | `OPENTHAIID_SCENARIO_TIMEOUT_MS` | `45000` | Per-scenario cap |
 
 Startup fails immediately if `:OPENTHAIID_PORT` already answers `/healthz`.

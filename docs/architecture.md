@@ -17,7 +17,7 @@ card fields to browser applications over a loopback WebSocket.
 ## Non-goals (MVP)
 
 - Biometrics, PIN bypass, card writes, arbitrary APDUs.
-- Portraits / photo binary, laser-id / NHSO profiles, React hooks, installers, tray UI.
+- Portraits / photo binary, laser-id / NHSO profiles, installers, tray UI.
 - Persistent trust across bridge restarts.
 - Official Firefox or Safari support.
 
@@ -42,7 +42,9 @@ flowchart LR
     Approval[Terminal approval] --> Auth[Origin and field grants]
     Auth --> Bridge
     Bridge --> SDK[TypeScript SDK]
+    SDK --> ReactHooks[React hooks]
     SDK --> App[Web application]
+    ReactHooks --> App
 ```
 
 ## Module layout
@@ -58,7 +60,9 @@ flowchart LR
 | `internal/bridge` | Loopback listener, WebSocket connections, dispatch |
 | `internal/config` | Typed configuration and validation |
 | `sdk/web` | `@openthaiid/web` browser SDK |
+| `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |
 | `examples/vanilla` | Minimal demonstration app |
+| `examples/react` | Copy-paste React usage |
 
 There is no public Go `pkg/thaiid` in the MVP. Extract one when a real native
 consumer establishes interface requirements.

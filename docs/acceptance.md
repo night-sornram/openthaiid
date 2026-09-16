@@ -19,7 +19,7 @@ builds/acceptance and hung Windows jobs dominated the pool.
 
 | Lane | When | What runs |
 |---|---|---|
-| **PR** | `pull_request` (code changes) | Ubuntu: Go fmt/vet/test/race, bridge/reader `-count=5`, linux/amd64 build + version smoke, Web SDK, Chrome acceptance (allow/deny/unanswered). **4 jobs.** |
+| **PR** | `pull_request` (code changes) | Ubuntu: Go fmt/vet/test/race, bridge/reader `-count=5`, linux/amd64 build + version smoke, Web + React SDKs, Chrome acceptance (allow/deny/unanswered). **4 jobs.** |
 | **Full** | `push` to `main`/`dev`, `workflow_dispatch` | PR jobs with `-count=50`, plus linux/arm64, windows/amd64, darwin/arm64, darwin/amd64 builds; Chrome on macOS and Windows; Edge on Windows. **11 jobs.** |
 
 Docs-only / `.cursor/`-only changes skip the workflow (`paths-ignore`).
@@ -86,13 +86,14 @@ workflow on `dev` for an on-demand full matrix.
 | D6 | Session renewal and reconnect backoff | SDK unit paths | Done |
 | D7 | HTTPS page + CSP + loopback WS | Playwright harness (acceptance page only) | Done |
 | D8 | Reconnect never automatically repeats a card read | Playwright reconnect scenario | Done |
+| D9 | React hooks wrap connect/read/disconnect with AbortSignal, approvalRequired, status, fields | `@openthaiid/react` unit tests | Done |
 
 ## Browser qualification (automated)
 
 Channels: Playwright `chrome` (Linux, macOS, Windows) and `msedge` (Windows).
 No browser-cache path guessing. Every GitHub Actions job has a hard
 `timeout-minutes` (acceptance 25m, 5m per policy step); the harness also
-exits via `process.exit` at 120s. A new push cancels in-progress runs.
+exits via `process.exit` at 150s. A new push cancels in-progress runs.
 
 PR CI runs H1 + H5–H7 (ubuntu Chrome, three policies). H2–H4 (macOS Chrome,
 Windows Chrome, Windows Edge) run on the full lane only (merge to `dev`/`main`
@@ -113,6 +114,7 @@ or `workflow_dispatch`).
 | H11 | Two-client isolation | Done (local Playwright two-context + Go unicast); multi-OS CI ready |
 | H12 | Origin rejection independent of terminal denial | Done (Go `TestIntegrationBadOriginRejected`) |
 | H13 | Connection failure on closed port (renamed scenario) | CI ready |
+| H14 | Extra textual fields requested and asserted on synthetic (allow policy; new grant) | CI ready |
 
 ## Browser qualification (manual)
 

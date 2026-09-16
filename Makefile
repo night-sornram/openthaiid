@@ -26,9 +26,11 @@ doctor: build
 
 sdk:
 	cd sdk/web && npm ci && npm run build
+	cd sdk/react && npm ci && npm run build
 
 sdk-test:
-	cd sdk/web && npm ci && npm test
+	cd sdk/web && npm ci && npm test && npm run build
+	cd sdk/react && npm ci && npm test
 
 tidy:
 	go mod tidy
@@ -49,4 +51,4 @@ acceptance: build sdk
 	cd acceptance && npm ci && npm run test:all
 
 clean:
-	rm -rf dist sdk/web/dist acceptance/node_modules
+	rm -rf dist sdk/web/dist sdk/react/dist acceptance/node_modules
