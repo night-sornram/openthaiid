@@ -95,15 +95,43 @@ async function scenario(name, fn) {
   }
 }
 
-async function waitForPort(port, timeoutMs = 15000) {
+async function fetchHealthz(port, ms = 800) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), ms);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/healthz`, {
+      signal: ac.signal,
+      headers: { Connection: "close" },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function waitUntilPortIdle(port, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/healthz`);
-      if (res.ok) return true;
-    } catch {
-      // retry
+    if (!(await fetchHealthz(port))) return true;
+    await sleep(50);
+  }
+  return false;
+}
+
+async function waitForBridge(bridge, port, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (bridge.exited) {
+      const tail = String(bridge.output || "").replace(/\s+/g, " ").slice(-400);
+      throw new Error(
+        `bridge exited before becoming healthy on :${port} ` +
+          `code=${bridge.exited.exitCode} signal=${bridge.exited.signal}` +
+          (tail ? ` output=${tail}` : ""),
+      );
     }
+    if (await fetchHealthz(port)) return true;
     await sleep(100);
   }
   throw new Error(`bridge did not become healthy on :${port}`);
@@ -122,7 +150,7 @@ function ensureCert() {
       "-subj", "/CN=localhost",
       "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1",
     ],
-    { stdio: "inherit" },
+    { stdio: "inherit", timeout: 30000 },
   );
   if (status !== 0) {
     throw new Error("openssl failed to generate localhost cert");
@@ -251,24 +279,32 @@ function startBridge(policy) {
     get stopping() {
       return stopping;
     },
+    get output() {
+      return output;
+    },
     async stop() {
       stopping = true;
-      if (exited) return;
-      try {
-        term.write(`quit${PTY_EOL}`);
-      } catch {
-        // ignore
-      }
-      const deadline = Date.now() + 3000;
-      while (!exited && Date.now() < deadline) {
-        await sleep(50);
-      }
       if (!exited) {
-        killBridgeProcess(term);
-        const killDeadline = Date.now() + 2000;
-        while (!exited && Date.now() < killDeadline) {
+        try {
+          term.write(`quit${PTY_EOL}`);
+        } catch {
+          // ignore
+        }
+        const deadline = Date.now() + 3000;
+        while (!exited && Date.now() < deadline) {
           await sleep(50);
         }
+        if (!exited) {
+          killBridgeProcess(term);
+          const killDeadline = Date.now() + 2000;
+          while (!exited && Date.now() < killDeadline) {
+            await sleep(50);
+          }
+        }
+      }
+      if (!(await waitUntilPortIdle(PORT_BRIDGE, 3000))) {
+        killBridgeProcess(term);
+        await waitUntilPortIdle(PORT_BRIDGE, 2000);
       }
     },
   };
@@ -492,8 +528,11 @@ async function runBridgeRestart(browser, httpsBase, wsURL, bridge, policy) {
     await waitForSyntheticRead(page);
 
     await bridge.stop();
+    if (await fetchHealthz(PORT_BRIDGE)) {
+      throw new Error(`bridge still serving /healthz on :${PORT_BRIDGE} after stop`);
+    }
     next = startBridge(policy);
-    await waitForPort(PORT_BRIDGE);
+    await waitForBridge(next, PORT_BRIDGE);
 
     await page.waitForFunction(
       () => {
@@ -592,7 +631,7 @@ async function main() {
   ensureCert();
   const commit =
     process.env.GITHUB_SHA ||
-    spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).stdout?.trim() ||
+    spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8", timeout: 5000 }).stdout?.trim() ||
     "unknown";
 
   log("bridge binary:", binPath());
@@ -601,7 +640,11 @@ async function main() {
   log("commit:", commit);
   log("harness timeout ms:", HARNESS_TIMEOUT_MS);
 
-  const https = await startHTTPS();
+  if (await fetchHealthz(PORT_BRIDGE)) {
+    throw new Error(`port :${PORT_BRIDGE} already has a healthy /healthz; refuse overlapping bridge`);
+  }
+
+  const https = await withTimeout(startHTTPS(), 10000, "https.listen timed out");
   const httpsBase = `https://127.0.0.1:${PORT_HTTPS}`;
   const wsURL = `ws://127.0.0.1:${PORT_BRIDGE}/v1/ws`;
   log("https ready", pageURL(httpsBase, wsURL));
@@ -633,10 +676,10 @@ async function main() {
       });
     };
     watchExit(bridge);
-    await waitForPort(PORT_BRIDGE);
+    await waitForBridge(bridge, PORT_BRIDGE);
     log("bridge healthy");
 
-    browser = await launchBrowser();
+    browser = await withTimeout(launchBrowser(), 30000, "browser.launch timed out");
     browserVersion = browser.version();
     log("browser version:", browserVersion);
 

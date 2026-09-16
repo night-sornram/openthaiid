@@ -76,6 +76,11 @@ this localhost HTTPS automation. See `docs/acceptance.md`.
 | `OPENTHAIID_HARNESS_TIMEOUT_MS` | `120000` | Hard process deadline (Windows ConPTY/keep-alive must not hang CI) |
 | `OPENTHAIID_SCENARIO_TIMEOUT_MS` | `45000` | Per-scenario cap |
 
+Startup fails immediately if `:OPENTHAIID_PORT` already answers `/healthz`.
+Health checks abort in under a second so a stuck TCP connection cannot
+block the 15s wait-for-bridge loop. After `quit`/kill, H9 refuses to
+start a replacement process if the old listener is still serving.
+
 Certificates are generated in the OS temp directory and never served.
 Only the acceptance page and `sdk/web/dist/index.js` are served.
 

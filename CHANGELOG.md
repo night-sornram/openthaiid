@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI: Go test/race, five-target build matrix with version smoke,
   SDK (`npm ci` only), Chrome×3 + Edge×1 browser acceptance with
   allow/deny/unanswered policies, and repeated bridge/reader tests
+- Hard `timeout-minutes` on every CI job and long step (Go test 35m, builds 15m,
+  SDK 10m, acceptance 25m / 5m per policy) plus `concurrency: cancel-in-progress`
+  so a new SHA does not leave hung Windows jobs occupying runners for 6h
 
 ### Changed (protocol / card — pre-release corrections)
 
@@ -71,6 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the handshake grant)
 - Windows acceptance: `https.Server.close()` waited forever for Chromium
   keep-alive sockets; teardown now drops connections and `process.exit`s
+- Acceptance `/healthz` polls abort per attempt so a hung TCP cannot stall
+  startup; H9 fails fast if the previous bridge is still serving after stop
+- CI jobs no longer inherit GitHub's 6h default: Go test/race/build/SDK now
+  have job- and step-level timeouts; `go test -timeout` is explicit so a
+  deadlock dumps running tests instead of sitting until the runner is cancelled
 - Approvals are bound to their originating connection and cancelled on disconnect
 - Trust revocation delivers `authorization.revoked` and closes affected clients
 - Duplicate / non-increasing request IDs are rejected

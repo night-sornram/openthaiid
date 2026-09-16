@@ -71,7 +71,9 @@ and evidence location.
 ## Browser qualification (automated)
 
 Channels: Playwright `chrome` (Linux, macOS, Windows) and `msedge` (Windows).
-No browser-cache path guessing.
+No browser-cache path guessing. Every GitHub Actions job has a hard
+`timeout-minutes` (acceptance 25m, 5m per policy step); the harness also
+exits via `process.exit` at 120s. A new push cancels in-progress runs.
 
 | # | Criterion | Status |
 |---|---|---|
