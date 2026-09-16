@@ -281,7 +281,6 @@ export class ThaiID {
 
   #clearPersonalData() {
     this.#lastFields = null;
-    this.#status = { ...this.#status, readers: [] };
   }
 
   #clearSession() {
@@ -289,6 +288,7 @@ export class ThaiID {
     this.#expiresAt = null;
     this.#instanceId = null;
     this.#clearPersonalData();
+    this.#status = { ...this.#status, readers: [] };
     if (this.#renewTimer) {
       clearTimeout(this.#renewTimer);
       this.#renewTimer = null;
@@ -387,12 +387,21 @@ export class ThaiID {
         this.#emit("statusChanged", this.#status);
         break;
       case "reader.connected":
+        if (!this.#token) break;
+        this.#upsertReader(msg.payload?.readerId, msg.payload?.name, "absent");
+        this.#emit("statusChanged", this.#status);
+        break;
       case "reader.disconnected":
-        // Full snapshot will follow or status() can refresh.
+        if (!this.#token) break;
+        this.#removeReader(msg.payload?.readerId);
+        this.#lastFields = null;
+        this.#emit("statusChanged", this.#status);
+        this.#emit("cardChanged", { present: false, readerId: msg.payload?.readerId });
         break;
       case "card.inserted":
         if (!this.#token) break;
         this.#updatePresence(msg.payload?.readerId, true, msg.payload?.cardSessionId);
+        this.#emit("statusChanged", this.#status);
         this.#emit("cardChanged", {
           present: true,
           readerId: msg.payload?.readerId,
@@ -402,7 +411,8 @@ export class ThaiID {
       case "card.removed":
         if (!this.#token) break;
         this.#updatePresence(msg.payload?.readerId, false, undefined);
-        this.#clearPersonalData();
+        this.#lastFields = null;
+        this.#emit("statusChanged", this.#status);
         this.#emit("cardChanged", {
           present: false,
           readerId: msg.payload?.readerId,
@@ -419,17 +429,56 @@ export class ThaiID {
 
   #updatePresence(readerId: string | undefined, present: boolean, cardSessionId?: string) {
     if (!readerId) return;
+    const readers = this.#status.readers;
+    const found = readers.some((r) => r.readerId === readerId);
     this.#status = {
       ...this.#status,
-      readers: this.#status.readers.map((r) =>
-        r.readerId === readerId
-          ? {
-              ...r,
+      readers: found
+        ? readers.map((r) =>
+            r.readerId === readerId
+              ? {
+                  ...r,
+                  presence: present ? "present" : "absent",
+                  cardSessionId: present ? cardSessionId : undefined,
+                }
+              : r,
+          )
+        : [
+            ...readers,
+            {
+              readerId,
+              name: readerId,
               presence: present ? "present" : "absent",
               cardSessionId: present ? cardSessionId : undefined,
-            }
-          : r,
-      ),
+            },
+          ],
+    };
+  }
+
+  #upsertReader(readerId: string | undefined, name: string | undefined, presence: ReaderView["presence"]) {
+    if (!readerId) return;
+    const readers = this.#status.readers;
+    if (readers.some((r) => r.readerId === readerId)) {
+      this.#status = {
+        ...this.#status,
+        readers: readers.map((r) => (r.readerId === readerId ? { ...r, name: name || r.name } : r)),
+      };
+      return;
+    }
+    this.#status = {
+      ...this.#status,
+      readers: [...readers, { readerId, name: name || readerId, presence }],
+    };
+  }
+
+  #removeReader(readerId: string | undefined) {
+    if (!readerId) {
+      this.#status = { ...this.#status, readers: [] };
+      return;
+    }
+    this.#status = {
+      ...this.#status,
+      readers: this.#status.readers.filter((r) => r.readerId !== readerId),
     };
   }
 
@@ -866,6 +915,7 @@ export {
   AUTOFILL_ATTRIBUTE,
   applyAutofillValues,
   autofillThaiID,
+  clearAutofillValues,
   collectAutofillTargets,
   discoverAutofillTargets,
   filterTargetsByRequest,
@@ -922,6 +972,8 @@ export {
 } from "./probe.js";
 export {
   formatStaffError,
+  isMidReadAbort,
+  MID_READ_ABORT_CODES,
   staffApprovalGuidance,
   staffCopy,
   staffErrorCode,

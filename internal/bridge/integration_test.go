@@ -733,3 +733,78 @@ func TestIntegrationNoFieldExpansion(t *testing.T) {
 		t.Fatalf("expected FIELD_NOT_ALLOWED, got %v", msg)
 	}
 }
+
+func TestIntegrationReadCardRemovedDuringTransmit(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		mon.AddReader("r1", "ACR39U")
+		mon.InsertCard("r1")
+		scriptThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "r1")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	token := readToken(t, ctx, conn, 1)
+
+	tb.rdb.BlockPhase("transmit")
+	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	time.Sleep(40 * time.Millisecond)
+	tb.mon.RemoveCard("r1")
+	if err := tb.mgr.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	msg := readByID(t, ctx, conn, 2)
+	if time.Since(start) > time.Second {
+		t.Fatalf("CARD_REMOVED not prompt: %s", time.Since(start))
+	}
+	errObj, _ := msg["error"].(map[string]any)
+	if errObj == nil || errObj["code"] != "CARD_REMOVED" {
+		t.Fatalf("expected CARD_REMOVED, got %v", msg)
+	}
+	if msg["result"] != nil {
+		t.Fatalf("must not return a partial read payload: %v", msg["result"])
+	}
+	tb.rdb.UnblockPhase("transmit")
+}
+
+func TestIntegrationReadReaderUnpluggedDuringTransmit(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		mon.AddReader("r1", "ACR39U")
+		mon.InsertCard("r1")
+		scriptThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "r1")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	token := readToken(t, ctx, conn, 1)
+
+	tb.rdb.BlockPhase("transmit")
+	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	time.Sleep(40 * time.Millisecond)
+	tb.mon.RemoveReader("r1")
+	if err := tb.mgr.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	msg := readByID(t, ctx, conn, 2)
+	errObj, _ := msg["error"].(map[string]any)
+	if errObj == nil || errObj["code"] != "READER_REMOVED" {
+		t.Fatalf("expected READER_REMOVED, got %v", msg)
+	}
+	tb.rdb.UnblockPhase("transmit")
+}

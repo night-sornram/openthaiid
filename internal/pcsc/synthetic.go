@@ -511,7 +511,22 @@ func (c *syntheticConn) Transmit(ctx context.Context, command []byte, maxResp in
 	if c.closed {
 		return nil, card.NewError(card.ErrCancelled, "connection closed")
 	}
+	if err := c.presenceError(); err != nil {
+		return nil, err
+	}
 	return c.sb.state.responseFor(string(command))
+}
+
+func (c *syntheticConn) presenceError() error {
+	c.sb.state.mu.Lock()
+	defer c.sb.state.mu.Unlock()
+	if _, ok := c.sb.state.readers[c.readerID]; !ok {
+		return card.NewError(card.ErrReaderRemoved, "reader unplugged")
+	}
+	if !c.sb.state.present[c.readerID] {
+		return card.NewError(card.ErrCardRemoved, "card removed")
+	}
+	return nil
 }
 
 func (c *syntheticConn) BeginTransaction(ctx context.Context) error {
@@ -522,6 +537,9 @@ func (c *syntheticConn) BeginTransaction(ctx context.Context) error {
 	defer c.mu.Unlock()
 	if c.closed {
 		return card.NewError(card.ErrCancelled, "connection closed")
+	}
+	if err := c.presenceError(); err != nil {
+		return err
 	}
 	c.inTx = true
 	return nil

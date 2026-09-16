@@ -225,6 +225,29 @@ describe("summarizeProbe", () => {
     expect(picked.ready).toBe(true);
     expect(picked.reader).toContain("Reader Two");
   });
+
+  it("card absent is not Ready", () => {
+    const gone = summarizeProbe({
+      reachable: true,
+      backend: { name: "synthetic", status: "available" },
+      readers: [{ readerId: "r1", name: "ACR39U", presence: "absent", selected: true }],
+    });
+    expect(gone.ready).toBe(false);
+    expect(gone.headline).toBe("ยังไม่พร้อม");
+    expect(gone.card).toContain("บัตร");
+    expect(gone.next).toContain("กรอกข้อมูล");
+  });
+
+  it("no readers after unplug is not Ready", () => {
+    const gone = summarizeProbe({
+      reachable: true,
+      backend: { name: "synthetic", status: "available" },
+      readers: [],
+    });
+    expect(gone.ready).toBe(false);
+    expect(gone.headline).toBe("ยังไม่พร้อม");
+    expect(gone.next).toContain("เครื่องอ่าน");
+  });
 });
 
 describe("mountThaiIDStatus", () => {

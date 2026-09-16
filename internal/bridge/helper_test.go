@@ -62,6 +62,72 @@ func TestHelperSummaryNoPII(t *testing.T) {
 	}
 }
 
+func TestHelperSummaryCardRemovedNotReady(t *testing.T) {
+	t.Setenv("OPENTHAIID_LANG", "th")
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		rdb.SeedDemoCard()
+	})
+	waitReader(t, tb, "synthetic-acr39u")
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	tb.mon.RemoveCard("synthetic-acr39u")
+	if err := tb.mgr.Refresh(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := http.Get(tb.httpBase() + "/v1/helper/summary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []string{"1234567890121", "สมชาย", "Somchai"} {
+		if bytes.Contains(raw, []byte(n)) {
+			t.Fatalf("summary leaked %q: %s", n, raw)
+		}
+	}
+	var s map[string]any
+	if err := json.Unmarshal(raw, &s); err != nil {
+		t.Fatal(err)
+	}
+	if s["headline"] == "พร้อม" || s["headline"] == "พร้อม (บัตรฝึกซ้อม)" {
+		t.Fatalf("stale Ready after card removed: %+v", s)
+	}
+	if s["card"] == true {
+		t.Fatalf("card light still on: %+v", s)
+	}
+	if !strings.Contains(s["headline"].(string), "ยังไม่พร้อม") {
+		t.Fatalf("headline %v", s["headline"])
+	}
+}
+
+func TestHelperSummaryReaderUnpluggedNotReady(t *testing.T) {
+	t.Setenv("OPENTHAIID_LANG", "th")
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		rdb.SeedDemoCard()
+	})
+	waitReader(t, tb, "synthetic-acr39u")
+	tb.mon.RemoveReader("synthetic-acr39u")
+	if err := tb.mgr.Refresh(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.Get(tb.httpBase() + "/v1/helper/summary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var s map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
+		t.Fatal(err)
+	}
+	if s["reader"] == true || s["card"] == true || s["headline"] == "พร้อม" || s["headline"] == "พร้อม (บัตรฝึกซ้อม)" {
+		t.Fatalf("stale Ready after unplug: %+v", s)
+	}
+}
+
 func TestHelperSummaryMultiReaderNeedsSelection(t *testing.T) {
 	t.Setenv("OPENTHAIID_LANG", "th")
 	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {

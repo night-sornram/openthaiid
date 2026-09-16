@@ -68,7 +68,13 @@ mountThaiIDStatus(document.getElementById("reader-status"));
 Pass `{ lang: "en" }` for English, or `{ mode: "advanced" }` for technician
 details (English) on the same page. `autofillThaiID` / `probeThaiID` use the
 same default: human messages in Thai, stable protocol **codes**. Display Fill
-failures with `formatStaffError(err)` (or `{ lang: "en" }`).
+failures with `formatStaffError(err)` (or `{ lang: "en" }`). If Fill stops
+because the card was pulled or the reader was unplugged, those codes stay
+`CARD_REMOVED` / `READER_REMOVED`; Thai copy tells staff to wait for Ready
+and Fill again. `autofillThaiID` writes mapped fields only after a complete
+successful read and clears those mapped fields on a mid-read abort so a
+previous patient’s values are not mixed with a failed Fill (phone / HN
+unmapped fields stay).
 
 `request` is an allowlist. `map` is slot → selector. Phone / HN stay off the
 map. JSON Schema + samples + import/export:

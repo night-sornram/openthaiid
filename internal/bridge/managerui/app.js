@@ -1144,6 +1144,15 @@ document.addEventListener("visibilitychange", () => {
 });
 
 void load();
-setInterval(() => {
-  if (document.visibilityState === "visible") void load();
-}, 1500);
+let statusPollTimer = null;
+function scheduleStatusPoll() {
+  if (statusPollTimer) clearTimeout(statusPollTimer);
+  const ready = Boolean(window.__lastStatus && summarize(window.__lastStatus).ready);
+  const hidden = document.visibilityState !== "visible";
+  const ms = hidden ? 4000 : ready ? 400 : 1500;
+  statusPollTimer = setTimeout(async () => {
+    if (document.visibilityState === "visible") await load();
+    scheduleStatusPoll();
+  }, ms);
+}
+scheduleStatusPoll();

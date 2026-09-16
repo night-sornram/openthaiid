@@ -61,8 +61,13 @@ export type HelperWatchUpdate = {
 };
 
 export type WatchThaiIDOptions = ProbeThaiIDOptions & {
-  /** Poll interval while the helper is reachable. Default 2000ms. */
+  /** Poll interval while the helper is reachable but not Ready. Default 2000ms. */
   intervalMs?: number;
+  /**
+   * Poll interval while the helper is Ready (card present). Default 400ms
+   * so a pulled card or unplug does not leave a stale พร้อม / Ready.
+   */
+  readyIntervalMs?: number;
   /** Poll interval while waiting for the helper to return. Default 500ms. */
   offlineIntervalMs?: number;
 };
@@ -420,6 +425,7 @@ export function watchThaiID(
 ): () => void {
   const lang = staffLang(options.lang);
   const onlineInterval = options.intervalMs ?? 2000;
+  const readyInterval = options.readyIntervalMs ?? 400;
   const offlineInterval = options.offlineIntervalMs ?? 500;
   let stopped = false;
   let inFlight = false;
@@ -480,7 +486,12 @@ export function watchThaiID(
     }
 
     emit(probe, phase, recovered);
-    schedule(probe.reachable ? onlineInterval : offlineInterval);
+    const nextMs = !probe.reachable
+      ? offlineInterval
+      : summarizeProbe(probe, lang).ready
+        ? readyInterval
+        : onlineInterval;
+    schedule(nextMs);
   };
 
   emit({ reachable: false }, "checking", false);

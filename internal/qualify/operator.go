@@ -22,18 +22,28 @@ func OperatorChecks() []OperatorStep {
 		{
 			ID:     "E4",
 			Name:   "removal during read / reader unplug",
-			Detail: "pull card during Fill, then unplug reader; PASS if helper stays up and error is CARD_REMOVED / READER_REMOVED / READ_FAILED",
+			Detail: "pull card during Fill, then unplug reader; PASS if helper stays up and clinic error is CARD_REMOVED (card) / READER_REMOVED (unplug) / READ_FAILED. Staff Thai: reinsert, wait for พร้อม, Fill again.",
 			Prompt: `E4 — Removal during read / reader unplug
 ถอดบัตรขณะอ่าน แล้วถอดเครื่องอ่าน
+
+Software maps Friday E4 to stable protocol codes (do not change the tokens):
+  pull card during Fill/read  → CARD_REMOVED
+  unplug USB reader mid-read  → READER_REMOVED
+  native I/O that cannot tell  → READ_FAILED
+Staff see Thai guidance (wait for พร้อม / Ready, then Fill again). Technician
+English stays on this prompt, Copy diagnostics, and { lang: "en" }.
 
 Do:
   1. Keep the helper running. Card seated. Do not type card data.
   2. Start Fill (or a qualify read). While it is reading, pull the card out.
-  3. Re-seat the card, start Fill again, then unplug the USB reader.
+     Clinic banner should say the card was removed; Ready must leave พร้อม.
+  3. Re-seat the card, wait until Ready says พร้อม, Fill again.
+  4. Start Fill, then unplug the USB reader.
+     Clinic banner should say the reader was unplugged; Ready must leave พร้อม.
 
 PASS if the helper process stays up and the error is CARD_REMOVED,
 READER_REMOVED, or READ_FAILED — not a crash or hang.
-FAIL if the helper dies or stops responding.
+FAIL if the helper dies, hangs, or Ready stays พร้อม with no card/reader.
 SKIP if you cannot pull the card / unplug safely right now.
 
 Never type citizen ID, names, address, dates of birth, or paste a photo.

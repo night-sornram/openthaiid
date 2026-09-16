@@ -228,10 +228,7 @@ func (b *osBackend) Open(ctx context.Context, readerID string) (CardConnection, 
 	}
 	sc, err := pcscCtx.Connect(name, scard.ShareShared, scard.ProtocolAny)
 	if err != nil {
-		if err == scard.ErrNoSmartcard {
-			return nil, card.NewError(card.ErrNoCard, "no card present")
-		}
-		return nil, card.NewError(card.ErrReadFailed, "card connect failed")
+		return nil, mapNativeConnectError(err)
 	}
 	return &osConn{conn: sc, readerID: readerID}, nil
 }
@@ -281,7 +278,7 @@ func (c *osConn) Transmit(ctx context.Context, command []byte, maxResp int) ([]b
 	}
 	resp, err := c.conn.Transmit(command)
 	if err != nil {
-		return nil, card.NewError(card.ErrReadFailed, "transmit failed")
+		return nil, mapNativeIOError(err, "transmit failed")
 	}
 	if maxResp > 0 && len(resp) > maxResp {
 		return nil, card.NewError(card.ErrReadFailed, "response exceeds bound")
@@ -296,6 +293,9 @@ func (c *osConn) BeginTransaction(ctx context.Context) error {
 		return card.NewError(card.ErrCancelled, "connection closed")
 	}
 	if err := c.conn.BeginTransaction(); err != nil {
+		if mapped := mapNativeIOError(err, "transaction unavailable"); card.AsError(mapped).Code != card.ErrReadFailed {
+			return mapped
+		}
 		return card.NewError(card.ErrBusy, "transaction unavailable")
 	}
 	c.tx = true

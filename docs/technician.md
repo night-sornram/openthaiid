@@ -157,6 +157,11 @@ Type only `pass` / `fail` / `skip`. Attach the printed `report:` JSON and
 the audit JSON. One-page: [friday-checklist.md](friday-checklist.md).
 Full kit: [hardware-qualification.md](hardware-qualification.md).
 
+Friday **E4** (physical): pull the card during Fill → `CARD_REMOVED`; unplug
+the reader during Fill → `READER_REMOVED`; opaque native I/O → `READ_FAILED`.
+Staff Thai on the clinic page; this page stays English. Synthetic tests
+already cover the codes — hardware still has to tick E4.
+
 ## Verbose logging
 
 Technician checkbox, or `openthaiid -log-level debug`. Default is `info`.

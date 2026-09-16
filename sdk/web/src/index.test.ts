@@ -497,4 +497,57 @@ describe("ThaiID", () => {
       fake.restore();
     }
   });
+
+  it("card.removed updates presence immediately without wiping the reader list", async () => {
+    const fake = installFakeWebSocket({ autoRespond: true });
+    const id = new ThaiID();
+    try {
+      await id.connect();
+      const statuses: Array<{ presence?: string; n: number }> = [];
+      id.on("statusChanged", (s) => statuses.push({ presence: s.readers[0]?.presence, n: s.readers.length }));
+      const cards: boolean[] = [];
+      id.on("cardChanged", ({ present }) => cards.push(present));
+      const ws = fake.sockets[0]!;
+      ws.onmessage?.({
+        data: JSON.stringify({
+          v: 1,
+          type: "card.removed",
+          instanceId: "bridge-x",
+          sequence: 3,
+          payload: { readerId: "r1", cardSessionId: "cs_1" },
+        }),
+      });
+      expect(cards).toContain(false);
+      expect(statuses.some((s) => s.presence === "absent" && s.n === 1)).toBe(true);
+    } finally {
+      await id.disconnect();
+      fake.restore();
+    }
+  });
+
+  it("reader.disconnected drops the reader so status is not Ready", async () => {
+    const fake = installFakeWebSocket({ autoRespond: true });
+    const id = new ThaiID();
+    try {
+      await id.connect();
+      let readers = 1;
+      id.on("statusChanged", (s) => {
+        readers = s.readers.length;
+      });
+      const ws = fake.sockets[0]!;
+      ws.onmessage?.({
+        data: JSON.stringify({
+          v: 1,
+          type: "reader.disconnected",
+          instanceId: "bridge-x",
+          sequence: 3,
+          payload: { readerId: "r1" },
+        }),
+      });
+      expect(readers).toBe(0);
+    } finally {
+      await id.disconnect();
+      fake.restore();
+    }
+  });
 });

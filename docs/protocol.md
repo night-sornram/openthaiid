@@ -180,6 +180,10 @@ type ThaiIDError = {
 - One native worker owns open → transaction → transmit → end → close.
 - `CANCELLED` and `READ_TIMEOUT` return promptly; blocked native cleanup does
   not delay the client.
+- `CARD_REMOVED` (card pulled) and `READER_REMOVED` (reader unplugged) also
+  return promptly when inventory changes mid-read. Late APDU results are
+  discarded. Authenticated clients apply `card.removed` / `reader.disconnected`
+  immediately so Ready/status cannot stay “Ready” / **พร้อม**.
 - The global read slot stays occupied until that worker finishes. Overlapping
   reads receive `BUSY`. Late results are discarded.
 - If native work is still blocked two seconds after cancellation, the backend

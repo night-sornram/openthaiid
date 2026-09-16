@@ -142,7 +142,7 @@ bridge revision, and non-personal outcome only.
 | E1 | Reader/card detection within 2s under normal operation | Open — kit ready |
 | E2 | 100 successful repeated MVP reads | Open — kit ready |
 | E3 | ≥20 insertion/removal cycles | Open — kit ready |
-| E4 | Removal during reading and reader unplug | Open |
+| E4 | Removal during reading and reader unplug | Open — software mapped (`CARD_REMOVED` / `READER_REMOVED` / `READ_FAILED`); physical ACR39U still required |
 | E5 | Browser refresh, bridge restart, sleep/wake | Open |
 | E6 | Missing/stopped PC/SC service recovery where applicable | Open |
 | E7 | Local visual verification without storing field values in reports | Open |

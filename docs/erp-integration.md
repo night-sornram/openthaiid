@@ -59,6 +59,8 @@ fillBtn.addEventListener("click", async () => {
 `request` เป็นรายการอนุญาตของฟิลด์โปรโตคอล (ไม่ใช่สล็อตซ้อนอย่าง `thaiName.givenName`)
 `map` คือสล็อต → selector
 `lang` เป็น `"th"` (ค่าเริ่มต้น) หรือ `"en"` — รหัสโปรโตคอลไม่เปลี่ยน
+ถ้าถอดบัตรหรือถอดเครื่องอ่านระหว่างกรอก รหัสคือ `CARD_REMOVED` /
+`READER_REMOVED` — `autofillThaiID` ล้างช่องที่แมปไว้ อย่าใช้ค่าค้าง
 
 สิ่งที่**ห้าม**ใส่ใน JSON: `onApprovalRequired`, `onError`, `root`, `client`, `signal`,
 ฟังก์ชัน `dateFormat`, และ Element ใน `map`

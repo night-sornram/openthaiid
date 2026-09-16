@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/night-sornram/openthaiid/internal/card"
 )
 
 func TestSyntheticLifecycle(t *testing.T) {
@@ -57,6 +59,54 @@ func TestSyntheticLifecycle(t *testing.T) {
 	if err == nil {
 		t.Fatal("open without card must fail")
 	}
+}
+
+func TestSyntheticTransmitAfterCardRemoved(t *testing.T) {
+	ctx := context.Background()
+	sb := NewSynthetic()
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sb.Release(ctx) }()
+	sb.AddReader("r1", "ACR39U")
+	sb.InsertCard("r1")
+	sb.SetScriptResponse("SELECT", []byte{0x90, 0x00})
+	conn, err := sb.Open(ctx, "r1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.BeginTransaction(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sb.RemoveCard("r1")
+	_, err = conn.Transmit(ctx, []byte("SELECT"), 256)
+	if err == nil || card.AsError(err).Code != card.ErrCardRemoved {
+		t.Fatalf("expected CARD_REMOVED, got %v", err)
+	}
+	_ = conn.EndTransaction(ctx)
+	_ = conn.Close()
+}
+
+func TestSyntheticTransmitAfterReaderUnplugged(t *testing.T) {
+	ctx := context.Background()
+	sb := NewSynthetic()
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sb.Release(ctx) }()
+	sb.AddReader("r1", "ACR39U")
+	sb.InsertCard("r1")
+	sb.SetScriptResponse("SELECT", []byte{0x90, 0x00})
+	conn, err := sb.Open(ctx, "r1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sb.RemoveReader("r1")
+	_, err = conn.Transmit(ctx, []byte("SELECT"), 256)
+	if err == nil || card.AsError(err).Code != card.ErrReaderRemoved {
+		t.Fatalf("expected READER_REMOVED, got %v", err)
+	}
+	_ = conn.Close()
 }
 
 func TestSyntheticReestablishAfterRelease(t *testing.T) {

@@ -41,7 +41,9 @@ staff; `{ lang: "en" }` for English; `{ mode: "advanced" }` adds technician deta
 
 `mountThaiIDStatus` keeps probing and, if the helper restarts mid-session,
 shows Thai **ตัวช่วยหลุดการเชื่อมต่อ** then **ตัวช่วยกลับมาแล้ว** without a
-page reload. There is an optional **ทดสอบการเชื่อมต่อ** button (probe only).
+page reload. While Ready (card present) it polls faster so a pulled card or
+unplug does not leave **พร้อม**. There is an optional **ทดสอบการเชื่อมต่อ**
+button (probe only).
 `waitForThaiID()` / `watchThaiID()` are the same loop without DOM. `autofillThaiID`
 waits for the helper to come back before opening a session; it never auto-repeats
 a card read.
@@ -90,6 +92,13 @@ await autofillThaiID({
 The helper connects, waits for approval, reads, writes string values into the
 inputs, then disconnects (pass `disconnect: false` or `client` to keep the
 session). It requests only the fields implied by the slots (least privilege).
+Values are written only after a complete successful `card.read`. If the card
+is pulled or the reader is unplugged mid-read (`CARD_REMOVED` /
+`READER_REMOVED`, also `READ_FAILED` / `READ_TIMEOUT`), mapped fields are
+cleared so a previous patient’s values are not mixed with a failed Fill.
+Phone / HN and other unmapped controls stay. Thai staff `message` tells
+them to wait for Ready and Fill again (`{ lang: "en" }` for English). Codes
+do not change.
 
 Default formatting: citizen ID digits, `fullName` / `fullAddress`, ISO dates
 (`YYYY-MM-DD`; `input[type=date]` always gets a complete ISO date), gender
