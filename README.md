@@ -22,11 +22,12 @@ See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the
 reader from the same page, call `autofillThaiID(config)`. Drop-in JSON
 (`request` + `map`, schema + samples): [docs/erp-integration.md](docs/erp-integration.md).
 
-Clinic staff: [docs/user.md](docs/user.md) (Thai-first Ready lights; tray /
-Start menu, not a developer terminal; multi-reader **ใช้เครื่องนี้**;
-card-removed / sleep-wake recovery). Practice without a reader:
-[docs/training.md](docs/training.md). Friday with ACR39U:
-[docs/friday-checklist.md](docs/friday-checklist.md).
+Clinic staff: start at [docs/getting-started.md](docs/getting-started.md)
+(Thai-first Friday-morning index). Then [docs/user.md](docs/user.md)
+(Ready lights with **ปกติ / รอ / ยังไม่พร้อม** text; tray / Start menu, not a
+developer terminal; multi-reader **ใช้เครื่องนี้**; card-removed / sleep-wake
+recovery). Practice without a reader: [docs/training.md](docs/training.md).
+Friday with ACR39U: [docs/friday-checklist.md](docs/friday-checklist.md).
 Technicians: [docs/technician.md](docs/technician.md).
 Clinic IT packaging: [docs/installation.md](docs/installation.md).
 Always-on without a tray: `openthaiid service install`.
@@ -227,8 +228,12 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 
 ## Documentation
 
+Friday morning: [docs/getting-started.md](docs/getting-started.md) (Thai-first
+index for staff, training, Friday, ERP, and technicians).
+
 | Document | Contents |
 |---|---|
+| [docs/getting-started.md](docs/getting-started.md) | Friday-morning hub: which guide to open |
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
 | [docs/erp-integration.md](docs/erp-integration.md) | Drop-in JSON config + schema for an existing hospital/clinic ERP |
 | [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill; multi-reader and recovery tables |

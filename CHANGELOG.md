@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
+### Added
+
+- Thai-first Friday-morning hub: [getting-started.md](docs/getting-started.md)
+  indexes clinic staff, training, Friday checklist, ERP drop-in, and
+  technician guides in one place.
+- Ready page accessibility for clinic staff: **ใช้เครื่องนี้**,
+  **ทดสอบการเชื่อมต่อ**, and the ไทย / English toggle are at least 44px tap
+  targets; `:focus-visible` rings; the three lights include **ปกติ / รอ /
+  ยังไม่พร้อม** text (not color alone).
+
 ## [0.1.0-rc.3] — software release candidate (unreleased tag)
 
 Software RC against `dev` while ACR39U hardware is in transit. **Do not

@@ -81,15 +81,22 @@ h1 {
 
 .lang-switch {
   display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.15rem;
   border: 1px solid var(--line);
-  border-radius: 999px;
-  overflow: hidden;
+  border-radius: 0.85rem;
+  background: var(--bg);
 }
 
 .lang-switch .lang-btn {
   border: 0;
-  border-radius: 0;
+  border-radius: 0.7rem;
   margin: 0;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 1rem;
+  font-weight: 650;
 }
 
 .lang-switch .lang-btn[aria-pressed="true"] {
@@ -172,12 +179,49 @@ main {
   font-size: 1.02rem;
 }
 
+.light-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.light-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  width: fit-content;
+  font-weight: 750;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.light-state::before {
+  font-weight: 800;
+}
+
+.light-ok .light-state::before {
+  content: "✓";
+}
+
+.light-wait .light-state::before,
+.light-warn .light-state::before {
+  content: "!";
+}
+
+.light-bad .light-state::before {
+  content: "×";
+}
+
 .dot {
   width: 0.85rem;
   height: 0.85rem;
   border-radius: 999px;
   background: var(--line);
-  margin-top: 0.28rem;
+  margin-top: 0.45rem;
   flex-shrink: 0;
 }
 
@@ -185,6 +229,7 @@ main {
   background: var(--ok);
 }
 
+.light-wait .dot,
 .light-warn .dot {
   background: var(--warn);
 }
@@ -280,6 +325,26 @@ dd {
 
 .btn:hover {
   border-color: var(--accent);
+}
+
+.btn-staff {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.65rem 1.15rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  border-radius: 0.55rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px var(--card);
 }
 
 .btn-ok {

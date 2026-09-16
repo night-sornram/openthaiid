@@ -32,7 +32,8 @@ Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
   ./openthaiid qualify -operator -report ./openthaiid-qualify.json
 
 Never type or save citizen ID, names, address, or photo bytes. One JSON
-report path is printed as `report: ...`. One-page sheet: docs/friday-checklist.md
+report path is printed as `report: ...`. Friday-morning index:
+docs/getting-started.md. One-page sheet: docs/friday-checklist.md
 (full kit: docs/hardware-qualification.md). Always-on without a tray:
 docs/installation.md (`openthaiid service install`). Technician audit JSON:
 ./openthaiid audit  (or Technician tools → Copy JSON). Practice without a
@@ -63,7 +64,8 @@ Commands: openthaiid status | quit | open | open technician | autostart | servic
 Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).
 
-Technicians: ./openthaiid in a terminal. See docs/technician.md.
+Technicians: ./openthaiid in a terminal. See docs/getting-started.md,
+docs/technician.md.
 Staff recovery (two readers, card pulled, sleep/wake): docs/user.md and
 docs/friday-checklist.md.
 

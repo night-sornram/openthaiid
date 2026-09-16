@@ -15,7 +15,7 @@
         <p class="sub" data-i18n="subtitle">บนเครื่องนี้ · เสียบเครื่องอ่าน แล้วกด กรอกข้อมูล ในหน้าคลินิก</p>
       </div>
       <div class="meta">
-        <div class="lang-switch" role="group" aria-label="Language">
+        <div class="lang-switch" role="group" aria-label="ภาษา / Language">
           <button type="button" id="lang-th" class="btn lang-btn" aria-pressed="true">ไทย</button>
           <button type="button" id="lang-en" class="btn lang-btn" aria-pressed="false">English</button>
         </div>
@@ -29,24 +29,33 @@
 
     <main>
       <section class="card hero" aria-labelledby="ready-heading">
-        <p id="ready-heading" class="headline">กำลังตรวจ…</p>
+        <p id="ready-heading" class="headline" aria-live="polite">กำลังตรวจ…</p>
         <p id="next-step" class="next">สักครู่</p>
         <ul class="lights" id="lights">
           <li id="light-helper">
             <span class="dot" aria-hidden="true"></span>
-            <span class="light-text">OpenThaiID บนเครื่องนี้</span>
+            <span class="light-copy">
+              <span class="light-state">รอ</span>
+              <span class="light-text">OpenThaiID บนเครื่องนี้</span>
+            </span>
           </li>
           <li id="light-reader">
             <span class="dot" aria-hidden="true"></span>
-            <span class="light-text">เครื่องอ่านบัตร</span>
+            <span class="light-copy">
+              <span class="light-state">รอ</span>
+              <span class="light-text">เครื่องอ่านบัตร</span>
+            </span>
           </li>
           <li id="light-card">
             <span class="dot" aria-hidden="true"></span>
-            <span class="light-text">บัตรประชาชนไทย</span>
+            <span class="light-copy">
+              <span class="light-state">รอ</span>
+              <span class="light-text">บัตรประชาชนไทย</span>
+            </span>
           </li>
         </ul>
         <div class="hero-actions">
-          <button type="button" id="test-connection" class="btn" data-i18n="testConnection">
+          <button type="button" id="test-connection" class="btn btn-staff" data-i18n="testConnection">
             ทดสอบการเชื่อมต่อ
           </button>
           <p id="test-result" class="test-result" hidden></p>
