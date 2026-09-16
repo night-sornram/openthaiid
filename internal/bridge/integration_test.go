@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -384,6 +386,176 @@ func TestIntegrationDenyApproval(t *testing.T) {
 		return
 	}
 	t.Fatal("no response")
+}
+
+func TestIntegrationUnicastReadIsolation(t *testing.T) {
+	// Two authenticated connections: a card.read result is delivered only to
+	// the requester. The peer may receive metadata events, never field values.
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	connA, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = connA.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, connA, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID, card.FieldThaiName, card.FieldBirthDate},
+	})
+	tokenA := readToken(t, ctx, connA, 1)
+
+	connB, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = connB.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, connB, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID, card.FieldThaiName, card.FieldBirthDate},
+	})
+	tokenB := readToken(t, ctx, connB, 1)
+	if tokenA == tokenB {
+		t.Fatal("competing clients must receive distinct session tokens")
+	}
+
+	// Take over connB reads for the rest of the test. Timed Read contexts
+	// abort the WebSocket, so the peer is drained from a goroutine using the
+	// parent context instead.
+	peer := startFrameCollector(ctx, connB)
+
+	writeReq(t, ctx, connA, 2, "card.read", tokenA, protocol.CardReadPayload{})
+	msgA := readByID(t, ctx, connA, 2)
+	if msgA["error"] != nil {
+		t.Fatalf("requester card.read error: %v", msgA["error"])
+	}
+	fieldsA := msgA["result"].(map[string]any)["fields"].(map[string]any)
+	if fieldsA["citizenId"] != "1234567890121" {
+		t.Fatalf("requester citizenId %v", fieldsA["citizenId"])
+	}
+
+	time.Sleep(250 * time.Millisecond)
+	assertNoCardFields(t, peer.snapshot())
+
+	writeReq(t, ctx, connB, 2, "card.read", tokenB, protocol.CardReadPayload{})
+	msgB, ok := peer.waitID(2, 3*time.Second)
+	if !ok {
+		t.Fatal("peer independent card.read timed out")
+	}
+	if msgB["error"] != nil {
+		t.Fatalf("peer independent card.read error: %v", msgB["error"])
+	}
+	fieldsB := msgB["result"].(map[string]any)["fields"].(map[string]any)
+	if fieldsB["citizenId"] != "1234567890121" {
+		t.Fatalf("peer citizenId %v", fieldsB["citizenId"])
+	}
+}
+
+type frameCollector struct {
+	mu     sync.Mutex
+	frames []map[string]any
+}
+
+func startFrameCollector(ctx context.Context, c *websocket.Conn) *frameCollector {
+	fc := &frameCollector{}
+	go func() {
+		for {
+			_, data, err := c.Read(ctx)
+			if err != nil {
+				return
+			}
+			var m map[string]any
+			if json.Unmarshal(data, &m) != nil {
+				continue
+			}
+			fc.mu.Lock()
+			fc.frames = append(fc.frames, m)
+			fc.mu.Unlock()
+		}
+	}()
+	return fc
+}
+
+func (fc *frameCollector) snapshot() []map[string]any {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	out := make([]map[string]any, len(fc.frames))
+	copy(out, fc.frames)
+	return out
+}
+
+func (fc *frameCollector) waitID(id int64, timeout time.Duration) (map[string]any, bool) {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		for _, m := range fc.snapshot() {
+			if m["id"] == nil {
+				continue
+			}
+			mid, _ := m["id"].(float64)
+			if int64(mid) == id {
+				return m, true
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return nil, false
+}
+
+func assertNoCardFields(t *testing.T, frames []map[string]any) {
+	t.Helper()
+	raw, err := json.Marshal(frames)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(raw)
+	for _, needle := range []string{"1234567890121", "สมชาย", "ใจดี"} {
+		if strings.Contains(s, needle) {
+			t.Fatalf("competing client received unicast card field %q", needle)
+		}
+	}
+}
+
+func TestIntegrationPairingOnlyNoInventory(t *testing.T) {
+	// Unapproved connections must not receive reader inventory, card-session
+	// ids, or personal fields (docs/security.md pairing-only; acceptance B1).
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID, card.FieldThaiName, card.FieldBirthDate},
+	})
+
+	for i := 0; i < 8; i++ {
+		msg := readMsg(t, ctx, conn)
+		raw, _ := json.Marshal(msg)
+		s := string(raw)
+		for _, needle := range []string{"1234567890121", "สมชาย", "ใจดี"} {
+			if strings.Contains(s, needle) {
+				t.Fatalf("pairing-only client received card field %q", needle)
+			}
+		}
+		typ, _ := msg["type"].(string)
+		if typ == "status.snapshot" {
+			payload, _ := msg["payload"].(map[string]any)
+			readers, _ := payload["readers"].([]any)
+			if len(readers) > 0 {
+				t.Fatalf("pairing-only client received reader inventory: %v", payload)
+			}
+		}
+		if typ == "card.inserted" || typ == "reader.connected" || typ == "card.removed" {
+			t.Fatalf("pairing-only client received device event %s", typ)
+		}
+		if typ == "approval.required" {
+			return
+		}
+		if msg["id"] != nil {
+			t.Fatalf("unexpected session.open response before approval: %v", msg)
+		}
+	}
+	t.Fatal("expected approval.required without inventory")
 }
 
 func TestIntegrationNoFieldExpansion(t *testing.T) {

@@ -34,6 +34,9 @@ const BROWSER_CHANNEL = process.env.OPENTHAIID_BROWSER || "chrome";
 const REPORT_DIR = process.env.OPENTHAIID_REPORT_DIR || join(__dirname, "reports");
 const LOG_DIR = process.env.OPENTHAIID_LOG_DIR || join(__dirname, "logs");
 const POLICY = process.env.OPENTHAIID_APPROVAL_POLICY || "allow";
+const HARNESS_TIMEOUT_MS = Number(process.env.OPENTHAIID_HARNESS_TIMEOUT_MS || 120000);
+const SCENARIO_TIMEOUT_MS = Number(process.env.OPENTHAIID_SCENARIO_TIMEOUT_MS || 45000);
+const PTY_EOL = process.platform === "win32" ? "\r\n" : "\r";
 
 const CERT_DIR = join(tmpdir(), `openthaiid-acceptance-${process.pid}`);
 const KEY_PATH = join(CERT_DIR, "localhost-key.pem");
@@ -75,24 +78,60 @@ function record(name, ok, error) {
   log(ok ? "PASS" : "FAIL", name, error || "");
 }
 
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function scenario(name, fn) {
   try {
-    await fn();
+    await withTimeout(fn(), SCENARIO_TIMEOUT_MS, `scenario timed out after ${SCENARIO_TIMEOUT_MS}ms`);
     record(name, true);
   } catch (err) {
     record(name, false, err && err.message ? err.message : err);
   }
 }
 
-async function waitForPort(port, timeoutMs = 15000) {
+async function fetchHealthz(port, ms = 800) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), ms);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/healthz`, {
+      signal: ac.signal,
+      headers: { Connection: "close" },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function waitUntilPortIdle(port, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/healthz`);
-      if (res.ok) return true;
-    } catch {
-      // retry
+    if (!(await fetchHealthz(port))) return true;
+    await sleep(50);
+  }
+  return false;
+}
+
+async function waitForBridge(bridge, port, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (bridge.exited) {
+      const tail = String(bridge.output || "").replace(/\s+/g, " ").slice(-400);
+      throw new Error(
+        `bridge exited before becoming healthy on :${port} ` +
+          `code=${bridge.exited.exitCode} signal=${bridge.exited.signal}` +
+          (tail ? ` output=${tail}` : ""),
+      );
     }
+    if (await fetchHealthz(port)) return true;
     await sleep(100);
   }
   throw new Error(`bridge did not become healthy on :${port}`);
@@ -111,7 +150,7 @@ function ensureCert() {
       "-subj", "/CN=localhost",
       "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1",
     ],
-    { stdio: "inherit" },
+    { stdio: "inherit", timeout: 30000 },
   );
   if (status !== 0) {
     throw new Error("openssl failed to generate localhost cert");
@@ -136,6 +175,7 @@ function startHTTPS() {
     }
     res.writeHead(200, {
       "Content-Type": MIME[extname(file)] || "application/octet-stream",
+      "Connection": "close",
       "Content-Security-Policy":
         "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'",
     });
@@ -143,6 +183,8 @@ function startHTTPS() {
   });
   return new Promise((resolvePromise, reject) => {
     server.once("error", reject);
+    server.keepAliveTimeout = 1;
+    server.headersTimeout = 5000;
     server.listen(PORT_HTTPS, "127.0.0.1", () => resolvePromise(server));
   });
 }
@@ -171,6 +213,20 @@ function ensureNodePtyHelper() {
   }
 }
 
+function killBridgeProcess(term) {
+  const pid = term && term.pid;
+  if (process.platform === "win32" && pid) {
+    // ConPTY term.kill() can leave the Go child (or the Node event loop) stuck.
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+    return;
+  }
+  try {
+    term.kill();
+  } catch {
+    // ignore
+  }
+}
+
 function startBridge(policy) {
   const bin = binPath();
   if (!existsSync(bin)) {
@@ -186,6 +242,7 @@ function startBridge(policy) {
 
   const seen = new Set();
   let exited = null;
+  let stopping = false;
   let output = "";
 
   term.onData((chunk) => {
@@ -199,10 +256,10 @@ function startBridge(policy) {
       seen.add(id);
       if (policy === "allow") {
         log(`terminal policy=allow approval ${id}`);
-        term.write(`allow ${id}\r`);
+        term.write(`allow ${id}${PTY_EOL}`);
       } else if (policy === "deny") {
         log(`terminal policy=deny approval ${id}`);
-        term.write(`deny ${id}\r`);
+        term.write(`deny ${id}${PTY_EOL}`);
       } else {
         log(`terminal policy=unanswered approval ${id}`);
       }
@@ -219,23 +276,35 @@ function startBridge(policy) {
     get exited() {
       return exited;
     },
+    get stopping() {
+      return stopping;
+    },
+    get output() {
+      return output;
+    },
     async stop() {
-      if (exited) return;
-      try {
-        term.write("quit\r");
-      } catch {
-        // ignore
-      }
-      const deadline = Date.now() + 3000;
-      while (!exited && Date.now() < deadline) {
-        await sleep(50);
-      }
+      stopping = true;
       if (!exited) {
         try {
-          term.kill();
+          term.write(`quit${PTY_EOL}`);
         } catch {
           // ignore
         }
+        const deadline = Date.now() + 3000;
+        while (!exited && Date.now() < deadline) {
+          await sleep(50);
+        }
+        if (!exited) {
+          killBridgeProcess(term);
+          const killDeadline = Date.now() + 2000;
+          while (!exited && Date.now() < killDeadline) {
+            await sleep(50);
+          }
+        }
+      }
+      if (!(await waitUntilPortIdle(PORT_BRIDGE, 3000))) {
+        killBridgeProcess(term);
+        await waitUntilPortIdle(PORT_BRIDGE, 2000);
       }
     },
   };
@@ -354,14 +423,153 @@ async function runAllowScenarios(browser, httpsBase, wsURL) {
   await context.close();
 }
 
-async function runBridgeRestart(browser, httpsBase, wsURL) {
-  // Covered by Go tests for process ownership; browser-side reconnect after
-  // an explicit stop is exercised by the deny/unanswered phases below.
-  await scenario("bridge-restart-requires-fresh-snapshot", async () => {
-    // After the allow bridge stops, a new connection must not reuse state.
-    // This is asserted implicitly when a later phase starts a new bridge.
-    if (!existsSync(binPath())) throw new Error("missing bridge binary");
+const PERSONAL_SENTINELS = ["1234567890121", "สมชาย", "ใจดี"];
+
+function assertNoPersonalData(label, text) {
+  for (const needle of PERSONAL_SENTINELS) {
+    if (String(text).includes(needle)) {
+      throw new Error(`${label} contained the requester's card fields`);
+    }
+  }
+}
+
+function attachWsFrameLog(page) {
+  const frames = [];
+  page.on("websocket", (ws) => {
+    ws.on("framereceived", (event) => {
+      const payload = event.payload;
+      if (typeof payload === "string") frames.push(payload);
+    });
   });
+  return frames;
+}
+
+async function connectAcceptancePage(page, httpsBase, wsURL) {
+  await page.goto(pageURL(httpsBase, wsURL), { waitUntil: "domcontentloaded" });
+  await page.locator("#connect").click();
+  await page.waitForFunction(
+    () => document.getElementById("status")?.textContent === "connected",
+    undefined,
+    { timeout: 20000 },
+  );
+  await page.waitForFunction(
+    () => (document.getElementById("out")?.textContent || "").includes("readers"),
+    undefined,
+    { timeout: 10000 },
+  );
+}
+
+async function waitForSyntheticRead(page) {
+  await page.waitForFunction(
+    () => {
+      const t = document.getElementById("out")?.textContent || "";
+      return t.includes("1234567890121") && t.includes("สมชาย");
+    },
+    undefined,
+    { timeout: 15000 },
+  );
+}
+
+async function runTwoClientIsolation(browser, httpsBase, wsURL) {
+  const ctxA = await browser.newContext({ ignoreHTTPSErrors: true });
+  const ctxB = await browser.newContext({ ignoreHTTPSErrors: true });
+  const pageA = await ctxA.newPage();
+  const pageB = await ctxB.newPage();
+  for (const page of [pageA, pageB]) {
+    page.on("console", (msg) => {
+      diagnostics.push({ type: "console", level: msg.type(), text: msg.text().slice(0, 400) });
+    });
+    page.on("pageerror", (err) => {
+      diagnostics.push({ type: "pageerror", text: String(err).slice(0, 400) });
+    });
+  }
+  const peerFrames = attachWsFrameLog(pageB);
+
+  await scenario("two-browser-client-isolation", async () => {
+    await connectAcceptancePage(pageA, httpsBase, wsURL);
+    await connectAcceptancePage(pageB, httpsBase, wsURL);
+
+    await pageA.locator("#read").click();
+    await waitForSyntheticRead(pageA);
+
+    // Peer must not receive or display the requester's unicast result.
+    await sleep(400);
+    const outB = await pageB.locator("#out").innerText();
+    assertNoPersonalData("idle peer page", outB);
+    assertNoPersonalData("idle peer websocket", peerFrames.join("\n"));
+
+    await pageB.locator("#read").click();
+    await waitForSyntheticRead(pageB);
+
+    const outA = await pageA.locator("#out").innerText();
+    if (!outA.includes("1234567890121")) {
+      throw new Error("requester lost its own unicast result after the peer read");
+    }
+  });
+
+  await ctxA.close();
+  await ctxB.close();
+}
+
+async function runBridgeRestart(browser, httpsBase, wsURL, bridge, policy) {
+  let next = bridge;
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
+  const page = await context.newPage();
+  page.on("console", (msg) => {
+    diagnostics.push({ type: "console", level: msg.type(), text: msg.text().slice(0, 400) });
+  });
+  page.on("pageerror", (err) => {
+    diagnostics.push({ type: "pageerror", text: String(err).slice(0, 400) });
+  });
+
+  await scenario("bridge-restart-requires-fresh-snapshot", async () => {
+    await connectAcceptancePage(page, httpsBase, wsURL);
+    await page.locator("#read").click();
+    await waitForSyntheticRead(page);
+
+    await bridge.stop();
+    if (await fetchHealthz(PORT_BRIDGE)) {
+      throw new Error(`bridge still serving /healthz on :${PORT_BRIDGE} after stop`);
+    }
+    next = startBridge(policy);
+    await waitForBridge(next, PORT_BRIDGE);
+
+    await page.waitForFunction(
+      () => {
+        const t = document.getElementById("out")?.textContent || "";
+        const s = document.getElementById("status")?.textContent || "";
+        return t.includes("No card data") || s === "disconnected" || s === "reconnecting";
+      },
+      undefined,
+      { timeout: 20000 },
+    );
+    assertNoPersonalData("page after bridge process restart", await page.locator("#out").innerText());
+
+    await page.waitForFunction(
+      () => {
+        const s = document.getElementById("status")?.textContent || "";
+        return s === "disconnected" || s === "connected" || s === "awaiting-approval";
+      },
+      undefined,
+      { timeout: 20000 },
+    );
+    const s = await page.locator("#status").innerText();
+    if (s === "disconnected") {
+      await page.locator("#connect").click();
+    }
+    await page.waitForFunction(
+      () => document.getElementById("status")?.textContent === "connected",
+      undefined,
+      { timeout: 20000 },
+    );
+    await sleep(400);
+    assertNoPersonalData("reconnect after a new bridge process must not auto-read", await page.locator("#out").innerText());
+    await page.locator("#read").click();
+    await waitForSyntheticRead(page);
+  });
+
+  await context.close();
+  return next;
 }
 
 function sanitize(obj) {
@@ -395,20 +603,48 @@ function writeReports(commit, browserVersion) {
   );
 }
 
+async function closeHTTPS(server) {
+  if (!server) return;
+  try {
+    if (typeof server.closeAllConnections === "function") {
+      server.closeAllConnections();
+    }
+  } catch {
+    // ignore
+  }
+  await Promise.race([
+    new Promise((resolve) => {
+      server.close(() => resolve());
+    }),
+    sleep(2000),
+  ]);
+}
+
+function forceExit(code) {
+  // node-pty/ConPTY can keep the event loop alive on Windows after the child
+  // exits; always terminate the harness process once work is done.
+  process.exit(code);
+}
+
 async function main() {
   ensureNodePtyHelper();
   ensureCert();
   const commit =
     process.env.GITHUB_SHA ||
-    spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).stdout?.trim() ||
+    spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8", timeout: 5000 }).stdout?.trim() ||
     "unknown";
 
   log("bridge binary:", binPath());
   log("browser channel:", BROWSER_CHANNEL);
   log("approval policy:", POLICY);
   log("commit:", commit);
+  log("harness timeout ms:", HARNESS_TIMEOUT_MS);
 
-  const https = await startHTTPS();
+  if (await fetchHealthz(PORT_BRIDGE)) {
+    throw new Error(`port :${PORT_BRIDGE} already has a healthy /healthz; refuse overlapping bridge`);
+  }
+
+  const https = await withTimeout(startHTTPS(), 10000, "https.listen timed out");
   const httpsBase = `https://127.0.0.1:${PORT_HTTPS}`;
   const wsURL = `ws://127.0.0.1:${PORT_BRIDGE}/v1/ws`;
   log("https ready", pageURL(httpsBase, wsURL));
@@ -416,25 +652,42 @@ async function main() {
   let bridge = null;
   let browser = null;
   let browserVersion = BROWSER_CHANNEL;
+  let exitCode = 0;
+
+  const killSwitch = setTimeout(() => {
+    log("FAIL harness exceeded", HARNESS_TIMEOUT_MS, "ms; forcing exit");
+    try {
+      writeReports(commit, browserVersion);
+    } catch {
+      // ignore
+    }
+    forceExit(1);
+  }, HARNESS_TIMEOUT_MS);
 
   try {
     bridge = startBridge(POLICY);
-    // Fail immediately when the bridge exits unexpectedly.
-    bridge.term.onExit(({ exitCode }) => {
-      if (exitCode !== 0 && exitCode !== null) {
-        log("bridge exited unexpectedly", exitCode);
-      }
-    });
-    await waitForPort(PORT_BRIDGE);
+    let unexpectedExit = null;
+    const watchExit = (b) => {
+      b.term.onExit(({ exitCode: code, signal }) => {
+        if (!b.stopping && code !== 0 && code !== null && code !== undefined) {
+          unexpectedExit = `bridge exited unexpectedly code=${code} signal=${signal}`;
+          log(unexpectedExit);
+        }
+      });
+    };
+    watchExit(bridge);
+    await waitForBridge(bridge, PORT_BRIDGE);
     log("bridge healthy");
 
-    browser = await launchBrowser();
+    browser = await withTimeout(launchBrowser(), 30000, "browser.launch timed out");
     browserVersion = browser.version();
     log("browser version:", browserVersion);
 
     if (POLICY === "allow") {
       await runAllowScenarios(browser, httpsBase, wsURL);
-      await runBridgeRestart(browser, httpsBase, wsURL);
+      await runTwoClientIsolation(browser, httpsBase, wsURL);
+      bridge = await runBridgeRestart(browser, httpsBase, wsURL, bridge, POLICY);
+      watchExit(bridge);
     } else if (POLICY === "deny") {
       const context = await browser.newContext({ ignoreHTTPSErrors: true });
       const page = await context.newPage();
@@ -442,10 +695,7 @@ async function main() {
         await page.goto(pageURL(httpsBase, wsURL), { waitUntil: "domcontentloaded" });
         await page.locator("#connect").click();
         await page.waitForFunction(
-          () => {
-            const t = document.getElementById("out")?.textContent || "";
-            return t.includes("APPROVAL_DENIED") || t.includes("denied");
-          },
+          () => (document.getElementById("out")?.textContent || "").includes("APPROVAL_DENIED"),
           undefined,
           { timeout: 15000 },
         );
@@ -478,31 +728,47 @@ async function main() {
     for (const r of results) {
       log(r.ok ? "✓" : "✗", r.name, r.error || "");
     }
-    if (failed.length > 0) process.exitCode = 1;
+    if (unexpectedExit) {
+      log("FAIL", unexpectedExit);
+      exitCode = 1;
+    }
+    if (failed.length > 0) exitCode = 1;
   } catch (err) {
     console.error(err);
-    process.exitCode = 1;
+    exitCode = 1;
+    try {
+      writeReports(commit, browserVersion);
+    } catch {
+      // ignore
+    }
   } finally {
+    clearTimeout(killSwitch);
     try {
-      if (browser) await browser.close();
+      if (browser) await withTimeout(browser.close(), 10000, "browser.close timed out");
     } catch {
       // ignore
     }
     try {
-      if (bridge) await bridge.stop();
+      if (bridge) await withTimeout(bridge.stop(), 8000, "bridge.stop timed out");
     } catch {
-      // ignore
+      try {
+        if (bridge && bridge.term) killBridgeProcess(bridge.term);
+      } catch {
+        // ignore
+      }
     }
-    await new Promise((r) => https.close(r));
+    await closeHTTPS(https);
     try {
       rmSync(CERT_DIR, { recursive: true, force: true });
     } catch {
       // ignore
     }
   }
+  log("exiting", exitCode);
+  forceExit(exitCode);
 }
 
 main().catch((err) => {
   console.error(err);
-  process.exit(1);
+  forceExit(1);
 });

@@ -276,7 +276,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	go cc.writeLoop()
-	s.sendStatusSnapshot(cc, protocol.TypeStatusSnapshot)
+	// Pairing-only until session.open succeeds: no inventory, events, or card data.
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -625,6 +625,9 @@ func (s *Server) buildStatus() protocol.StatusSnapshot {
 }
 
 func (s *Server) sendStatusSnapshot(cc *clientConn, t protocol.Type) {
+	if !cc.hasSession() {
+		return
+	}
 	payload, err := json.Marshal(s.buildStatus())
 	if err != nil {
 		return
@@ -865,6 +868,7 @@ func (cc *clientConn) closeWS(code websocket.StatusCode, reason string) {
 		return
 	}
 	cc.closed = true
+	close(cc.outq)
 	cc.writeMu.Unlock()
 	_ = cc.ws.Close(code, reason)
 }

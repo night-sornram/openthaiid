@@ -22,6 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bridge + synthetic card, using node-pty for real terminal approval (no bypass)
 - Cross-platform acceptance: Playwright `chrome` / `msedge` channels,
   approval policies (allow / deny / unanswered), allowlisted reports
+- Playwright two-browser-context isolation (H11): a card read is unicast
+  to the requester; the idle peer page and WebSocket frames stay free of
+  personal fields; the peer can still read on its own connection
+- Go integration coverage that two authenticated WebSocket clients never
+  share `card.read` results or session tokens
+- Pairing-only handshake: unauthenticated connections receive no reader
+  inventory or card events until `session.open` succeeds
+- Playwright bridge process restart (H9): personal data is cleared, reconnect
+  does not auto-read, a fresh read works against the new process
+- Acceptance harness hard deadline (`process.exit` after teardown): Windows
+  Chrome/Edge no longer hang on `https.close` keep-alive / ConPTY handles
 - Eight concurrent async operations per connection (`RATE_LIMITED` on excess)
 - Event-queue overflow closes clients with WebSocket 1013 and requires a
   fresh snapshot after reconnect
@@ -35,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI: Go test/race, five-target build matrix with version smoke,
   SDK (`npm ci` only), Chrome×3 + Edge×1 browser acceptance with
   allow/deny/unanswered policies, and repeated bridge/reader tests
+- Hard `timeout-minutes` on every CI job and long step (Go test 35m, builds 15m,
+  SDK 10m, acceptance 25m / 5m per policy) plus `concurrency: cancel-in-progress`
+  so a new SHA does not leave hung Windows jobs occupying runners for 6h
 
 ### Changed (protocol / card — pre-release corrections)
 
@@ -56,9 +70,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sessions are capped at the live grant expiry; an expired grant invalidates
   an otherwise unexpired token
+- Terminal `revoke <origin>` canonicalizes the origin (mixed-case hosts match
+  the handshake grant)
+- Windows acceptance: `https.Server.close()` waited forever for Chromium
+  keep-alive sockets; teardown now drops connections and `process.exit`s
+- Acceptance `/healthz` polls abort per attempt so a hung TCP cannot stall
+  startup; H9 fails fast if the previous bridge is still serving after stop
+- CI jobs no longer inherit GitHub's 6h default: Go test/race/build/SDK now
+  have job- and step-level timeouts; `go test -timeout` is explicit so a
+  deadlock dumps running tests instead of sitting until the runner is cancelled
 - Approvals are bound to their originating connection and cancelled on disconnect
 - Trust revocation delivers `authorization.revoked` and closes affected clients
 - Duplicate / non-increasing request IDs are rejected
+- Unauthenticated clients no longer receive reader inventory in a
+  pre-auth `status.snapshot` (pairing-only until `session.open` succeeds)
 - Cancellation targets the real in-flight request id (SDK no longer sends `0`)
 - Receive loop stays responsive while approval and card operations run
 - Event sequences are contiguous per connection

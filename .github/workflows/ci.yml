@@ -5,6 +5,12 @@ on:
     branches: [main, dev]
   pull_request:
 
+# Superfluous in-progress runs (especially hung Windows acceptance) occupy
+# hosted runners for up to the 6h GitHub default. Cancel them on a new SHA.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -16,6 +22,7 @@ jobs:
   go-test:
     name: Go test
     runs-on: ubuntu-24.04
+    timeout-minutes: 35
     defaults:
       run:
         shell: bash
@@ -25,6 +32,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Install PC/SC headers
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev
       - name: Record resolved versions
         run: |
@@ -35,14 +43,19 @@ jobs:
             echo "commit: $GITHUB_SHA"
           } | tee tool-versions.txt
       - name: Format
+        timeout-minutes: 2
         run: test -z "$(gofmt -l .)"
       - name: Vet
+        timeout-minutes: 5
         run: go vet ./...
       - name: Test
-        run: go test ./... -count=1
+        timeout-minutes: 10
+        run: go test ./... -count=1 -timeout 8m
       - name: Race (packages with tests)
-        run: go test -race ./internal/... -count=1
+        timeout-minutes: 12
+        run: go test -race ./internal/... -count=1 -timeout 10m
       - name: Repeat flaky-prone bridge/reader tests
+        timeout-minutes: 22
         run: go test ./internal/bridge/ ./internal/reader/ -count=50 -timeout 20m
       - name: Upload test report
         if: always()
@@ -54,6 +67,7 @@ jobs:
 
   go-build-matrix:
     name: Go build (${{ matrix.goos }}/${{ matrix.goarch }})
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -94,8 +108,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: Install native deps
         if: matrix.packages != ''
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y ${{ matrix.packages }}
       - name: Build
+        timeout-minutes: 8
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -109,6 +125,7 @@ jobs:
             -ldflags "-s -w -X main.version=${VERSION}" \
             -o "dist/openthaiid-${GOOS}-${GOARCH}${ext}" ./cmd/openthaiid
       - name: Smoke version
+        timeout-minutes: 2
         env:
           CGO_ENABLED: ${{ matrix.cgo }}
           VERSION: 0.0.1-ci
@@ -128,6 +145,7 @@ jobs:
   sdk:
     name: Web SDK
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     defaults:
       run:
         shell: bash
@@ -145,10 +163,18 @@ jobs:
             echo "node: $(node -v)"
             echo "npm: $(npm -v)"
           } | tee tool-versions.txt
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+      - name: Install
+        timeout-minutes: 5
+        run: npm ci
+      - name: Typecheck
+        timeout-minutes: 3
+        run: npm run typecheck
+      - name: Test
+        timeout-minutes: 3
+        run: npm test
+      - name: Build
+        timeout-minutes: 3
+        run: npm run build
       - name: Upload SDK dist
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
@@ -170,6 +196,7 @@ jobs:
           - os: windows-2025
             browser: msedge
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     defaults:
       run:
         shell: bash
@@ -187,8 +214,10 @@ jobs:
             acceptance/package-lock.json
       - name: Install PC/SC headers
         if: runner.os == 'Linux'
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y libpcsclite-dev
       - name: Build bridge
+        timeout-minutes: 8
         env:
           CGO_ENABLED: "1"
         run: |
@@ -196,17 +225,21 @@ jobs:
           mkdir -p dist
           go build -trimpath -ldflags "-s -w -X main.version=0.0.1-ci" -o dist/openthaiid ./cmd/openthaiid
       - name: Build SDK
+        timeout-minutes: 5
         working-directory: sdk/web
         run: |
           npm ci
           npm run build
       - name: Install acceptance deps
+        timeout-minutes: 5
         working-directory: acceptance
         run: npm ci
       - name: Install Playwright browser channel
+        timeout-minutes: 10
         working-directory: acceptance
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Run acceptance (allow)
+        timeout-minutes: 5
         working-directory: acceptance
         env:
           OPENTHAIID_PORT: "17899"
@@ -217,6 +250,7 @@ jobs:
           OPENTHAIID_LOG_DIR: logs
         run: npm test
       - name: Run acceptance (deny)
+        timeout-minutes: 5
         working-directory: acceptance
         env:
           OPENTHAIID_PORT: "17900"
@@ -227,6 +261,7 @@ jobs:
           OPENTHAIID_LOG_DIR: logs-deny
         run: npm test
       - name: Run acceptance (unanswered)
+        timeout-minutes: 5
         working-directory: acceptance
         env:
           OPENTHAIID_PORT: "17901"

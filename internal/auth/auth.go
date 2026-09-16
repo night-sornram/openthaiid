@@ -339,6 +339,9 @@ func (m *Manager) CloseSession(token string) {
 // origin. It returns the revoked session tokens and fires OnRevoke outside
 // the lock.
 func (m *Manager) RevokeOrigin(origin Origin) int {
+	if n, err := NormalizeOrigin(string(origin)); err == nil {
+		origin = n
+	}
 	m.mu.Lock()
 	delete(m.grants, origin)
 	var tokens []string

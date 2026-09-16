@@ -217,7 +217,12 @@ func terminalLoop(ctx context.Context, cancel context.CancelFunc, authMgr *auth.
 				fmt.Println("usage: revoke <origin>")
 				continue
 			}
-			n := authMgr.RevokeOrigin(auth.Origin(fields[1]))
+			origin, err := auth.NormalizeOrigin(fields[1])
+			if err != nil {
+				fmt.Println("error: invalid origin")
+				continue
+			}
+			n := authMgr.RevokeOrigin(origin)
 			fmt.Printf("revoked %d session(s)\n", n)
 		case "revoke-all":
 			authMgr.RevokeAll()

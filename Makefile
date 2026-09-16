@@ -7,10 +7,10 @@ build:
 	go build -trimpath -ldflags "-s -w -X main.version=$(VERSION)" -o dist/openthaiid ./cmd/openthaiid
 
 test:
-	go test ./... -count=1
+	go test ./... -count=1 -timeout 8m
 
 race:
-	go test -race ./internal/... -count=1
+	go test -race ./internal/... -count=1 -timeout 10m
 
 vet:
 	go vet ./...

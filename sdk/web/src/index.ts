@@ -302,21 +302,21 @@ export class ThaiID {
         });
         break;
       case "status.snapshot":
-        if (msg.payload) {
-          this.#gotSnapshot = true;
-          this.#status = {
-            connection: this.#state,
-            backend: msg.payload.backend ?? "available",
-            readers: msg.payload.readers ?? [],
-          };
-          this.#emit("statusChanged", this.#status);
-        }
+        if (!this.#token || !msg.payload) break;
+        this.#gotSnapshot = true;
+        this.#status = {
+          connection: this.#state,
+          backend: msg.payload.backend ?? "available",
+          readers: msg.payload.readers ?? [],
+        };
+        this.#emit("statusChanged", this.#status);
         break;
       case "reader.connected":
       case "reader.disconnected":
         // Full snapshot will follow or status() can refresh.
         break;
       case "card.inserted":
+        if (!this.#token) break;
         this.#updatePresence(msg.payload?.readerId, true, msg.payload?.cardSessionId);
         this.#emit("cardChanged", {
           present: true,
@@ -325,6 +325,7 @@ export class ThaiID {
         });
         break;
       case "card.removed":
+        if (!this.#token) break;
         this.#updatePresence(msg.payload?.readerId, false, undefined);
         this.#clearPersonalData();
         this.#emit("cardChanged", {
@@ -516,8 +517,11 @@ export class ThaiID {
 
   #awaitSnapshot(timeoutMs: number): Promise<void> {
     if (this.#gotSnapshot) return Promise.resolve();
-    return new Promise((resolve) => {
-      const t = setTimeout(resolve, timeoutMs);
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => {
+        off();
+        reject(new ThaiIDError("CONNECTION_FAILED", "missing status snapshot after authentication", true));
+      }, timeoutMs);
       const off = this.on("statusChanged", () => {
         if (this.#gotSnapshot) {
           clearTimeout(t);

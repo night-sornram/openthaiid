@@ -1,8 +1,7 @@
 # Not done
 
-Last updated after the reliable cross-platform MVP qualification pass
-(deterministic tests, native-read ownership, request bounds, node-pty
-harness, Playwright channels).
+Last updated after pairing-only handshake, mixed-case revoke, H9 process
+restart, and H11 two-browser isolation coverage.
 
 Software ownership, cancellation, stall recovery, request saturation, and the
 cross-platform acceptance harness are implemented and pass locally. This file
@@ -39,7 +38,7 @@ lists everything that is **not** complete for a qualified MVP release candidate.
 | Artifact upload (5 binaries + SDK dist + allowlisted acceptance reports) | Ready; needs CI run |
 | Browser acceptance: Chrome × Linux/macOS/Windows + Edge × Windows | Jobs present; allow+deny+unanswered policies |
 | node-pty harness on Windows | Code ready; needs Windows CI run |
-| Repeat bridge/reader tests `-count=20` | Step present; needs CI run |
+| Repeat bridge/reader tests `-count=50` | Step present; needs CI run |
 | Resolved Go 1.27.1 / Node 22 versions in CI reports | Job prints them; needs a green run |
 
 ---
@@ -54,7 +53,6 @@ Do not treat these as MVP gaps:
 - Installers, tray UI, auto-update
 - Official Firefox / Safari support
 - Published GitHub Release / release candidate tag
-- Browser-pair isolation scenario (H11) beyond Go unicast coverage
 
 ---
 
@@ -62,7 +60,6 @@ Do not treat these as MVP gaps:
 
 | Item | Notes |
 |---|---|
-| Two-browser-client isolation Playwright scenario | Go unicast covered; browser pair not automated |
 | `go.mod` still declares `go 1.22` | CI validates on 1.27.1; bump optional |
 | Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
 
