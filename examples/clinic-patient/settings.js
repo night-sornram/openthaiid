@@ -4,8 +4,9 @@
  * Copy this object (or build it from clinic admin settings) and pass it to
  * `autofillThaiID(config)` from a button click. Do not call it on page load.
  *
- * - `request`: protocol fields to read (subset of supported textual fields).
- *   Nested pieces (`thaiName.givenName`) belong in `map`, not here.
+ * - `request`: protocol fields to read (subset of supported textual fields
+ *   plus optional `portrait`). Nested pieces (`thaiName.givenName`) belong
+ *   in `map`, not here. Default clinic request does **not** include portrait.
  * - `map`: slot → CSS selector on this screen. Phone / HN stay unmapped.
  * - Format keys are optional; they are already supported by autofillThaiID.
  * - Attach `onApprovalRequired` / `onError` in the click handler for ERP chrome.
@@ -31,6 +32,8 @@ export const CLINIC_PATIENT_MAP = {
   birthDate: "#patient-dob",
   gender: "#patient-gender",
   address: "#patient-address",
+  /** Example UI <img> only. Not requested unless portrait is in `request`. */
+  portrait: "#patient-photo",
 };
 
 export const CLINIC_GENDER_LABELS = {

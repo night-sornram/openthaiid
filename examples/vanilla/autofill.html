@@ -96,7 +96,8 @@
     <p class="muted">
       Inputs use <code>data-openthaiid</code> slots. Call
       <code>autofillThaiID()</code> from the click; it still goes through the
-      local bridge (no bypass). Portrait/photo is not available.
+      local bridge (no bypass). Portrait is opt-in below (example
+      <code>&lt;img&gt;</code> preview only).
     </p>
     <div id="reader-status" class="reader-status" aria-live="polite"></div>
     <p id="status" class="muted">Idle.</p>
@@ -137,6 +138,13 @@
         Address
         <textarea id="address" name="address" data-openthaiid="address"></textarea>
       </label>
+      <label>
+        <input id="want-portrait" type="checkbox" />
+        Also request <code>portrait</code> (example preview only; off by default)
+      </label>
+      <p>
+        <img id="photo" alt="Thai ID portrait preview (example only)" hidden width="96" height="96" data-openthaiid="portrait" />
+      </p>
     </form>
     <p class="muted">
       Full connect / read / status demo:

@@ -474,6 +474,54 @@ describe("autofillThaiID", () => {
     }
   });
 
+  it("does not request portrait unless it is on the allowlist", async () => {
+    const fake = installFakeWebSocket();
+    document.body.innerHTML = `
+      <input id="patient-cid" />
+      <img id="patient-photo" alt="" />
+    `;
+    try {
+      await autofillThaiID({
+        request: ["citizenId"],
+        map: {
+          citizenId: "#patient-cid",
+          portrait: "#patient-photo",
+        },
+        discover: false,
+      });
+      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      expect(open.payload.fields).toEqual(["citizenId"]);
+      expect((document.getElementById("patient-photo") as HTMLImageElement).getAttribute("src")).toBeNull();
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("opts into portrait preview when request includes portrait", async () => {
+    const fake = installFakeWebSocket();
+    document.body.innerHTML = `
+      <input id="patient-cid" />
+      <img id="patient-photo" alt="" />
+    `;
+    try {
+      await autofillThaiID({
+        request: ["citizenId", "portrait"],
+        map: {
+          citizenId: "#patient-cid",
+          portrait: "#patient-photo",
+        },
+        discover: false,
+      });
+      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      expect(open.payload.fields).toEqual(["citizenId", "portrait"]);
+      expect((document.getElementById("patient-photo") as HTMLImageElement).getAttribute("src")).toBe(
+        "data:image/jpeg;base64,QQ==",
+      );
+    } finally {
+      fake.restore();
+    }
+  });
+
   it("does not request fields omitted from the allowlist", async () => {
     const fake = installFakeWebSocket();
     document.body.innerHTML = `

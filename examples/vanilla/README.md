@@ -60,7 +60,9 @@ With `-synthetic`, the seeded fictional card fills roughly:
 | `address` | `99 หมู่ที่ 1 ถนนนิทาน ตำบลบ้านใหม่ อำเภอเมือง จังหวัดนิทาน` |
 
 This page also requests `gender` and `address`, so the terminal grant must
-include them (not only the default three fields).
+include them (not only the default three fields). Portrait stays **off**
+until you tick the checkbox; that expands the grant (exact field set).
+The `<img>` is example-only — do not log or store photo bytes.
 
 ## Full ceremony
 

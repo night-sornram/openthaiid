@@ -16,7 +16,10 @@ fillBtn.addEventListener("click", async () => {
 The flow stays **manual**: a user clicks **Fill from Thai ID**. The helper
 connects from that gesture. Origin + field Allow still happens on this PC
 (the page cannot approve itself). There is no silent background read.
-Portrait is optional: add `"portrait"` to `request` and map it to an `<img>`.
+Portrait is optional and **off by default**. Tick `portrait` in **request**
+to include it in the grant; the example shows an `<img>` preview only.
+Production ERPs should keep the default grant without portrait unless the
+screen needs the photo. Do not `console.log` photo bytes.
 
 ## Integrator snippet
 
@@ -83,9 +86,11 @@ browser tests; localhost HTTP is development-only.
 
 With `-synthetic`, expect citizen ID `1234567890121`, given name `สมชาย`,
 family name `ใจดี`, birth `1990-04-12`, gender `male`, and the seeded
-fictional address. Phone and HN stay empty. To receive the fictional
-synthetic photo, add `"portrait"` to `request` and map `portrait` to an
-`<img>` (`data:image/jpeg;base64,…`) or call `portraitBlob()` on the result.
+fictional address. Phone and HN stay empty. The default `request` does
+**not** include `portrait`. Tick **portrait** in the settings panel to
+receive the fictional checkerboard JPEG in `#patient-photo` (example
+preview only). `clinicPatientAutofill()` always maps `portrait` to that
+`<img>`; the session still asks for it only when it is in `request`.
 
 Uncheck a field in **request** and fill again: that column is left alone and
 the grant does not include it.
