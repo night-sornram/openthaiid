@@ -3,7 +3,7 @@
 export type StaffLang = "th" | "en";
 
 export function staffLang(tag?: string | null): StaffLang {
-  const t = (tag ?? "").trim().toLowerCase().replaceAll("_", "-");
+  const t = (tag ?? "").trim().toLowerCase().replace(/_/g, "-");
   if (t === "en" || t.startsWith("en-")) return "en";
   return "th";
 }
@@ -52,6 +52,8 @@ export type StaffCopy = {
   testServiceStalled: string;
   serviceBack: string;
   serviceBackNext: string;
+  httpsWsBlocked: string;
+  httpsWsBlockedNext: string;
 };
 
 const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
@@ -98,6 +100,9 @@ const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
   testServiceStalled: "ตัวช่วยทำงาน แต่บริการอ่านบัตรไม่ตอบสนอง — ไม่ได้อ่านข้อมูลบนบัตร",
   serviceBack: "บริการอ่านบัตรกลับมาแล้ว",
   serviceBackNext: "กด กรอกข้อมูล ได้ตามปกติ",
+  httpsWsBlocked: "หน้าคลินิกเป็น HTTPS — Firefox และ Safari บล็อกการติดต่อตัวช่วยบนเครื่องนี้",
+  httpsWsBlockedNext:
+    "ใช้ Chrome หรือ Edge หรือเปิดหน้าคลินิกเป็น http บนเครื่องนี้ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ ไม่ต้องปิดตัวช่วย",
 };
 
 const EN: typeof TH = {
@@ -142,6 +147,10 @@ const EN: typeof TH = {
   testServiceStalled: "The helper is running, but the card service is not responding — no personal card fields were read.",
   serviceBack: "The card service is back",
   serviceBackNext: "Click Fill as usual.",
+  httpsWsBlocked:
+    "This clinic page is HTTPS — Firefox and Safari block reaching the helper on this computer.",
+  httpsWsBlockedNext:
+    "Use Chrome or Edge, or open the clinic page over http on this computer. The Ready page at 127.0.0.1 still works. Leave the helper running.",
 };
 
 export function staffCopy(lang?: string | null): StaffCopy {
@@ -178,6 +187,10 @@ const TH_ERRORS: Record<string, ErrorPack> = {
   CONNECTION_FAILED: {
     message: "หน้าคลินิกติดต่อตัวช่วยไม่ได้",
     next: "เปิด OpenThaiID บนเครื่องนี้ หลังเครื่องหลับหรือเพิ่งรีสตาร์ทตัวช่วย ให้รอไฟสถานะ กด ทดสอบการเชื่อมต่อ แล้วกด กรอกข้อมูล อีกครั้ง",
+  },
+  HTTPS_WS_BLOCKED: {
+    message: "หน้าคลินิกเป็น HTTPS — Firefox และ Safari บล็อกการติดต่อตัวช่วยบนเครื่องนี้",
+    next: "ใช้ Chrome หรือ Edge หรือเปิดหน้าคลินิกเป็น http บนเครื่องนี้ หน้า พร้อม ที่ 127.0.0.1 ใช้ได้ตามปกติ ไม่ต้องปิดตัวช่วย",
   },
   PROTOCOL_MISMATCH: {
     message: "หน้าคลินิกกับตัวช่วยใช้โปรโตคอลคนละรุ่น",
@@ -273,6 +286,10 @@ const EN_ERRORS: Record<string, ErrorPack> = {
   CONNECTION_FAILED: {
     message: "This page could not reach the local helper.",
     next: "Start OpenThaiID on this computer. After sleep or a helper restart, wait for the status lights, click Test connection, then click Fill again.",
+  },
+  HTTPS_WS_BLOCKED: {
+    message: "This clinic page is HTTPS — Firefox and Safari block reaching the helper on this computer.",
+    next: "Use Chrome or Edge, or open the clinic page over http on this computer. The Ready page at 127.0.0.1 still works. Leave the helper running.",
   },
   PROTOCOL_MISMATCH: {
     message: "This page and the helper speak different protocol versions.",

@@ -293,7 +293,15 @@ function formatCardDateLocale(date: CardDate, locale?: string): string {
     return formatCardDateIso(date);
   }
   const d = new Date(Date.UTC(date.year, date.month - 1, date.day));
-  return new Intl.DateTimeFormat(locale, { timeZone: "UTC", dateStyle: "medium" }).format(d);
+  try {
+    return new Intl.DateTimeFormat(locale, { timeZone: "UTC", dateStyle: "medium" }).format(d);
+  } catch {
+    try {
+      return new Intl.DateTimeFormat(locale, { timeZone: "UTC" }).format(d);
+    } catch {
+      return formatCardDateIso(date);
+    }
+  }
 }
 
 function formatDate(date: CardDate, options: AutofillFormatOptions, el?: Element): string {

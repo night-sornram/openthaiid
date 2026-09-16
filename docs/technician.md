@@ -32,13 +32,15 @@ Work top to bottom. Most failures are the first four. Clinic ERP pages should
 show `formatStaffError(err)` (Thai by default) and keep the protocol **code**
 for tickets (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `CARD_REMOVED`,
 `READER_REMOVED`, `PCSC_UNAVAILABLE`, `APPROVAL_DENIED`, `FIELD_NOT_ALLOWED`,
-…). Staff Thai tables: [user.md](user.md). Friday one-page (E4–E6):
+`HTTPS_WS_BLOCKED`). Staff Thai tables: [user.md](user.md). Friday one-page (E4–E6):
 [friday-checklist.md](friday-checklist.md).
 
 ### 1. Helper not running
 
 The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
-`reachable: false`.
+`reachable: false`. If the code is `HTTPS_WS_BLOCKED`, the helper **is**
+running — Firefox/Safari blocked the HTTPS page (see below). Do not restart
+the helper for that.
 
 - Start `openthaiid tray` (clinic) or `openthaiid` on **this** PC (the one with the reader).
   Always-on kiosk: `openthaiid service status` — if installed, skip the tray
@@ -131,13 +133,30 @@ replaces it. To see if GitHub has a newer Release:
 
 The helper compares the running version to
 [GitHub Releases](https://github.com/night-sornram/openthaiid/releases)
-(`OPENTHAIID_UPDATE_REPO=owner/name` to fork). It prints up to date vs a
+(`OPENTHAIID_UPDATE_REPO=owner/name` to fork). Prereleases (`v0.1.0-rc.*`)
+count unless `openthaiid update check --stable`. It prints up to date vs a
 newer prerelease/release and the release URL. It does **not** download or
-install. If the PC is offline or GitHub rate-limits the request, the
-message says so and **กรอกข้อมูล / Fill still works**.
+install. If the PC is offline, GitHub rate-limits the request, or the repo
+is private without a token, the message says so and **กรอกข้อมูล / Fill
+still works**.
+
+Private repository: unauthenticated GitHub API returns HTTP 404 (not an
+empty catalog). Set `OPENTHAIID_GITHUB_TOKEN` (or `GITHUB_TOKEN`) in the
+**helper** environment — never in the ERP page. `/releases/latest` is not
+used; that endpoint 404s when every published release is a prerelease.
 
 Do not enable GitHub Actions for this. Store-signed auto-update is not
 implemented ([signing.md](signing.md)).
+
+## Firefox / Safari clinic pages
+
+Ready (`http://127.0.0.1:17891/`) works in Firefox and Safari. Fill /
+`probeThaiID` from an **https://** ERP does not: those browsers block
+`ws://127.0.0.1` as mixed content. The page must show `HTTPS_WS_BLOCKED`,
+not “start OpenThaiID”. Fixes that are in software: honest error, clipboard
+`execCommand` fallback on Ready. Fixes that are **not**: bundled TLS,
+telling staff to flip Firefox prefs. Use Chrome/Edge for HTTPS ERP, or keep
+the ERP on http. Matrix: [compatibility.md](compatibility.md).
 
 ## Copy diagnostics
 

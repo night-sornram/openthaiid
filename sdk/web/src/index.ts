@@ -8,6 +8,8 @@
  * still requires an operator Allow for this origin.
  */
 
+import { pageBlocksInsecureLoopbackWs } from "./browser.js";
+
 export type Field =
   | "citizenId"
   | "thaiName"
@@ -106,6 +108,7 @@ export function portraitBlob(portrait: Portrait | null | undefined): Blob | null
 export type ThaiIDErrorCode =
   | "BRIDGE_UNAVAILABLE"
   | "CONNECTION_FAILED"
+  | "HTTPS_WS_BLOCKED"
   | "PROTOCOL_MISMATCH"
   | "APPROVAL_REQUIRED"
   | "APPROVAL_DENIED"
@@ -606,6 +609,17 @@ export class ThaiID {
       this.#cleanupSocket(ws);
       this.#clearSession();
       this.#setState("disconnected");
+      const openFailed =
+        !(err instanceof ThaiIDError) ||
+        err.code === "BRIDGE_UNAVAILABLE" ||
+        err.code === "CONNECTION_FAILED";
+      if (openFailed && pageBlocksInsecureLoopbackWs(this.endpoint)) {
+        throw new ThaiIDError(
+          "HTTPS_WS_BLOCKED",
+          "HTTPS page cannot reach the loopback helper in this browser",
+          false,
+        );
+      }
       if (err instanceof ThaiIDError) throw err;
       throw new ThaiIDError("CONNECTION_FAILED", "connection failed", true);
     }
@@ -910,6 +924,15 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
     );
   });
 }
+
+export {
+  firefoxLike,
+  insecureLoopbackWsBlocked,
+  pageBlocksInsecureLoopbackWs,
+  replaceElementChildren,
+  safariLike,
+  type PageWsContext,
+} from "./browser.js";
 
 export {
   AUTOFILL_ATTRIBUTE,

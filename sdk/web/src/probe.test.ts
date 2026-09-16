@@ -10,6 +10,7 @@ import {
   waitForThaiID,
   watchThaiID,
 } from "../src/probe";
+import { setPageWsContextForTests } from "../src/browser";
 
 type FakeWS = {
   readyState: number;
@@ -100,7 +101,16 @@ function installFakeWebSocket(mode: ProbeMode | ProbeMode[] | { current: ProbeMo
 
 afterEach(() => {
   vi.restoreAllMocks();
+  setPageWsContextForTests(null);
 });
+
+function stubHttpsFirefox(): () => void {
+  setPageWsContextForTests({
+    pageProtocol: "https:",
+    userAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0",
+  });
+  return () => setPageWsContextForTests(null);
+}
 
 describe("probeThaiID", () => {
   it("is SSR-safe without WebSocket", async () => {
@@ -140,6 +150,42 @@ describe("probeThaiID", () => {
       expect(r.error?.message).toContain("ยังไม่ทำงาน");
       expect(r.error?.message).not.toContain("helper is not running");
     } finally {
+      fake.restore();
+    }
+  });
+
+  it("does not call helper-off when Firefox HTTPS blocks loopback ws", async () => {
+    const fake = installFakeWebSocket("fail-open");
+    const restore = stubHttpsFirefox();
+    try {
+      const r = await probeThaiID({ timeoutMs: 200 });
+      expect(r.reachable).toBe(false);
+      expect(r.error?.code).toBe("HTTPS_WS_BLOCKED");
+      expect(r.error?.retryable).toBe(false);
+      expect(r.error?.message).toContain("HTTPS");
+      expect(r.error?.message).toContain("Firefox");
+      expect(r.error?.message).not.toMatch(/WebSocket|PC\/SC|bridge/i);
+      const summary = summarizeProbe(r);
+      expect(summary.helper).toContain("HTTPS");
+      expect(summary.next).not.toContain("เปิด OpenThaiID บนเครื่องนี้");
+      expect(summary.next).toContain("Chrome");
+      expect(formatTestConnection(r)).toContain("HTTPS");
+    } finally {
+      restore();
+      fake.restore();
+    }
+  });
+
+  it("waitForThaiID returns HTTPS_WS_BLOCKED without polling the budget", async () => {
+    const fake = installFakeWebSocket("fail-open");
+    const restore = stubHttpsFirefox();
+    const started = Date.now();
+    try {
+      const r = await waitForThaiID({ timeoutMs: 8_000, intervalMs: 200, probeTimeoutMs: 200 });
+      expect(r.error?.code).toBe("HTTPS_WS_BLOCKED");
+      expect(Date.now() - started).toBeLessThan(2000);
+    } finally {
+      restore();
       fake.restore();
     }
   });

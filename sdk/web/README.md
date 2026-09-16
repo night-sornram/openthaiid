@@ -8,6 +8,13 @@ deploy — add this package to the app you already have.
 Autofill and connect must be called from a visible user gesture (so the
 browser can prompt for local-network access).
 
+**Browsers:** Ready (`http://127.0.0.1:17891/`) works in current Firefox,
+Safari 16+, and Chrome/Edge. Fill from an **http** clinic page works in all
+three. Fill from an **https** clinic page works in Chrome/Edge; Firefox and
+Safari block `ws://127.0.0.1` (mixed content) and the library returns
+`HTTPS_WS_BLOCKED` instead of “helper not running”. See
+`docs/compatibility.md`. Do not disable mixed-content checks.
+
 Origin + field Allow is still required before personal fields are returned.
 This package does not bypass the local helper. Portrait is optional: request
 `portrait` and Allow it on the helper, then use `portraitDataUrl()` or

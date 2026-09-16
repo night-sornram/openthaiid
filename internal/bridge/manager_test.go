@@ -93,6 +93,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(js, "checkGitHubReleases") || !strings.Contains(js, "/v1/manager/update/check") {
 		t.Fatal("missing operator GitHub Releases check")
 	}
+	if !strings.Contains(js, "clearChildren") || !strings.Contains(js, "execCommand") {
+		t.Fatal("Ready page needs replaceChildren/clipboard fallbacks for Firefox/Safari")
+	}
 	if strings.Contains(js, "api.github.com") {
 		t.Fatal("Ready page must not call GitHub from the browser")
 	}

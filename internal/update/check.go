@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -31,6 +32,10 @@ const (
 	ReasonOffline     = "offline"
 	ReasonRateLimited = "rate_limited"
 	ReasonHTTP        = "http"
+	// ReasonNotFound is a GitHub 404. Unauthenticated calls to a private
+	// repo look like this, as does GET /releases/latest when every published
+	// release is a prerelease. Neither means "no releases exist."
+	ReasonNotFound = "not_found"
 )
 
 // CheckResult is a comparison of the running binary against GitHub Releases.
@@ -50,6 +55,9 @@ type CheckResult struct {
 	Reason       string
 	Message      string
 	MessageTH    string
+	// SkippedPrereleases is set when --stable ignored one or more GitHub
+	// prereleases and nothing stable remained.
+	SkippedPrereleases bool
 }
 
 // PublicJSON is the loopback helper payload. Asset download URLs are omitted
@@ -99,6 +107,9 @@ type Options struct {
 	Repo  string
 	// Repository is "owner/name" (OPENTHAIID_UPDATE_REPO). Ignored when Owner+Repo are set.
 	Repository string
+	// Token is a GitHub PAT (OPENTHAIID_GITHUB_TOKEN or GITHUB_TOKEN). Needed
+	// to list Releases on a private repo. Never sent to the ERP page.
+	Token string
 }
 
 func (o Options) client() *http.Client {
@@ -167,6 +178,12 @@ func (o Options) WithEnv() Options {
 	if o.API == "" {
 		o.API = strings.TrimSpace(os.Getenv("OPENTHAIID_UPDATE_API"))
 	}
+	if o.Token == "" {
+		o.Token = strings.TrimSpace(os.Getenv("OPENTHAIID_GITHUB_TOKEN"))
+	}
+	if o.Token == "" {
+		o.Token = strings.TrimSpace(os.Getenv("GITHUB_TOKEN"))
+	}
 	return o
 }
 
@@ -200,6 +217,9 @@ func classifyError(err error) string {
 	if errors.As(err, &ae) {
 		if ae.rateLimited {
 			return ReasonRateLimited
+		}
+		if ae.status == http.StatusNotFound {
+			return ReasonNotFound
 		}
 		if ae.offline || ae.status == 0 {
 			return ReasonOffline
@@ -239,10 +259,14 @@ func Check(ctx context.Context, current string, opts Options) (*CheckResult, err
 		return Unavailable(current, classifyError(err), page), nil
 	}
 	var best *ghRelease
+	sawPrerelease := false
 	for i := range rels {
 		r := &rels[i]
 		if r.Draft {
 			continue
+		}
+		if r.Prerelease {
+			sawPrerelease = true
 		}
 		if opts.StableOnly && r.Prerelease {
 			continue
@@ -256,9 +280,10 @@ func Check(ctx context.Context, current string, opts Options) (*CheckResult, err
 	}
 	if best == nil {
 		res := &CheckResult{
-			Current:      current,
-			State:        StateNone,
-			ReleasesPage: page,
+			Current:            current,
+			State:              StateNone,
+			ReleasesPage:       page,
+			SkippedPrereleases: opts.StableOnly && sawPrerelease,
 		}
 		res.Message = res.englishMessage()
 		res.MessageTH = res.thaiMessage()
@@ -343,6 +368,9 @@ func (r CheckResult) englishMessage() string {
 		switch r.Reason {
 		case ReasonRateLimited:
 			b.WriteString("Could not check GitHub Releases (rate limited).\n")
+		case ReasonNotFound:
+			b.WriteString("Could not list GitHub Releases (private repository or HTTP 404).\n")
+			b.WriteString("Prereleases count unless --stable. A GitHub token may be required.\n")
 		default:
 			b.WriteString("Could not check GitHub Releases (offline or unreachable).\n")
 		}
@@ -350,8 +378,12 @@ func (r CheckResult) englishMessage() string {
 		b.WriteString(page)
 		return strings.TrimSpace(b.String())
 	case StateNone:
-		b.WriteString("No GitHub Releases published yet.\n")
-		b.WriteString("Packages stay unsigned until a human tags a release.\n")
+		if r.SkippedPrereleases {
+			b.WriteString("No stable GitHub Releases yet (prereleases exist; omit --stable to count them).\n")
+		} else {
+			b.WriteString("No GitHub Releases published yet.\n")
+			b.WriteString("Packages stay unsigned until a human tags a release.\n")
+		}
 		b.WriteString("This check does not download or install.\n")
 		b.WriteString(page)
 		return strings.TrimSpace(b.String())
@@ -388,6 +420,9 @@ func (r CheckResult) thaiMessage() string {
 		switch r.Reason {
 		case ReasonRateLimited:
 			b.WriteString("ตรวจเวอร์ชันจาก GitHub ไม่ได้ (จำกัดคำขอชั่วคราว)\n")
+		case ReasonNotFound:
+			b.WriteString("ตรวจรายการ GitHub Release ไม่ได้ (คลังส่วนตัวหรือ API 404)\n")
+			b.WriteString("รุ่นทดลองนับรวม ถ้าไม่ได้ใช้ --stable อาจต้องใส่โทเคน GitHub\n")
 		default:
 			b.WriteString("ตรวจเวอร์ชันจาก GitHub ไม่ได้ (ไม่มีเน็ตหรือติดต่อไม่ได้)\n")
 		}
@@ -395,8 +430,12 @@ func (r CheckResult) thaiMessage() string {
 		b.WriteString(page)
 		return strings.TrimSpace(b.String())
 	case StateNone:
-		b.WriteString("ยังไม่มี GitHub Release\n")
-		b.WriteString("แพ็กเกจยังไม่เซ็นชื่อ จนกว่าจะมีคนติดป้ายรุ่น\n")
+		if r.SkippedPrereleases {
+			b.WriteString("ยังไม่มีรุ่นเสถียร (มีรุ่นทดลอง — ไม่ใช้ --stable จะนับรุ่นทดลอง)\n")
+		} else {
+			b.WriteString("ยังไม่มี GitHub Release\n")
+			b.WriteString("แพ็กเกจยังไม่เซ็นชื่อ จนกว่าจะมีคนติดป้ายรุ่น\n")
+		}
 		b.WriteString("คำสั่งนี้ไม่ดาวน์โหลดและไม่ติดตั้ง\n")
 		b.WriteString(page)
 		return strings.TrimSpace(b.String())
@@ -432,40 +471,116 @@ func (r CheckResult) displayURL() string {
 	return ReleasesPage
 }
 
+// listReleases GETs the GitHub Releases *list* (not /releases/latest).
+// /releases/latest 404s when every published release is a prerelease, which
+// is the whole v0.1.0-rc.* line. Unauthenticated 404 on a private repo is
+// an error, not an empty list.
 func listReleases(ctx context.Context, opts Options) ([]ghRelease, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, opts.api(), nil)
+	endpoint := withPerPage(opts.api())
+	var all []ghRelease
+	seen := map[string]struct{}{endpoint: {}}
+	for page := 0; page < 10; page++ {
+		batch, next, err := fetchReleasePage(ctx, opts, endpoint)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, batch...)
+		if next == "" {
+			return all, nil
+		}
+		if _, dup := seen[next]; dup {
+			return all, nil
+		}
+		if !sameReleaseHost(endpoint, next) {
+			return all, nil
+		}
+		seen[next] = struct{}{}
+		endpoint = next
+	}
+	return all, nil
+}
+
+func fetchReleasePage(ctx context.Context, opts Options, endpoint string) ([]ghRelease, string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil, &apiError{offline: true, msg: err.Error()}
+		return nil, "", &apiError{offline: true, msg: err.Error()}
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	if token := strings.TrimSpace(opts.Token); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 	resp, err := opts.client().Do(req)
 	if err != nil {
-		return nil, &apiError{offline: true, msg: fmt.Sprintf("github releases: %v", err)}
+		return nil, "", &apiError{offline: true, msg: fmt.Sprintf("github releases: %v", err)}
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return nil, &apiError{offline: true, msg: err.Error()}
+		return nil, "", &apiError{offline: true, msg: err.Error()}
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil
+		return nil, "", &apiError{status: resp.StatusCode, msg: "github releases: HTTP 404"}
 	}
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return nil, &apiError{status: resp.StatusCode, rateLimited: true}
+		return nil, "", &apiError{status: resp.StatusCode, rateLimited: true}
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, "", &apiError{status: resp.StatusCode, msg: "github releases: HTTP 401"}
 	}
 	if resp.StatusCode == http.StatusForbidden {
 		// Unauthenticated GitHub 403 is typically a rate limit.
-		return nil, &apiError{status: resp.StatusCode, rateLimited: true}
+		return nil, "", &apiError{status: resp.StatusCode, rateLimited: true}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, &apiError{status: resp.StatusCode, msg: fmt.Sprintf("github releases: HTTP %d", resp.StatusCode)}
+		return nil, "", &apiError{status: resp.StatusCode, msg: fmt.Sprintf("github releases: HTTP %d", resp.StatusCode)}
 	}
 	var rels []ghRelease
 	if err := json.Unmarshal(body, &rels); err != nil {
-		return nil, &apiError{status: resp.StatusCode, msg: fmt.Sprintf("github releases: %v", err)}
+		return nil, "", &apiError{status: resp.StatusCode, msg: fmt.Sprintf("github releases: %v", err)}
 	}
-	return rels, nil
+	return rels, nextLink(resp.Header.Get("Link")), nil
+}
+
+func withPerPage(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" {
+		return raw
+	}
+	q := u.Query()
+	if q.Get("per_page") == "" {
+		q.Set("per_page", "100")
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+func nextLink(header string) string {
+	for _, part := range strings.Split(header, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if !strings.Contains(part, `rel="next"`) && !strings.Contains(part, "rel=next") {
+			continue
+		}
+		start := strings.IndexByte(part, '<')
+		end := strings.IndexByte(part, '>')
+		if start >= 0 && end > start+1 {
+			return strings.TrimSpace(part[start+1 : end])
+		}
+	}
+	return ""
+}
+
+func sameReleaseHost(current, next string) bool {
+	a, errA := url.Parse(current)
+	b, errB := url.Parse(next)
+	if errA != nil || errB != nil {
+		return false
+	}
+	return strings.EqualFold(a.Scheme, b.Scheme) && strings.EqualFold(a.Host, b.Host)
 }
 
 func matchAsset(assets []ghAsset, goos, goarch string) (name, url string) {

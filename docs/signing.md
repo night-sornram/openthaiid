@@ -14,8 +14,9 @@ this repository or in CI secrets.
 SmartScreen, Gatekeeper, and “unidentified developer” warnings are
 **expected** until a human with certificates signs the bits.
 
-`openthaiid update check` (Ready **ตรวจเวอร์ชัน**) reads **GitHub
-Releases** only and does not download. `update download` /
+`openthaiid update check` (Ready **ตรวจเวอร์ชัน**) lists **GitHub
+Releases** (including prereleases unless `--stable`) and does not download.
+Private repos need `OPENTHAIID_GITHUB_TOKEN` on the helper. `update download` /
 `update apply --yes` are explicit technician steps and do not claim the
 asset is signed. Prefer `SHA256SUMS` inside the archive; apply verifies
 that file when present.

@@ -121,9 +121,9 @@ allow vs deny of the local-network prompt, helper grant allow vs deny.
 Synthetic data is fine if you do not yet want a real card on a public
 origin; a real card is still required for E7.
 
-Firefox: `https://` pages may block `ws://127.0.0.1` as mixed content.
-That is a browser policy, not an OpenThaiID bypass. See
-[compatibility.md](compatibility.md).
+Firefox and Safari: `https://` pages block `ws://127.0.0.1` as mixed content
+(`HTTPS_WS_BLOCKED` — helper is still running). That is a browser policy,
+not an OpenThaiID bypass. See [compatibility.md](compatibility.md).
 
 ## Technician diagnostics copy
 

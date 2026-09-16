@@ -55,6 +55,8 @@ export {
   formatTestConnection,
   waitForThaiID,
   watchThaiID,
+  insecureLoopbackWsBlocked,
+  pageBlocksInsecureLoopbackWs,
   staffLang,
   staffCopy,
   staffErrorGuidance,

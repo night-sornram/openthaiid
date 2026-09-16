@@ -3,6 +3,7 @@
  * separate OpenThaiID install. Does not read personal card fields.
  */
 
+import { pageBlocksInsecureLoopbackWs, replaceElementChildren } from "./browser.js";
 import { ThaiIDError, type ReaderView } from "./index.js";
 import { formatStaffError, staffCopy, staffLang, type StaffLang } from "./staffCopy.js";
 import { localizeThaiIDError } from "./staffError.js";
@@ -120,6 +121,18 @@ function backendNeedsRecovery(probe: ProbeResult): boolean {
   return status === "unavailable" || status === "stalled";
 }
 
+function probeUnreachable(
+  endpoint: string,
+  lang: StaffLang,
+  code: ThaiIDError["code"] = "BRIDGE_UNAVAILABLE",
+  retryable = true,
+): ProbeResult {
+  if (code !== "CANCELLED" && pageBlocksInsecureLoopbackWs(endpoint)) {
+    return { reachable: false, error: probeError("HTTPS_WS_BLOCKED", lang, false) };
+  }
+  return { reachable: false, error: probeError(code, lang, retryable) };
+}
+
 /**
  * Ask the local helper whether it is running and what the reader looks like.
  *
@@ -176,36 +189,24 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
     }
 
     const timer = setTimeout(() => {
-      finish({
-        reachable: false,
-        error: probeError("BRIDGE_UNAVAILABLE", lang, true),
-      });
+      finish(probeUnreachable(endpoint, lang, "BRIDGE_UNAVAILABLE", true));
     }, timeoutMs);
 
     try {
       ws = new WebSocket(endpoint, [SUBPROTOCOL]);
     } catch {
-      finish({
-        reachable: false,
-        error: probeError("CONNECTION_FAILED", lang, true),
-      });
+      finish(probeUnreachable(endpoint, lang, "CONNECTION_FAILED", true));
       return;
     }
 
     ws.onerror = () => {
-      finish({
-        reachable: false,
-        error: probeError("BRIDGE_UNAVAILABLE", lang, true),
-      });
+      finish(probeUnreachable(endpoint, lang, "BRIDGE_UNAVAILABLE", true));
     };
     ws.onopen = () => {
       try {
         ws?.send(JSON.stringify({ v: 1, id: 1, type: "bridge.probe" }));
       } catch {
-        finish({
-          reachable: false,
-          error: probeError("CONNECTION_FAILED", lang, true),
-        });
+        finish(probeUnreachable(endpoint, lang, "CONNECTION_FAILED", true));
       }
     };
     ws.onmessage = (ev) => {
@@ -265,13 +266,14 @@ export function summarizeProbe(probe: ProbeResult, lang?: StaffLang | string | n
   const c = staffCopy(lang);
   if (!probe.reachable) {
     const cancelled = probe.error?.code === "CANCELLED";
+    const httpsBlocked = probe.error?.code === "HTTPS_WS_BLOCKED";
     return {
       ready: false,
       headline: cancelled ? c.cancelled : c.notReady,
-      helper: cancelled ? c.cancelled + (c.lang === "th" ? "" : ".") : c.helperOff,
+      helper: cancelled ? c.cancelled + (c.lang === "th" ? "" : ".") : httpsBlocked ? c.httpsWsBlocked : c.helperOff,
       reader: c.readerUnknown,
       card: c.cardUnknown,
-      next: cancelled ? "" : c.startHelper,
+      next: cancelled ? "" : httpsBlocked ? c.httpsWsBlockedNext : c.startHelper,
     };
   }
   const readers = probe.readers ?? [];
@@ -394,6 +396,9 @@ export function summarizeHelperWatch(
 export function formatTestConnection(probe: ProbeResult, lang?: StaffLang | string | null): string {
   const c = staffCopy(lang);
   if (!probe.reachable) {
+    if (probe.error?.code === "HTTPS_WS_BLOCKED") {
+      return `${c.httpsWsBlocked} ${c.httpsWsBlockedNext}`.trim();
+    }
     return c.testFail;
   }
   const status = probe.backend?.status;
@@ -450,7 +455,11 @@ export async function waitForThaiID(options: WaitForThaiIDOptions = {}): Promise
       timeoutMs: Math.max(50, Math.min(probeTimeoutMs, remaining)),
     });
     last = probe;
-    if (probe.reachable || probe.error?.code === "CANCELLED") {
+    if (
+      probe.reachable ||
+      probe.error?.code === "CANCELLED" ||
+      probe.error?.code === "HTTPS_WS_BLOCKED"
+    ) {
       return probe;
     }
     const wait = Math.min(intervalMs, overall - (Date.now() - started));
@@ -624,7 +633,7 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
   const render = (update: HelperWatchUpdate) => {
     lastUpdate = update;
     const { probe, summary, phase } = update;
-    root.replaceChildren();
+    replaceElementChildren(root);
     const box = document.createElement("div");
     box.setAttribute("data-openthaiid-status", "1");
     box.setAttribute("data-openthaiid-status-mode", mode);
