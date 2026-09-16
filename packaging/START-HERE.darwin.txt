@@ -17,9 +17,11 @@ Happy path
    then open it).
    Fallback: ./start-openthaiid.sh   or   ./openthaiid tray -open
 2. The helper runs without a Dock icon (menu-bar / extra item).
-3. Plug in the card reader. Open the clinic ERP. Click Fill.
+3. Plug in the card reader. Open the clinic ERP. Click Fill (กรอกข้อมูล).
 4. The first time, Allow the clinic page on the Ready page
-   (http://127.0.0.1:17891/).
+   (http://127.0.0.1:17891/). Staff lights default to Thai (พร้อม);
+   use the ไทย / English toggle if you need English. Technician tools
+   stay English.
 
 If Gatekeeper still blocks an unsigned app, run the raw binary from Terminal:
 
@@ -27,12 +29,12 @@ If Gatekeeper still blocks an unsigned app, run the raw binary from Terminal:
 
 Menu (menu bar)
 ---------------
-Open Ready page · Open Technician tools · Show status (no personal data) ·
-Start at login (opt-in) · Check for updates · Open GitHub Releases · Quit
+เปิดหน้า พร้อม · Technician tools · แสดงสถานะ (no personal data) ·
+เริ่มเมื่อเข้าสู่ระบบ (opt-in) · Check for updates · GitHub Releases · ออก
 
 Start at login (opt-in)
 -----------------------
-Menu: Start at login
+Menu: เริ่มเมื่อเข้าสู่ระบบ
 or:  ./openthaiid autostart enable
 This writes ~/Library/LaunchAgents/org.openthaiid.helper.plist
 (RunAtLoad, KeepAlive off). Not signed / not notarized. See docs/signing.md.
@@ -43,7 +45,11 @@ Technicians
 -----------
 ./openthaiid                 terminal helper
 ./openthaiid doctor          card service only; never reads personal fields
-./openthaiid qualify         Friday E1–E7 kit (pass/fail + timing + codes)
+./openthaiid qualify -report ./openthaiid-qualify.json
+                             Friday E1–E3 + printed E4–E7/M1 prompts
+./openthaiid qualify -operator -report ./openthaiid-qualify.json
+                             same, and record pass/fail/skip from the keyboard
+                             (never type citizen ID, names, address, or photo)
 See docs/technician.md and docs/hardware-qualification.md.
 
 This is an independent open-source project and is not affiliated with or

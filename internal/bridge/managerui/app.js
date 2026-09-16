@@ -4,17 +4,167 @@ const headers = {
   Accept: "application/json",
 };
 
-const FIELD_LABELS = {
-  citizenId: "Citizen ID",
-  thaiName: "Thai name",
-  englishName: "English name",
-  birthDate: "Date of birth",
-  gender: "Gender",
-  issuer: "Issuer",
-  issueDate: "Issue date",
-  expireDate: "Expiry date",
-  address: "Address",
+const I18N = {
+  th: {
+    title: "ตัวช่วย OpenThaiID",
+    subtitle: "บนเครื่องนี้ · เสียบเครื่องอ่าน แล้วกด กรอกข้อมูล ในหน้าคลินิก",
+    techToggle: "ช่างเทคนิค / Technician",
+    techToggleHide: "ซ่อนเครื่องมือช่างเทคนิค",
+    allowHeading: "เว็บไซต์ต้องการอ่านบัตร",
+    allowHelp:
+      "อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกแสดงรหัส ให้รหัสตรงกัน เว็บไซต์อนุมัติตัวเองไม่ได้",
+    footer:
+      "เจ้าหน้าที่ใช้ไฟสถานะด้านบนก็พอ · Independent open-source project — not affiliated with or endorsed by the Department of Provincial Administration.",
+    checking: "กำลังตรวจ…",
+    oneMoment: "สักครู่",
+    ready: "พร้อม",
+    readyPractice: "พร้อม (บัตรฝึกซ้อม)",
+    notReady: "ยังไม่พร้อม",
+    helperOn: "OpenThaiID กำลังทำงานบนเครื่องนี้",
+    helperOff: "OpenThaiID ยังไม่ทำงาน",
+    plugReader: "เสียบเครื่องอ่านบัตรเข้าเครื่องนี้",
+    serviceStalled: "บริการอ่านบัตรไม่ตอบสนอง เปิด Technician tools",
+    serviceOff: "บริการอ่านบัตรปิดอยู่ ให้ช่างเทคนิคเปิดบริการ",
+    readerConnected: "ต่อเครื่องอ่านแล้ว",
+    insertAfterReader: "เสียบบัตรหลังจากต่อเครื่องอ่านแล้ว",
+    unsupportedCard: "บัตรนี้ไม่ใช่บัตรประชาชนไทย",
+    insertCard: "เสียบบัตรประชาชนไทย",
+    cardInserted: "เสียบบัตรแล้ว",
+    nextFillClinic: "เปิดหน้าคลินิก แล้วกด กรอกข้อมูล",
+    startHelper: "เปิด OpenThaiID บนเครื่องนี้",
+    fixService: "ให้ช่างเทคนิคแก้ไขบริการอ่านบัตร",
+    insertThenFill: "เสียบบัตรประชาชนของผู้ป่วย แล้วกด กรอกข้อมูล ในหน้าคลินิก",
+    pendingAllow: "หน้าคลินิกกำลังรอ — กดอนุญาตด้านล่าง แล้วกด กรอกข้อมูล",
+    multiReader: "เสียบเครื่องอ่านมากกว่าหนึ่งเครื่อง เปิด Technician tools เพื่อเลือกเครื่อง",
+    practiceNext: "โหมดฝึกซ้อม: กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
+    bannerPractice:
+      "โหมดฝึกซ้อม: เครื่องอ่านและบัตรจำลอง ไม่มีข้อมูลบุคคล กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
+    allow: "อนุญาต",
+    deny: "ไม่อนุญาต",
+    wouldFill: "จะกรอก:",
+    requestedFields: "ช่องที่ขอจากบัตร",
+    fields: {
+      citizenId: "เลขประจำตัวประชาชน",
+      thaiName: "ชื่อภาษาไทย",
+      englishName: "ชื่อภาษาอังกฤษ",
+      birthDate: "วันเกิด",
+      gender: "เพศ",
+      issuer: "ผู้ออกบัตร",
+      issueDate: "วันออกบัตร",
+      expireDate: "วันหมดอายุ",
+      address: "ที่อยู่",
+      portrait: "รูปถ่าย (ถ้าขอ)",
+    },
+  },
+  en: {
+    title: "OpenThaiID helper",
+    subtitle: "On this computer · plug in the reader, then Fill in your clinic page",
+    techToggle: "Technician / developer",
+    techToggleHide: "Hide technician tools",
+    allowHeading: "A website wants to read the card",
+    allowHelp:
+      "Allow only the clinic page you are using. Match the code if the clinic page shows one. This does not skip security — the website still cannot approve itself.",
+    footer:
+      "Clinic staff only need the lights above. Independent open-source project — not affiliated with or endorsed by the Department of Provincial Administration.",
+    checking: "Checking…",
+    oneMoment: "One moment.",
+    ready: "Ready",
+    readyPractice: "Ready (practice card)",
+    notReady: "Not ready yet",
+    helperOn: "OpenThaiID is running on this computer.",
+    helperOff: "OpenThaiID is not running.",
+    plugReader: "Plug the card reader into this computer.",
+    serviceStalled: "The card service is not responding. Open Technician tools.",
+    serviceOff: "The card service is off. Ask a technician to start it.",
+    readerConnected: "Reader connected",
+    insertAfterReader: "Insert the card after the reader is connected.",
+    unsupportedCard: "This card is not a Thai National ID.",
+    insertCard: "Insert the Thai ID card.",
+    cardInserted: "Card is inserted.",
+    nextFillClinic: "Open the clinic page and click Fill.",
+    startHelper: "Start OpenThaiID on this computer.",
+    fixService: "Ask a technician to fix the card service.",
+    insertThenFill: "Insert the patient’s Thai ID card, then click Fill in the clinic page.",
+    pendingAllow: "A clinic page is waiting — Allow it below, then click Fill.",
+    multiReader: "More than one reader is plugged in. Open Technician tools and choose which one to use.",
+    practiceNext: "Practice mode: Fill in the clinic page still needs Allow the first time.",
+    bannerPractice:
+      "Practice mode: fictional reader and card. No personal data. Fill in the clinic page still needs Allow the first time.",
+    allow: "Allow",
+    deny: "Don't allow",
+    wouldFill: "This would fill:",
+    requestedFields: "the requested card fields",
+    fields: {
+      citizenId: "Citizen ID",
+      thaiName: "Thai name",
+      englishName: "English name",
+      birthDate: "Date of birth",
+      gender: "Gender",
+      issuer: "Issuer",
+      issueDate: "Issue date",
+      expireDate: "Expiry date",
+      address: "Address",
+      portrait: "Portrait (if requested)",
+    },
+  },
 };
+
+function readWantedLang() {
+  try {
+    const q = new URLSearchParams(location.search).get("lang");
+    if (q && /^en/i.test(q)) return "en";
+    if (q && /^th/i.test(q)) return "th";
+  } catch {
+    // ignore
+  }
+  try {
+    const stored = sessionStorage.getItem("openthaiid-lang");
+    if (stored === "en" || stored === "th") return stored;
+  } catch {
+    // ignore
+  }
+  return "th";
+}
+
+let lang = readWantedLang();
+
+function t(key) {
+  const pack = I18N[lang] || I18N.th;
+  return pack[key] ?? I18N.en[key] ?? key;
+}
+
+function fieldLabels(fields) {
+  const pack = I18N[lang] || I18N.th;
+  if (!Array.isArray(fields) || !fields.length) return t("requestedFields");
+  return fields.map((f) => pack.fields[f] || f).join(", ");
+}
+
+function applyStaticCopy() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (key) el.textContent = t(key);
+  });
+  const thBtn = document.getElementById("lang-th");
+  const enBtn = document.getElementById("lang-en");
+  if (thBtn) thBtn.setAttribute("aria-pressed", lang === "th" ? "true" : "false");
+  if (enBtn) enBtn.setAttribute("aria-pressed", lang === "en" ? "true" : "false");
+  if (els && els.techToggle) {
+    const open = !els.technician.hidden;
+    els.techToggle.textContent = open ? t("techToggleHide") : t("techToggle");
+  }
+}
+
+function setLang(next) {
+  lang = next === "en" ? "en" : "th";
+  try {
+    sessionStorage.setItem("openthaiid-lang", lang);
+  } catch {
+    // ignore
+  }
+  applyStaticCopy();
+  if (window.__lastStatus) render(window.__lastStatus);
+}
 
 const els = {
   banner: document.getElementById("banner"),
@@ -59,11 +209,6 @@ function setText(el, text) {
   el.textContent = text;
 }
 
-function fieldLabels(fields) {
-  if (!Array.isArray(fields) || !fields.length) return "the requested card fields";
-  return fields.map((f) => FIELD_LABELS[f] || f).join(", ");
-}
-
 async function api(path, opts) {
   const res = await fetch(path, {
     credentials: "same-origin",
@@ -101,7 +246,7 @@ function technicianWanted() {
 function setTechnician(open) {
   els.technician.hidden = !open;
   els.techToggle.setAttribute("aria-pressed", open ? "true" : "false");
-  els.techToggle.textContent = open ? "Hide technician tools" : "Technician / developer";
+  els.techToggle.textContent = open ? t("techToggleHide") : t("techToggle");
   try {
     sessionStorage.setItem("openthaiid-technician", open ? "1" : "0");
   } catch {
@@ -158,48 +303,43 @@ function summarize(data) {
   const readerName = selected ? selected.name : "";
   const pending = (data.pending || []).length;
 
-  const helperText = helperOk
-    ? "OpenThaiID is running on this computer."
-    : "OpenThaiID is not running.";
-  let readerText = "Plug the card reader into this computer.";
+  const helperText = helperOk ? t("helperOn") : t("helperOff");
+  let readerText = t("plugReader");
   let readerKind = "bad";
   if (!serviceOk) {
-    readerText =
-      backend === "stalled"
-        ? "The card service is not responding. Open Technician tools."
-        : "The card service is off. Ask a technician to start it.";
+    readerText = backend === "stalled" ? t("serviceStalled") : t("serviceOff");
   } else if (readerOk) {
-    readerText = `Reader connected${readerName ? `: ${readerName}` : "."}`;
+    readerText = t("readerConnected") + (readerName ? `: ${readerName}` : ".");
     readerKind = "ok";
   }
 
-  let cardText = "Insert the Thai ID card.";
+  let cardText = t("insertCard");
   let cardKind = "";
   if (!readerOk || !serviceOk) {
-    cardText = "Insert the card after the reader is connected.";
+    cardText = t("insertAfterReader");
   } else if (unsupported && !present) {
-    cardText = "This card is not a Thai National ID.";
+    cardText = t("unsupportedCard");
     cardKind = "warn";
   } else if (present) {
-    cardText = "Card is inserted.";
+    cardText = t("cardInserted");
     cardKind = "ok";
   }
 
   const ready = helperOk && serviceOk && readerOk && present;
-  let headline = ready ? "Ready" : "Not ready yet";
-  if (ready && data.synthetic) headline = "Ready (practice card)";
+  let headline = ready ? t("ready") : t("notReady");
+  if (ready && data.synthetic) headline = t("readyPractice");
 
-  let next = "Open the clinic page and click Fill.";
-  if (!helperOk) next = "Start OpenThaiID on this computer.";
-  else if (!serviceOk) next = "Ask a technician to fix the card service.";
-  else if (!readerOk) next = "Plug the card reader into this computer.";
-  else if (!present) next = "Insert the patient’s Thai ID card, then click Fill in the clinic page.";
-  else if (pending) next = "A clinic page is waiting — Allow it below, then click Fill.";
+  let next = t("nextFillClinic");
+  if (!helperOk) next = t("startHelper");
+  else if (!serviceOk) next = t("fixService");
+  else if (!readerOk) next = t("plugReader");
+  else if (!present) next = t("insertThenFill");
+  else if (pending) next = t("pendingAllow");
   else if (readers.length > 1 && !readers.some((r) => r.selected)) {
-    next = "More than one reader is plugged in. Open Technician tools and choose which one to use.";
+    next = t("multiReader");
   }
   if (ready && data.synthetic) {
-    next = "Practice mode: Fill in the clinic page still needs Allow the first time.";
+    next = t("practiceNext");
   }
 
   return {
@@ -239,7 +379,7 @@ function allowRow(p, { detailed }) {
     const fieldList = Array.isArray(p.fields) ? p.fields.join(", ") : "";
     fields.textContent = `Request ${p.id} · fields: ${fieldList} · expires ${p.expiresAt || ""}`;
   } else {
-    fields.textContent = `This would fill: ${fieldLabels(p.fields)}`;
+    fields.textContent = `${t("wouldFill")} ${fieldLabels(p.fields)}`;
   }
   const actions = document.createElement("div");
   actions.className = "actions";
@@ -247,12 +387,12 @@ function allowRow(p, { detailed }) {
   const allow = document.createElement("button");
   allow.type = "button";
   allow.className = "btn btn-ok";
-  allow.textContent = "Allow";
+  allow.textContent = t("allow");
   allow.addEventListener("click", () => decide(p.id, "allow"));
   const deny = document.createElement("button");
   deny.type = "button";
   deny.className = "btn btn-danger";
-  deny.textContent = "Don't allow";
+  deny.textContent = t("deny");
   deny.addEventListener("click", () => decide(p.id, "deny"));
   actions.append(allow, deny);
   li.append(origin, code, fields, actions);
@@ -443,8 +583,7 @@ function render(data) {
 
   if (data.synthetic) {
     els.banner.hidden = false;
-    els.banner.textContent =
-      "Practice mode: fictional reader and card. No personal data. Fill in the clinic page still needs Allow the first time.";
+    els.banner.textContent = t("bannerPractice");
   } else {
     els.banner.hidden = true;
   }
@@ -564,7 +703,10 @@ async function setVerbose(on) {
   }
 }
 
+applyStaticCopy();
 setTechnician(technicianWanted());
+document.getElementById("lang-th")?.addEventListener("click", () => setLang("th"));
+document.getElementById("lang-en")?.addEventListener("click", () => setLang("en"));
 els.techToggle.addEventListener("click", () => {
   setTechnician(els.technician.hidden);
 });

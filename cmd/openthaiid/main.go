@@ -450,7 +450,9 @@ Usage:
   openthaiid autostart       enable | disable | status   (opt-in start at login)
   openthaiid update          check | download | apply   (GitHub Releases; unsigned)
   openthaiid doctor          Check the card service (no personal fields)
-  openthaiid qualify         E1–E7 kit: pass/fail + timing + error codes (no personal fields)
+  openthaiid qualify         Friday kit: E1–E3 + E4–E7/M1 prompts; one JSON report (no personal fields)
+                             default report: ./openthaiid-qualify.json
+                             -operator records pass/fail/skip only (never type card data)
   openthaiid version         Print version
 
 Flags (run / tray mode):

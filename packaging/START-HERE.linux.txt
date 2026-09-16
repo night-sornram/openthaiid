@@ -4,6 +4,9 @@ OpenThaiID helper — clinic Linux
 This folder is the local helper. There is no OpenThaiID website or cloud
 backend. The helper listens only on 127.0.0.1.
 
+Staff-facing Ready lights default to Thai (พร้อม). English: Ready page
+toggle, or set OPENTHAIID_LANG=en for status. Technician tools stay English.
+
 Happy path
 ----------
 1. Optional once: ./install-linux.sh
@@ -13,8 +16,22 @@ Happy path
 3. GNOME/KDE often have no notification-area icon without extra extensions.
    The helper still runs in the background. Use the Ready page:
    http://127.0.0.1:17891/
-4. Plug in the reader (pcscd). Open the clinic ERP. Click Fill.
+4. Plug in the reader (pcscd). Open the clinic ERP. Click Fill (กรอกข้อมูล).
 5. The first time, Allow the clinic page on the Ready page.
+
+Friday hardware qualification (when the ACR39U arrives)
+-------------------------------------------------------
+Plug the reader, insert a Thai ID you are allowed to handle, then:
+
+  ./openthaiid qualify -report ./openthaiid-qualify.json
+  or:  ./scripts/hardware-qualify.sh   (from a source checkout)
+
+Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
+
+  ./openthaiid qualify -operator -report ./openthaiid-qualify.json
+
+Never type or save citizen ID, names, address, or photo bytes. One JSON
+report path is printed as `report: ...`. See docs/hardware-qualification.md.
 
 Start at login (opt-in, off by default)
 ---------------------------------------
@@ -29,7 +46,7 @@ Need pcscd, for example:
   sudo apt install pcscd libpcsclite1
   sudo systemctl enable --now pcscd
 
-Commands: openthaiid status | quit | open | open technician | autostart | update check
+Commands: openthaiid status | quit | open | open technician | autostart | update check | qualify
 
 Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).

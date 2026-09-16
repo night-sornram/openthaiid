@@ -3,7 +3,10 @@
 // other personal card fields.
 package desktop
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // Lights is helper / reader / card presence for clinic staff.
 // ReaderName is a device label (for example "ACS ACR39U"), never card data.
@@ -16,11 +19,13 @@ type Lights struct {
 	ReaderName     string
 	ReadyPage      string
 	TechnicianPage string
+	Lang           Lang // empty → StaffLang() (Thai default)
 }
 
 // Summary is the plain-language status shown in the tray, CLI, and
 // GET /v1/helper/summary. JSON tags are for the loopback helper API.
 type Summary struct {
+	Lang           string `json:"lang"`
 	Helper         bool   `json:"helper"`
 	Reader         bool   `json:"reader"`
 	Card           bool   `json:"card"`
@@ -35,9 +40,16 @@ type Summary struct {
 	Next           string `json:"next"`
 }
 
-// Summarize turns lights into clinic-staff copy. No personal field values.
+// Summarize turns lights into clinic-staff copy (Thai by default).
+// No personal field values. Pass Lights.Lang = LangEN for English.
 func Summarize(l Lights) Summary {
+	lang := l.Lang
+	if lang == "" {
+		lang = StaffLang()
+	}
+	c := StaffCopy(lang)
 	s := Summary{
+		Lang:           string(c.Lang),
 		Helper:         l.Helper,
 		Reader:         l.Reader,
 		Card:           l.Card,
@@ -54,60 +66,64 @@ func Summarize(l Lights) Summary {
 	}
 
 	if !l.Helper {
-		s.Headline = "Not ready yet"
-		s.HelperText = "OpenThaiID is not running on this computer. Start it, then try again."
-		s.ReaderText = "Card reader: unknown until OpenThaiID is running."
-		s.CardText = "Card: unknown until OpenThaiID is running."
-		s.Next = "Start OpenThaiID on this computer."
+		s.Headline = c.NotReady
+		s.HelperText = c.HelperOff
+		s.ReaderText = c.ReaderUnknown
+		s.CardText = c.CardUnknown
+		s.Next = c.StartHelper
 		return s
 	}
 
-	s.HelperText = "OpenThaiID is running on this computer."
+	s.HelperText = c.HelperOn
 	switch l.Backend {
 	case "unavailable":
-		s.Headline = "Not ready yet"
-		s.ReaderText = "The card service is off. Ask a technician to start it."
-		s.CardText = "Card: unknown until the card service is working."
-		s.Next = "Ask a technician to fix the card service."
+		s.Headline = c.NotReady
+		s.ReaderText = c.ServiceOff
+		s.CardText = c.CardUntilService
+		s.Next = c.FixService
 		s.Reader = false
 		s.Card = false
 		return s
 	case "stalled":
-		s.Headline = "Not ready yet"
-		s.ReaderText = "The card service is not responding. Ask a technician."
-		s.CardText = "Card: unknown until the card service is working."
-		s.Next = "Ask a technician to fix the card service."
+		s.Headline = c.NotReady
+		s.ReaderText = c.ServiceStalled
+		s.CardText = c.CardUntilService
+		s.Next = c.FixService
 		s.Reader = false
 		s.Card = false
 		return s
 	}
 
 	if !l.Reader {
-		s.Headline = "Not ready yet"
-		s.ReaderText = "No card reader. Plug the reader into this computer."
-		s.CardText = "Insert the card after the reader is connected."
-		s.Next = "Plug the card reader into this computer."
+		s.Headline = c.NotReady
+		s.ReaderText = c.NoReader
+		s.CardText = c.InsertAfterReader
+		s.Next = c.PlugReader
 		return s
 	}
 
 	name := strings.TrimSpace(l.ReaderName)
 	if name == "" {
-		name = "card reader"
+		if lang == LangEN {
+			name = "card reader"
+		} else {
+			name = "เครื่องอ่านบัตร"
+		}
 	}
-	s.ReaderText = "Reader connected: " + name
+	s.ReaderText = fmt.Sprintf(c.ReaderConnected, name)
 	if !l.Card {
-		s.Headline = "Not ready yet"
-		s.CardText = "Insert the Thai ID card."
-		s.Next = "Insert the patient’s Thai ID card, then click Fill."
+		s.Headline = c.NotReady
+		s.CardText = c.InsertCard
+		s.Next = c.InsertThenFill
 		return s
 	}
 
-	s.Headline = "Ready"
+	s.Headline = c.Ready
 	if l.Practice {
-		s.Headline = "Ready (practice card)"
+		s.Headline = c.ReadyPractice
 	}
-	s.CardText = "Card is inserted."
-	s.Next = "Click Fill."
+	s.CardText = c.CardInserted
+	s.Next = c.ClickFill
 	return s
 }
 

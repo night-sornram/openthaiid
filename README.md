@@ -21,8 +21,8 @@ WebSocket — only after the operator Allows the website origin and field set.
 See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the
 reader from the same page, call `autofillThaiID(config)`.
 
-Clinic staff: [docs/user.md](docs/user.md) (tray / Start menu, not a developer
-terminal). Technicians: [docs/technician.md](docs/technician.md).
+Clinic staff: [docs/user.md](docs/user.md) (Thai-first Ready lights; tray /
+Start menu, not a developer terminal). Technicians: [docs/technician.md](docs/technician.md).
 Clinic IT packaging: [docs/installation.md](docs/installation.md).
 
 ## Quick start
@@ -36,7 +36,10 @@ make build
 
 # Friday qualification kit (no personal fields; synthetic smoke or real reader)
 ./dist/openthaiid qualify -synthetic -e2-count 3 -e3-count 2 -report dist/openthaiid-qualify.json
-# With ACR39U + card inserted: ./scripts/hardware-qualify.sh
+# With ACR39U + card inserted:
+./scripts/hardware-qualify.sh
+./scripts/hardware-qualify.sh --operator   # E3 / E4–E7 / M1 prompts; pass|fail|skip only
+# Windows package: Qualify-OpenThaiID.bat
 
 # Run with real hardware (terminal; technicians)
 ./dist/openthaiid
@@ -56,9 +59,9 @@ card so the documented connect → approve → read path works from a clean
 checkout without hardware.
 
 Local helper (hardware): `ws://127.0.0.1:17891/v1/ws`
-Optional helper page: `http://127.0.0.1:17891/` — default view is
-connected / reader / card for clinic staff. Technician / developer tools
-are behind a toggle (`#technician`).
+Optional helper page: `http://127.0.0.1:17891/` — default view is Thai
+Ready lights (พร้อม) for clinic staff. English toggle on that page.
+Technician / developer tools stay English (`#technician`).
 
 ### Terminal commands
 
@@ -92,7 +95,7 @@ gesture), waits for terminal approval, reads, fills inputs, then disconnects:
 import { autofillThaiID, mountThaiIDStatus } from "@openthaiid/web";
 
 mountThaiIDStatus(document.getElementById("reader-status"));
-// Ready / not ready in plain language. { mode: "advanced" } for technicians.
+// Thai Ready lights by default. { lang: "en" } for English. { mode: "advanced" } for technicians.
 
 document.getElementById("fill").addEventListener("click", async () => {
   await autofillThaiID({

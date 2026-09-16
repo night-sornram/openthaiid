@@ -69,6 +69,8 @@ case "$OS" in
     cp packaging/windows/Start-OpenThaiID.bat "$STAGE/"
     cp packaging/windows/install.ps1 "$STAGE/"
     cp packaging/windows/uninstall.ps1 "$STAGE/"
+    cp packaging/windows/Qualify-OpenThaiID.bat "$STAGE/"
+    cp packaging/windows/Qualify-OpenThaiID.ps1 "$STAGE/"
     ;;
   linux)
     cp packaging/linux/start-openthaiid.sh "$STAGE/"
@@ -140,6 +142,7 @@ if [ "$OS" = "$HOST_OS" ] && [ "$ARCH" = "$HOST_ARCH" ] && [ "$OS" != "windows" 
   help="$("$VERIFY/$CLINIC_BIN" help)"
   echo "$help" | grep -q "openthaiid tray" || { echo "ERROR: help missing tray" >&2; exit 1; }
   test -f "$VERIFY/START-HERE.txt" || { echo "ERROR: missing START-HERE.txt" >&2; exit 1; }
+  grep -q "qualify" "$VERIFY/START-HERE.txt" || { echo "ERROR: START-HERE missing qualify" >&2; exit 1; }
   if [ "$OS" = "darwin" ]; then
     test -x "$VERIFY/OpenThaiID.app/Contents/MacOS/openthaiid" || { echo "ERROR: missing .app executable" >&2; exit 1; }
     grep -q "$VERSION" "$VERIFY/OpenThaiID.app/Contents/Info.plist" || { echo "ERROR: Info.plist version" >&2; exit 1; }

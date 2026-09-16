@@ -145,6 +145,7 @@ Cross-compilation notes:
 ./dist/openthaiid              # terminal helper (technicians)
 ./dist/openthaiid tray         # clinic background helper
 ./dist/openthaiid tray -open   # same, open Ready page
+./dist/openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
 ```
 
 Default WebSocket endpoint: `ws://127.0.0.1:17891/v1/ws`

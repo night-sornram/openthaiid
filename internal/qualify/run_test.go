@@ -82,6 +82,106 @@ func TestRunSyntheticSmokeE1E2E3(t *testing.T) {
 	}
 }
 
+type scriptOperator struct {
+	answers map[string]Result
+	pauses  int
+}
+
+func (s *scriptOperator) Ask(step OperatorStep) Result {
+	if s.answers == nil {
+		return ResultSkip
+	}
+	if r, ok := s.answers[step.ID]; ok {
+		return r
+	}
+	return ResultSkip
+}
+
+func (s *scriptOperator) Pause(string) error {
+	s.pauses++
+	return nil
+}
+
+func TestOperatorAnswersRecordedWithoutPII(t *testing.T) {
+	shared := pcsc.NewSyntheticState()
+	mon := pcsc.NewSyntheticWithState(shared)
+	rdb := pcsc.NewSyntheticWithState(shared)
+	rdb.SeedDemoCard()
+	toggle := func(present bool) error {
+		const id = "synthetic-acr39u"
+		if present {
+			mon.InsertCard(id)
+		} else {
+			mon.RemoveCard(id)
+		}
+		return nil
+	}
+	op := &scriptOperator{answers: map[string]Result{
+		"E4": ResultPass,
+		"E5": ResultFail,
+		"E6": ResultSkip,
+		"E7": ResultPass,
+		"M1": ResultSkip,
+	}}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	rep, err := Run(ctx, Hardware{Monitor: mon, Read: rdb}, Options{
+		Version:      "0.1.0-rc.1-test",
+		Synthetic:    false,
+		E2Count:      1,
+		E3Count:      1,
+		E1Budget:     2 * time.Second,
+		StepTimeout:  2 * time.Second,
+		SkipOperator: false,
+		ToggleCard:   toggle,
+		Operator:     op,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if checkResult(rep, "E1") != ResultPass || checkResult(rep, "E3") != ResultPass {
+		t.Fatalf("automated slice: %s", mustJSON(t, rep))
+	}
+	if checkResult(rep, "E4") != ResultPass {
+		t.Fatalf("E4 %s", checkResult(rep, "E4"))
+	}
+	if checkResult(rep, "E5") != ResultFail {
+		t.Fatalf("E5 %s", checkResult(rep, "E5"))
+	}
+	if checkResult(rep, "E6") != ResultSkip || checkResult(rep, "M1") != ResultSkip {
+		t.Fatalf("skip rows")
+	}
+	if checkResult(rep, "E7") != ResultPass {
+		t.Fatalf("E7 %s", checkResult(rep, "E7"))
+	}
+	if rep.Overall != ResultFail {
+		t.Fatalf("overall %s (E5 FAIL should fail the run)", rep.Overall)
+	}
+	raw, err := rep.MarshalSafe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hit := FirstForbidden(raw); hit != "" {
+		t.Fatalf("leaked %q: %s", hit, raw)
+	}
+	text := rep.Text()
+	if !strings.Contains(text, "E4") || !strings.Contains(text, "PASS") || !strings.Contains(text, "E5") || !strings.Contains(text, "FAIL") {
+		t.Fatalf("text missing operator results:\n%s", text)
+	}
+	if !strings.Contains(text, "CARD_REMOVED") {
+		t.Fatalf("missing E4 guidance\n%s", text)
+	}
+}
+
+func mustJSON(t *testing.T, rep *Report) string {
+	t.Helper()
+	b, err := json.Marshal(rep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
 func TestRunSyntheticNoCardFailsE1(t *testing.T) {
 	mon := pcsc.NewSynthetic()
 	rdb := pcsc.NewSyntheticWithState(mon.State())

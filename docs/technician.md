@@ -1,7 +1,8 @@
 # Technician / developer guide
 
-Clinic staff should stay on the simple Ready view. This page is the debug
-checklist when **Fill fails**.
+Clinic staff should stay on the simple Ready view (Thai **พร้อม** lights by
+default; English toggle on that page). This page is the debug checklist when
+**Fill fails**. Technician chrome on this page stays English.
 
 Open technician tools on the PC: `http://127.0.0.1:17891/#technician`
 (or the **Technician / developer** button). Defaults stay quiet; turn on

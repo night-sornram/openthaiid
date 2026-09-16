@@ -20,7 +20,7 @@ extern int openthaiidTrayAutostartOn(void);
 - (void)setupWithPNG:(NSData *)png {
   NSStatusBar *bar = [NSStatusBar systemStatusBar];
   self.item = [bar statusItemWithLength:NSSquareStatusItemLength];
-  self.item.button.toolTip = @"OpenThaiID helper";
+  self.item.button.toolTip = @"ตัวช่วย OpenThaiID";
   if (png.length > 0) {
     NSImage *image = [[NSImage alloc] initWithData:png];
     if (image) {
@@ -33,20 +33,20 @@ extern int openthaiidTrayAutostartOn(void);
     self.item.button.title = @"ID";
   }
   NSMenu *menu = [[NSMenu alloc] init];
-  [[menu addItemWithTitle:@"Open Ready page" action:@selector(ready:) keyEquivalent:@""] setTarget:self];
-  [[menu addItemWithTitle:@"Open Technician tools" action:@selector(technician:) keyEquivalent:@""] setTarget:self];
-  [[menu addItemWithTitle:@"Show status" action:@selector(status:) keyEquivalent:@""] setTarget:self];
+  [[menu addItemWithTitle:@"เปิดหน้า พร้อม" action:@selector(ready:) keyEquivalent:@""] setTarget:self];
+  [[menu addItemWithTitle:@"Technician tools" action:@selector(technician:) keyEquivalent:@""] setTarget:self];
+  [[menu addItemWithTitle:@"แสดงสถานะ" action:@selector(status:) keyEquivalent:@""] setTarget:self];
   [menu addItem:[NSMenuItem separatorItem]];
-  NSMenuItem *autoItem = [[NSMenuItem alloc] initWithTitle:@"Start at login"
+  NSMenuItem *autoItem = [[NSMenuItem alloc] initWithTitle:@"เริ่มเมื่อเข้าสู่ระบบ"
                                                     action:@selector(autostart:)
                                              keyEquivalent:@""];
   autoItem.target = self;
 	[menu addItem:autoItem];
   [menu addItem:[NSMenuItem separatorItem]];
   [[menu addItemWithTitle:@"Check for updates" action:@selector(update:) keyEquivalent:@""] setTarget:self];
-  [[menu addItemWithTitle:@"Open GitHub Releases" action:@selector(releases:) keyEquivalent:@""] setTarget:self];
+  [[menu addItemWithTitle:@"GitHub Releases" action:@selector(releases:) keyEquivalent:@""] setTarget:self];
   [menu addItem:[NSMenuItem separatorItem]];
-  [[menu addItemWithTitle:@"Quit" action:@selector(quit:) keyEquivalent:@"q"] setTarget:self];
+  [[menu addItemWithTitle:@"ออก" action:@selector(quit:) keyEquivalent:@"q"] setTarget:self];
   self.item.menu = menu;
 }
 - (void)ready:(id)sender {

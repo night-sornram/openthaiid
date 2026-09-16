@@ -4,28 +4,47 @@ OpenThaiID helper — clinic PC
 This folder is the local helper for Thai National ID autofill. There is no
 OpenThaiID website or cloud backend. The helper listens only on 127.0.0.1.
 
+Staff-facing Ready lights default to Thai (พร้อม). English: Ready page
+toggle, or set OPENTHAIID_LANG=en for tray / status. Technician tools stay
+English.
+
 Happy path
 ----------
 1. Double-click "Start OpenThaiID.bat" (or run install.ps1 once for Start Menu).
 2. Allow the helper if Windows SmartScreen warns (unsigned build).
 3. Look for OpenThaiID in the notification area (tray).
-4. Plug in the card reader. Open the clinic ERP. Click Fill.
+4. Plug in the card reader. Open the clinic ERP. Click Fill (กรอกข้อมูล).
 5. The first time, Allow the clinic page on the Ready page
    (http://127.0.0.1:17891/). Match the code if the ERP shows one.
 
+Friday hardware qualification (when the ACR39U arrives)
+-------------------------------------------------------
+Plug the reader, insert a Thai ID you are allowed to handle, then:
+
+  Qualify-OpenThaiID.bat
+  or:  openthaiid.exe qualify -report openthaiid-qualify.json
+  or:  powershell -ExecutionPolicy Bypass -File Qualify-OpenThaiID.ps1
+
+Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
+
+  openthaiid.exe qualify -operator -report openthaiid-qualify.json
+
+Never type or save citizen ID, names, address, or photo bytes. One JSON
+report path is printed as `report: ...`. See docs\hardware-qualification.md.
+
 Tray menu
 ---------
-- Open Ready page
-- Open Technician tools
-- Show status (helper / reader / card — no personal data)
-- Start at login (opt-in; off by default)
+- เปิดหน้า พร้อม (Ready page)
+- Technician tools
+- แสดงสถานะ (helper / reader / card — no personal data)
+- เริ่มเมื่อเข้าสู่ระบบ (opt-in; off by default)
 - Check for updates (GitHub Releases; unsigned)
-- Open GitHub Releases
-- Quit
+- GitHub Releases
+- ออก / Quit
 
 Start at login (opt-in)
 -----------------------
-Tray: check "Start at login"
+Tray: check "เริ่มเมื่อเข้าสู่ระบบ"
 or:  openthaiid.exe autostart enable
 off: openthaiid.exe autostart disable
 
@@ -33,7 +52,7 @@ install.ps1 copies files to %LOCALAPPDATA%\OpenThaiID and can create Start
 Menu / Desktop shortcuts. It does not enable autostart unless you pass
 -Autostart.
 
-Technicians: run openthaiid.exe in a terminal, or Open Technician tools.
+Technicians: run openthaiid.exe in a terminal, or Technician tools.
 See docs\technician.md. Do not send screenshots of card data.
 `openthaiid.exe update check` looks at GitHub Releases (unsigned packages).
 

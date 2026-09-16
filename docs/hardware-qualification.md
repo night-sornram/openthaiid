@@ -41,20 +41,30 @@ commit SHA. No card field values.
 # Kit smoke (no hardware; does not claim E1–E7)
 make qualify-smoke
 
-# Friday, with the reader + card already inserted:
-./dist/openthaiid qualify -report /tmp/openthaiid-qualify.json
-# or:
+# Friday, with the reader + card already inserted (one JSON report):
+./dist/openthaiid qualify -report ./openthaiid-qualify.json
+# Interactive E3 + E4–E7/M1 (type pass, fail, or skip only — never card data):
+./dist/openthaiid qualify -operator -report ./openthaiid-qualify.json
+# Wrappers:
 ./scripts/hardware-qualify.sh
+./scripts/hardware-qualify.sh --operator
+# Windows package: Qualify-OpenThaiID.bat / Qualify-OpenThaiID.ps1
 ```
 
-`openthaiid qualify` (and the script) print **PASS/FAIL**, timings, protocol
-error codes (`NO_READER`, `NO_CARD`, `PCSC_UNAVAILABLE`, `CARD_REMOVED`, …),
-field *names* present, JPEG SOI/EOI flags, and technician diagnostics.
-They **refuse to write** a report that would contain the synthetic
-sentinels, a 13-digit citizen ID, JPEG Base64, or a `data:image` URL.
+`openthaiid qualify` always writes **one** redacted JSON file (default
+`./openthaiid-qualify.json`) and prints `report: <absolute path>`. It prints
+**PASS/FAIL**, timings, protocol error codes (`NO_READER`, `NO_CARD`,
+`PCSC_UNAVAILABLE`, `CARD_REMOVED`, …), field *names* present, JPEG SOI/EOI
+flags, and technician diagnostics. It **refuses to print or write** output
+that would contain the synthetic sentinels, a 13-digit citizen ID, JPEG
+bytes / Base64, a PNG Base64 prefix, or a `data:image` URL. Operator
+answers other than `pass` / `fail` / `skip` are refused (including pasted
+names or photo data).
 
-Default: 100 E2 reads, 20 E3 cycles on `-synthetic`, E4–E7/M1 **SKIP**
-(`-skip-operator`) so the operator fills those rows from the table below.
+Default: 100 E2 reads. E3 is automatic on `-synthetic`; on hardware, run
+`-operator` and follow the remove/insert Enter prompts. E4–E7/M1 prompts
+are **printed in hardware mode** even without `-operator`. `-skip-operator`
+(the default) leaves those rows SKIP; `-operator` records pass/fail/skip.
 
 ## E1–E7 (physical)
 
@@ -120,8 +130,8 @@ photos of the card.
 
 ## Report attachment
 
-Attach `openthaiid-qualify.json` when the script wrote one. Confirm the
-`"pii"` field says values are omitted. If a tool ever printed a citizen
+Attach the single `report: …` JSON path when the command wrote one. Confirm
+the `"pii"` field says values are omitted. If a tool ever printed a citizen
 ID, **delete that file** and re-run; do not redact by hand in chat.
 
 ## After macOS

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,12 +11,16 @@
   <body>
     <header class="top">
       <div>
-        <h1>OpenThaiID helper</h1>
-        <p class="sub">On this computer · plug in the reader, then Fill in your clinic page</p>
+        <h1 data-i18n="title">ตัวช่วย OpenThaiID</h1>
+        <p class="sub" data-i18n="subtitle">บนเครื่องนี้ · เสียบเครื่องอ่าน แล้วกด กรอกข้อมูล ในหน้าคลินิก</p>
       </div>
       <div class="meta">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" id="lang-th" class="btn lang-btn" aria-pressed="true">ไทย</button>
+          <button type="button" id="lang-en" class="btn lang-btn" aria-pressed="false">English</button>
+        </div>
         <button type="button" id="tech-toggle" class="btn" aria-pressed="false">
-          Technician / developer
+          ช่างเทคนิค / Technician
         </button>
       </div>
     </header>
@@ -25,30 +29,29 @@
 
     <main>
       <section class="card hero" aria-labelledby="ready-heading">
-        <p id="ready-heading" class="headline">Checking…</p>
-        <p id="next-step" class="next">One moment.</p>
+        <p id="ready-heading" class="headline">กำลังตรวจ…</p>
+        <p id="next-step" class="next">สักครู่</p>
         <ul class="lights" id="lights">
           <li id="light-helper">
             <span class="dot" aria-hidden="true"></span>
-            <span class="light-text">OpenThaiID on this computer</span>
+            <span class="light-text">OpenThaiID บนเครื่องนี้</span>
           </li>
           <li id="light-reader">
             <span class="dot" aria-hidden="true"></span>
-            <span class="light-text">Card reader</span>
+            <span class="light-text">เครื่องอ่านบัตร</span>
           </li>
           <li id="light-card">
             <span class="dot" aria-hidden="true"></span>
-            <span class="light-text">Thai ID card</span>
+            <span class="light-text">บัตรประชาชนไทย</span>
           </li>
         </ul>
       </section>
 
       <section class="card" id="user-pending-card" aria-labelledby="user-pending-heading" hidden>
-        <h2 id="user-pending-heading">A website wants to read the card</h2>
-        <p class="help">
-          Allow only the clinic page you are using. Match the code if the clinic
-          page shows one. This does not skip security — the website still cannot
-          approve itself.
+        <h2 id="user-pending-heading" data-i18n="allowHeading">เว็บไซต์ต้องการอ่านบัตร</h2>
+        <p class="help" data-i18n="allowHelp">
+          อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกแสดงรหัส ให้รหัสตรงกัน
+          เว็บไซต์อนุมัติตัวเองไม่ได้
         </p>
         <ul id="user-pending" class="list"></ul>
       </section>
@@ -58,6 +61,7 @@
         <p class="help">
           Manual controls and diagnostics for fixing problems. Personal card
           values (citizen ID, names, dates, address) are never shown.
+          เครื่องมือช่างเทคนิค — ไม่แสดงเลขบัตร ชื่อ หรือที่อยู่
         </p>
 
         <section class="card" aria-labelledby="conn-heading">
@@ -152,10 +156,9 @@
       </section>
     </main>
 
-    <footer>
-      Clinic staff only need the lights above. Independent open-source project —
-      not affiliated with or endorsed by the Department of Provincial
-      Administration.
+    <footer data-i18n="footer">
+      เจ้าหน้าที่ใช้ไฟสถานะด้านบนก็พอ · Independent open-source project — not
+      affiliated with or endorsed by the Department of Provincial Administration.
     </footer>
     <script src="/manager/app.js"></script>
   </body>

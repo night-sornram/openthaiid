@@ -887,5 +887,6 @@ export {
   type ProbeThaiIDOptions,
   type StatusSummary,
 } from "./probe.js";
+export { staffCopy, staffLang, type StaffCopy, type StaffLang } from "./staffCopy.js";
 
 export default ThaiID;

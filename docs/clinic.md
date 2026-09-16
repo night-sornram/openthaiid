@@ -61,8 +61,9 @@ mountThaiIDStatus(document.getElementById("reader-status"));
    data:` (or `blob:` when using `URL.createObjectURL`). The
    `examples/clinic-patient/` screen shows an opt-in preview only.
 
-`mountThaiIDStatus` defaults to clinic-staff copy (Ready / not ready). Pass
-`{ mode: "advanced" }` for technician details on the same page.
+`mountThaiIDStatus` defaults to Thai clinic-staff copy (พร้อม / ยังไม่พร้อม).
+Pass `{ lang: "en" }` for English, or `{ mode: "advanced" }` for technician
+details (English) on the same page.
 
 `request` is an allowlist. `map` is slot → selector. Phone / HN stay off the
 map. Worked example: `examples/clinic-patient/`.

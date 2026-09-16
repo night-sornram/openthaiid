@@ -65,7 +65,8 @@ echo "$sum" | grep -vq 'pending'
 
 st="$("$BIN" status -port "$PORT")"
 echo "$st"
-echo "$st" | grep -q "OpenThaiID is running"
+echo "$st" | grep -q "OpenThaiID"
+echo "$st" | grep -E -q "พร้อม|Ready|กำลังทำงาน|is running"
 echo "$st" | grep -vq '1234567890121'
 
 # Foreign Origin must not be able to quit the helper.

@@ -31,12 +31,12 @@ mountThaiIDStatus(document.getElementById("reader-status"));
 
 const probe = await probeThaiID();
 // probe.reachable, probe.backend.status, probe.readers[].presence
-// summarizeProbe(probe) → Ready / not ready in plain language
+// summarizeProbe(probe) → พร้อม / ยังไม่พร้อม (Thai default; pass "en" for English)
 ```
 
 This talks to the local helper with `bridge.probe`. It never returns citizen
 ID or names. Card reads still need Allow. Default status copy is for clinic
-staff; `{ mode: "advanced" }` adds technician details.
+staff; `{ lang: "en" }` for English; `{ mode: "advanced" }` adds technician details.
 
 ## Form autofill (plain JavaScript)
 
