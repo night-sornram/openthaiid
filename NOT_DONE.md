@@ -1,9 +1,9 @@
 # Not done
 
-Last updated after remaining textual ID fields (`englishName`, `gender`,
-`issuer`, `issueDate`, `expireDate`, `address`) on top of pairing-only
-handshake, mixed-case revoke, H9 restart, H11 isolation, and green CI on
-PR #1.
+Last updated after GitHub Actions was split into a cheap PR lane and a
+full post-merge / `workflow_dispatch` matrix (on top of remaining textual
+ID fields, pairing-only handshake, mixed-case revoke, H9 restart, H11
+isolation, and green CI on PR #1).
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, and remaining textual fields (synthetic)
@@ -38,7 +38,12 @@ address `#` component order (see `docs/provenance.md`).
 
 ## Proven in CI (PR #1)
 
-On `3ca134d` (PR #1, Actions run [35054867099](https://github.com/night-sornram/openthaiid/actions/runs/35054867099)): 11/11 jobs green, including five-target build + version smoke, `npm ci` SDK, Chrome × Linux/macOS/Windows + Edge × Windows (allow/deny/unanswered), artifact-style steps, node-pty Windows, and `go test -count=50`. Re-confirm on this branch after push.
+On `3ca134d` (PR #1, Actions run [35054867099](https://github.com/night-sornram/openthaiid/actions/runs/35054867099)): 11/11 jobs green, including five-target build + version smoke, `npm ci` SDK, Chrome × Linux/macOS/Windows + Edge × Windows (allow/deny/unanswered), artifact-style steps, node-pty Windows, and `go test -count=50`.
+
+After the CI split, **pull requests** only re-run the ubuntu lane (Go tests
+with `-count=5`, linux/amd64, SDK, Chrome × allow/deny/unanswered). Confirm
+the full 11-job matrix on merge to `dev`/`main` or via **workflow_dispatch**
+(select branch `dev` until `main` tracks releases).
 
 ---
 
@@ -66,8 +71,9 @@ Do not treat these as MVP gaps:
 
 ## How to close the remaining work
 
-1. Push this branch and confirm five-target + browser CI jobs (Chrome ×3, Edge ×1)
-   stay green with allow/deny/unanswered policies.
+1. Push this branch and confirm PR CI (ubuntu Go + Chrome, 4 jobs) is green.
+   Confirm the full five-target + Chrome×3/Edge matrix on merge to `dev` or
+   via workflow_dispatch on `dev`.
 2. Run `make acceptance` on Windows (Chrome + Edge) and Linux.
 3. Connect an ACR39U on macOS; complete E1–E7 without logging field values.
    While doing so, confirm gender encoding, English-name delimiters, and

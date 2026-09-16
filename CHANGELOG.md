@@ -52,6 +52,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SDK 10m, acceptance 25m / 5m per policy) plus `concurrency: cancel-in-progress`
   so a new SHA does not leave hung Windows jobs occupying runners for 6h
 
+### Changed
+
+- GitHub Actions CI is split to conserve included minutes: **pull requests**
+  run 4 ubuntu jobs (Go test/race with bridge/reader `-count=5`, linux/amd64
+  build, Web SDK, Chrome allow/deny/unanswered). The **full** 11-job matrix
+  (five-target build, Chrome × Linux/macOS/Windows + Edge × Windows,
+  `-count=50`) runs on push to `dev`/`main` and `workflow_dispatch`. Docs-only
+  changes skip the workflow. Local `make test-repeat` stays `-count=50`.
+
 ### Changed (protocol / card — pre-release corrections)
 
 - READ BINARY command form corrected to the cited APDU table:

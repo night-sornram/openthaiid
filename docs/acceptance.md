@@ -11,11 +11,30 @@ Status values:
 Record for each claim: commit, platform, browser version, command, result,
 and evidence location.
 
+## GitHub Actions lanes
+
+Included Actions minutes are billed with OS multipliers (Linux 1×, Windows
+~2×, macOS ~10×). Every PR push used to run the full 11-job matrix; macOS
+builds/acceptance and hung Windows jobs dominated the pool.
+
+| Lane | When | What runs |
+|---|---|---|
+| **PR** | `pull_request` (code changes) | Ubuntu: Go fmt/vet/test/race, bridge/reader `-count=5`, linux/amd64 build + version smoke, Web SDK, Chrome acceptance (allow/deny/unanswered). **4 jobs.** |
+| **Full** | `push` to `main`/`dev`, `workflow_dispatch` | PR jobs with `-count=50`, plus linux/arm64, windows/amd64, darwin/arm64, darwin/amd64 builds; Chrome on macOS and Windows; Edge on Windows. **11 jobs.** |
+
+Docs-only / `.cursor/`-only changes skip the workflow (`paths-ignore`).
+In-progress runs still cancel on a new SHA. Local `make test`,
+`make test-repeat` (`-count=50`), and `make acceptance` are unchanged.
+
+A calendar nightly is not enabled: GitHub `schedule` workflows run from the
+default branch (`main`), which is still the initial commit. Dispatch this
+workflow on `dev` for an on-demand full matrix.
+
 ## Build artifacts
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| A1 | All five OS/arch artifacts build and start | CI matrix + version smoke | Done (PR #1 run 35054867099); re-confirm on this branch |
+| A1 | All five OS/arch artifacts build and start | Full-lane CI matrix + version smoke (PRs build linux/amd64) | Done (PR #1 run 35054867099); re-confirm on full lane |
 | A2 | `openthaiid doctor` reports PC/SC status without reading personal fields | CLI output | Done |
 | A3 | `openthaiid version` prints module version (injected at release build) | CLI + package.sh verify | Done |
 
@@ -53,7 +72,7 @@ and evidence location.
 | C13 | `BACKEND_STALLED` after 2s post-cancel; recovery after worker finishes | Stall + recovery tests | Done |
 | C14 | Shutdown returns at deadline without releasing a context still in use | `TestStopRefusesReleaseWhileWorkerBlocked` | Done |
 | C15 | Non-cooperative backend (blocked open/begin/transmit/cleanup) | Synthetic `BlockPhase` tests | Done |
-| C16 | Formerly flaky integration cases ×50 | CI `go test -count=50` step | CI ready |
+| C16 | Formerly flaky integration cases ×50 | Full CI `go test -count=50`; PRs use `-count=5` | CI ready (PR + full lanes) |
 
 ## SDK and example
 
@@ -75,12 +94,16 @@ No browser-cache path guessing. Every GitHub Actions job has a hard
 `timeout-minutes` (acceptance 25m, 5m per policy step); the harness also
 exits via `process.exit` at 120s. A new push cancels in-progress runs.
 
+PR CI runs H1 + H5–H7 (ubuntu Chrome, three policies). H2–H4 (macOS Chrome,
+Windows Chrome, Windows Edge) run on the full lane only (merge to `dev`/`main`
+or `workflow_dispatch`).
+
 | # | Criterion | Status |
 |---|---|---|
-| H1 | Stable Chrome on ubuntu-24.04 | CI ready |
-| H2 | Stable Chrome on macos-15 | CI ready |
-| H3 | Stable Chrome on windows-2025 | CI ready |
-| H4 | Stable Edge on windows-2025 | CI ready |
+| H1 | Stable Chrome on ubuntu-24.04 | CI ready (PR + full) |
+| H2 | Stable Chrome on macos-15 | CI ready (full lane) |
+| H3 | Stable Chrome on windows-2025 | CI ready (full lane) |
+| H4 | Stable Edge on windows-2025 | CI ready (full lane) |
 | H5 | Approval + read (allow policy) | CI ready |
 | H6 | Terminal denial (deny policy) | CI ready |
 | H7 | Approval stays pending (unanswered policy) | CI ready |
@@ -141,7 +164,7 @@ Successful compilation alone does not close these checks.
 | F2 | Go module builds with CLI skeleton (`version`, `doctor`, default run) | Done |
 | F3 | Backend/Card interfaces defined; synthetic backend implements them | Done |
 | F4 | Real PC/SC adapter compiles on darwin with pinned `ebfe/scard` | Done (compile) |
-| F5 | Five-target build matrix documented; CI workflow present | Done |
+| F5 | Five-target build matrix documented; CI workflow present | Done (full lane; PRs build linux/amd64) |
 | F6 | Provenance ledger records MVP profile sources and independent implementation | Done |
 | F7 | Dependency audit checklist present | Done |
 
@@ -161,8 +184,8 @@ Successful compilation alone does not close these checks.
 | G10 | Grant-lifetime and revocation enforcement | Done |
 | G11 | PC/SC StateUnaware retention + recovery; stall + ownership | Done |
 | G12 | Shared synthetic demo card end-to-end | Done |
-| G13 | Green five-target CI with version smoke + npm ci | Done (PR #1) |
-| G14 | Playwright browser acceptance (Chrome × 3 OS + Edge on Windows) | Done (PR #1); re-confirm on this branch |
+| G13 | Green five-target CI with version smoke + npm ci | Done (PR #1); full lane after merge / dispatch |
+| G14 | Playwright browser acceptance (Chrome × 3 OS + Edge on Windows) | Done (PR #1); PRs re-check ubuntu Chrome; full matrix on merge / dispatch |
 | G15 | Hardware qualification evidence | Open |
 | G16 | node-pty cross-platform terminal approval harness | Done (local macOS); multi-OS CI ready |
 
