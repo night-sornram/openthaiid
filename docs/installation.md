@@ -179,8 +179,12 @@ Cross-compilation notes:
 ./dist/openthaiid              # terminal helper (technicians)
 ./dist/openthaiid tray         # clinic background helper
 ./dist/openthaiid tray -open   # same, open Ready page
+./dist/openthaiid serve        # headless always-on helper
+./dist/openthaiid service status
 ./dist/openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
+./dist/openthaiid audit        # redacted operator trail JSON
 # One-page sheet: docs/friday-checklist.md  Practice: docs/training.md
+# Technician: docs/technician.md
 ```
 
 Default WebSocket endpoint: `ws://127.0.0.1:17891/v1/ws`

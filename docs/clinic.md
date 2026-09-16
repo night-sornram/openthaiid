@@ -38,8 +38,9 @@ Technicians (Fill failed): [technician.md](technician.md).
 | `probeThaiID` / `mountThaiIDStatus` for connection | A clinic “manager app” to install |
 | `autofillThaiID(config)` on a button click | An OpenThaiID server in the data center |
 
-The PC with the reader still needs the local helper running (`openthaiid tray`
-or `openthaiid` / `openthaiid -synthetic`). That helper is not a stack you deploy;
+The PC with the reader still needs the local helper running (`openthaiid tray`,
+`openthaiid serve` / `openthaiid service install` for always-on, or
+`openthaiid` / `openthaiid -synthetic`). That helper is not a stack you deploy;
 it is local hardware access. Clinic IT: unzip the OS archive and follow
 START-HERE.txt ([installation.md](installation.md)). If it is not running, `probeThaiID()` returns
 `reachable: false` and the status panel says so.

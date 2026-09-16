@@ -6,7 +6,8 @@
 ครั้งแรกยังต้องกด **อนุญาต** บนหน้า พร้อม — หน้าคลินิกอนุมัติตัวเองไม่ได้
 
 ห้ามส่งภาพหน้าจอ เลขบัตร ชื่อ ที่อยู่ หรือรูปถ่ายไปในทิคเก็ต
-ส่งได้เฉพาะ Copy diagnostics และรหัสผิดพลาด เช่น `NO_CARD`
+ส่งได้เฉพาะ Copy diagnostics, `openthaiid audit` JSON (รหัสเท่านั้น)
+และรหัสผิดพลาด เช่น `NO_CARD`
 
 ## สั้น ๆ
 
@@ -52,6 +53,7 @@
 Start `./dist/openthaiid -synthetic`, open
 `examples/clinic-patient/`, click Fill, then **Allow** on the Ready page.
 The form shows fictional card data. Do not send screenshots or field
-values in tickets — diagnostics and error **codes** only.
+values in tickets — diagnostics, `openthaiid audit` JSON, and error
+**codes** only.
 Pass `{ lang: "en" }` / `?lang=en` for English staff banners.
 When the ACR39U arrives, restart the helper without `-synthetic`.

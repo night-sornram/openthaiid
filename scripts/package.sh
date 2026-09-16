@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${VERSION:-0.1.0-rc.1}"
+VERSION="${VERSION:-0.1.0-rc.2}"
 OS="${OS:-}"
 ARCH="${ARCH:-}"
 if [ -z "$OS" ] || [ -z "$ARCH" ]; then
@@ -150,6 +150,8 @@ if [ "$OS" = "$HOST_OS" ] && [ "$ARCH" = "$HOST_ARCH" ] && [ "$OS" != "windows" 
   echo "$help" | grep -q "openthaiid audit" || { echo "ERROR: help missing audit" >&2; exit 1; }
   test -f "$VERIFY/START-HERE.txt" || { echo "ERROR: missing START-HERE.txt" >&2; exit 1; }
   grep -q "qualify" "$VERIFY/START-HERE.txt" || { echo "ERROR: START-HERE missing qualify" >&2; exit 1; }
+  grep -qi "audit" "$VERIFY/START-HERE.txt" || { echo "ERROR: START-HERE missing audit" >&2; exit 1; }
+  grep -q "service install" "$VERIFY/START-HERE.txt" || { echo "ERROR: START-HERE missing service install" >&2; exit 1; }
   if [ "$OS" = "darwin" ]; then
     test -x "$VERIFY/OpenThaiID.app/Contents/MacOS/openthaiid" || { echo "ERROR: missing .app executable" >&2; exit 1; }
     grep -q "$VERSION" "$VERIFY/OpenThaiID.app/Contents/Info.plist" || { echo "ERROR: Info.plist version" >&2; exit 1; }

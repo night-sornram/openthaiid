@@ -1,10 +1,10 @@
 # Not done
 
-Last updated after the operator audit trail and always-on helper
-(`openthaiid serve` / Windows service / Linux systemd + linger). ERP
-autofill config, Thai Fill-error guidance, staff training, and the Friday
-runbook remain on `dev`. Physical ACR39U execution is still blocked on
-hardware.
+Last updated for **v0.1.0-rc.2** prep (qualify kit, Thai UI, Fill errors,
+ERP config schema, operator audit trail, always-on `serve` / service).
+Physical ACR39U execution is still blocked on hardware. Do **not** tag
+from this working tree — coordinator tags `v0.1.0-rc.2` on `dev` after
+this PR merges.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -62,7 +62,7 @@ Auto-update against GitHub Releases is implemented for **unsigned** assets.
 | Item | Notes |
 |---|---|
 | Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
-| Published GitHub Release / `v0.1.0-rc.1` tag | Prepare from `dev`; a human should tag after review. Do not enable Actions to build the RC. |
+| Published GitHub Release / `v0.1.0-rc.2` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. |
 | Darwin clinic archive on GitHub | Produce with `make package-macos` **on a Mac**. Linux builders cannot cross-compile `ebfe/scard` + Cocoa. Unsigned / not notarized. |
 
 ---
@@ -80,10 +80,46 @@ Auto-update against GitHub Releases is implemented for **unsigned** assets.
 4. Complete the headed public-HTTPS local-network permission check (M1).
 5. Finish the binding audit checklist in `docs/dependency-audit.md` /
    `docs/acceptance.md` (P2–P6, P10).
-6. Human/coordinator: tag `v0.1.0-rc.1` from `dev` after review, attach
-   `scripts/package.sh` archives (linux/windows from Linux; darwin from a
-   Mac via `make package-macos`) + SHA256SUMS as a GitHub **prerelease**.
-   Do not enable GitHub Actions until minutes are available.
+6. Human/coordinator: tag `v0.1.0-rc.2` from `dev` after review. Do **not**
+   enable GitHub Actions until minutes are available. Exact commands after
+   this PR is merged:
+
+```bash
+git checkout dev && git pull origin dev
+git tag -a v0.1.0-rc.2 -m "OpenThaiID v0.1.0-rc.2"
+git push origin v0.1.0-rc.2
+
+# Linux + Windows archives (Linux builder). Darwin must be on a Mac.
+VERSION=0.1.0-rc.2 OS=linux ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.2 OS=windows ARCH=amd64 ./scripts/package.sh
+# On a Mac only:
+#   VERSION=0.1.0-rc.2 make package-macos
+
+# Checksums of the archives (package.sh already writes SHA256SUMS *inside*
+# each archive for the binary):
+(
+  cd dist
+  sha256sum openthaiid-0.1.0-rc.2-linux-amd64.tar.gz \
+    openthaiid-0.1.0-rc.2-windows-amd64.zip \
+    > SHA256SUMS
+)
+# append the darwin archive SHA when produced on a Mac
+
+# Release notes: the [0.1.0-rc.2] section only (not the whole CHANGELOG).
+sed -n '/^## \[0.1.0-rc.2\]/,/^## \[0.1.0-rc.1\]/{ /^## \[0.1.0-rc.1\]/d; p; }' \
+  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.2-notes.md
+
+gh release create v0.1.0-rc.2 \
+  --repo night-sornram/openthaiid \
+  --prerelease \
+  --target dev \
+  --title "v0.1.0-rc.2" \
+  --notes-file /tmp/openthaiid-0.1.0-rc.2-notes.md \
+  dist/openthaiid-0.1.0-rc.2-linux-amd64.tar.gz \
+  dist/openthaiid-0.1.0-rc.2-windows-amd64.zip \
+  dist/SHA256SUMS
+# add dist/openthaiid-0.1.0-rc.2-darwin-<arch>.tar.gz when available
+```
 
 Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.1]`.
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.2]`.

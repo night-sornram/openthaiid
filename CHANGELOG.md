@@ -7,13 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-ERP-friendly `autofillThaiID` JSON config (schema, samples, clinic
-import/export) on `dev` while ACR39U hardware is in transit. **Do not enable
-GitHub Actions.** Physical E1–E7 execution still waits on the reader.
-Packages remain **unsigned** (not notarized).
+Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
+enable GitHub Actions.** Packages remain **unsigned** (not notarized).
+
+## [0.1.0-rc.2] — software release candidate (unreleased tag)
+
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.2` only after
+human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
+in this candidate.
+
+Summarizes merges since `[0.1.0-rc.1]`: Friday qualify kit (#13–#14), Thai
+staff UI (#14), Thai Fill errors + training + Friday runbook (#15), ERP
+autofill JSON schema (#16), operator audit trail + always-on serve/service
+(#17).
 
 ### Added
 
+- Friday hardware qualification kit: [docs/hardware-qualification.md](docs/hardware-qualification.md),
+  `openthaiid qualify`, `scripts/hardware-qualify.sh`, `make qualify-smoke`.
+  Reports are pass/fail + timing + error codes + technician diagnostics.
+  Citizen ID, names, address text, and portrait bytes are never stored;
+  the writer refuses output that contains those payloads.
+- `openthaiid qualify -operator` records E4–E7 / M1 as pass/fail/skip from
+  the keyboard (those words only; pasted card data is refused). Hardware
+  mode prints the bilingual operator prompts even without `-operator`.
+  Hardware E3 can be driven with Enter (remove / seat) instead of only
+  `-synthetic`. Always writes **one** redacted JSON report (default
+  `./openthaiid-qualify.json`) and prints `report: <absolute path>`.
+- Windows clinic wrappers: `Qualify-OpenThaiID.bat` /
+  `Qualify-OpenThaiID.ps1`, plus `scripts/hardware-qualify.ps1`.
+  `scripts/hardware-qualify.sh --operator`.
+- Clinic-staff Ready copy defaults to **Thai** (พร้อม / ยังไม่พร้อม) on the
+  helper page, `mountThaiIDStatus` / `summarizeProbe`, tray **แสดงสถานะ**,
+  and `openthaiid status`. English fallback: Ready page ไทย/English toggle,
+  `{ lang: "en" }` in the SDK, or `OPENTHAIID_LANG=en`. Technician / debug
+  chrome stays English (bilingual toggle label). Staff user doc is Thai-first.
+- Clinic Fill / probe errors default to **Thai** staff guidance
+  (`formatStaffError`, `staffErrorGuidance`) while protocol **codes** stay
+  stable (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `APPROVAL_REQUIRED` /
+  `APPROVAL_DENIED`, `FIELD_NOT_ALLOWED`, …). English: `{ lang: "en" }`.
+  `autofillThaiID` and `probeThaiID` localize `ThaiIDError.message` for ERP
+  chrome. Wire/technician messages remain English.
+- Staff training: Ready-page **ฝึกใช้ก่อนได้เครื่องจริง** card in
+  `-synthetic`, Thai clinic example flow, [docs/training.md](docs/training.md).
+- One-page Friday runbook: [docs/friday-checklist.md](docs/friday-checklist.md)
+  (plug reader → Ready → qualify → Fill → diagnostics only for tickets).
+- `sdk/web/schema/autofill-clinic-config.schema.json` (export
+  `@openthaiid/web/schema/autofill-clinic-config.json`), TypeScript
+  `AutofillClinicConfig`, and `parseAutofillClinicConfig` /
+  `serializeAutofillClinicConfig`. Callbacks stay code-only. Samples:
+  `examples/clinic-patient/kyc-minimal.json` (3-field KYC) and
+  `clinic-full.json`. Drop-in steps (Thai + English):
+  [docs/erp-integration.md](docs/erp-integration.md).
+- Clinic example settings panel **download / upload** of that JSON (plus
+  load-sample buttons) so integrators can iterate without editing code.
 - Redacted **operator audit trail** for technicians: local ring +
   `audit.jsonl` of helper start/stop, reader/card presence, approval
   allow/deny/revoke, and Fill failures by **error code only**. Never stores
@@ -26,65 +74,6 @@ Packages remain **unsigned** (not notarized).
   unit + linger (`loginctl enable-linger`); system-unit template
   `openthaiid-system.service`. Task Scheduler fallback
   `Register-OpenThaiID-Task.ps1`. Docs: [installation.md](docs/installation.md).
-- Friday checklist pointer to the audit JSON as a ticket attachment
-  ([docs/friday-checklist.md](docs/friday-checklist.md)).
-  `sdk/web/schema/autofill-clinic-config.schema.json` (export
-  `@openthaiid/web/schema/autofill-clinic-config.json`), TypeScript
-  `AutofillClinicConfig`, and `parseAutofillClinicConfig` /
-  `serializeAutofillClinicConfig`. Callbacks stay code-only. Samples:
-  `examples/clinic-patient/kyc-minimal.json` (3-field KYC) and
-  `clinic-full.json`. Drop-in steps (Thai + English):
-  [docs/erp-integration.md](docs/erp-integration.md).
-- Clinic example settings panel **download / upload** of that JSON (plus
-  load-sample buttons) so integrators can iterate without editing code.
-- Clinic Fill / probe errors default to **Thai** staff guidance
-  (`formatStaffError`, `staffErrorGuidance`) while protocol **codes** stay
-  stable (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `APPROVAL_REQUIRED` /
-  `APPROVAL_DENIED`, `FIELD_NOT_ALLOWED`, …). English: `{ lang: "en" }`.
-  `autofillThaiID` and `probeThaiID` localize `ThaiIDError.message` for ERP
-  chrome. Wire/technician messages remain English.
-- Staff training: Ready-page **ฝึกใช้ก่อนได้เครื่องจริง** card in
-  `-synthetic`, Thai clinic example flow, [docs/training.md](docs/training.md).
-- One-page Friday runbook: [docs/friday-checklist.md](docs/friday-checklist.md)
-  (plug reader → Ready → qualify → Fill → diagnostics only for tickets).
-
-### Changed
-
-- Practice-mode Ready copy no longer hides a pending Allow prompt.
-- Clinic example staff chrome is Thai-first (`?lang=en` fallback).
-
-### Added (Thai staff UX)
-
-- Clinic-staff Ready copy defaults to **Thai** (พร้อม / ยังไม่พร้อม) on the
-  helper page, `mountThaiIDStatus` / `summarizeProbe`, tray **แสดงสถานะ**,
-  and `openthaiid status`. English fallback: Ready page ไทย/English toggle,
-  `{ lang: "en" }` in the SDK, or `OPENTHAIID_LANG=en`. Technician / debug
-  chrome stays English (bilingual toggle label). Staff user doc is Thai-first.
-- `openthaiid qualify -operator` records E4–E7 / M1 as pass/fail/skip from
-  the keyboard (those words only; pasted card data is refused). Hardware
-  mode prints the bilingual operator prompts even without `-operator`.
-  Hardware E3 can be driven with Enter (remove / seat) instead of only
-  `-synthetic`. Always writes **one** redacted JSON report (default
-  `./openthaiid-qualify.json`) and prints `report: <absolute path>`.
-- Windows clinic wrappers: `Qualify-OpenThaiID.bat` /
-  `Qualify-OpenThaiID.ps1`, plus `scripts/hardware-qualify.ps1`.
-  `scripts/hardware-qualify.sh --operator`.
-
-### Changed
-
-- JPEG SOI bytes, `FFD8FF`, and PNG Base64 prefixes are refused in qualify
-  output in addition to the existing citizen-ID / synthetic / `data:image`
-  blockers.
-- Windows/Linux START-HERE document Friday `qualify`; Mac START-HERE keeps
-  `make package-macos` accuracy and the same qualify command.
-
-### Added (clinic-prep)
-
-- Friday hardware qualification kit: `docs/hardware-qualification.md`,
-  `openthaiid qualify`, `scripts/hardware-qualify.sh`, `make qualify-smoke`.
-  Reports are pass/fail + timing + error codes + technician diagnostics.
-  Citizen ID, names, address text, and portrait bytes are never stored;
-  the writer refuses output that contains those payloads.
 - Clinic / vanilla example portrait **opt-in**: default `request` stays
   without `portrait`. The example UI can show an `<img>` preview when the
   integrator ticks portrait. Production grant is unchanged unless requested.
@@ -94,9 +83,32 @@ Packages remain **unsigned** (not notarized).
 
 ### Changed
 
+- Helper version string defaults to `0.1.0-rc.2`.
+- Practice-mode Ready copy no longer hides a pending Allow prompt.
+- Clinic example staff chrome is Thai-first (`?lang=en` fallback).
+- JPEG SOI bytes, `FFD8FF`, and PNG Base64 prefixes are refused in qualify
+  output in addition to the existing citizen-ID / synthetic / `data:image`
+  blockers.
+- Package START-HERE / Friday checklist / technician docs cross-link
+  qualify, redacted audit JSON, and `openthaiid service install`.
 - Technician docs no longer call portrait “out of scope”; it is optional
   and off by default.
 - macOS `Info.plist` version is injected from the package `VERSION`.
+
+### Security
+
+- Operator audit never stores citizen ID, names, address, portrait, raw
+  APDUs, or Fill error *messages*. Forbidden payloads are dropped rather
+  than written.
+- Auto-update remains the only operator-initiated outbound call (GitHub
+  API + unsigned release assets). No card fields are sent.
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.1] — software release candidate (unreleased tag)
 

@@ -43,7 +43,6 @@ Always-on without a menu-bar session (clinic IT, needs root):
   ./openthaiid service install
   sudo launchctl load /Library/LaunchDaemons/org.openthaiid.helper.plist
 Headless binary: ./openthaiid serve
-Technician audit JSON: ./openthaiid audit
 
 `./openthaiid update check` looks at GitHub Releases (no card data).
 
@@ -57,7 +56,10 @@ Technicians
                              same, and record pass/fail/skip from the keyboard
                              (never type citizen ID, names, address, or photo)
 See docs/technician.md, docs/friday-checklist.md, and
-docs/hardware-qualification.md. Practice without a reader: docs/training.md.
+docs/hardware-qualification.md. Always-on without a menu-bar session:
+docs/installation.md (`openthaiid service install`). Technician audit JSON:
+./openthaiid audit (or Technician tools → Copy JSON). Practice without a
+reader: docs/training.md.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.

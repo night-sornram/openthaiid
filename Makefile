@@ -1,6 +1,6 @@
 .PHONY: build test race vet fmt doctor sdk sdk-test tidy package package-macos clean check acceptance test-repeat smoke-helper qualify-smoke smoke-package
 
-VERSION ?= 0.1.0-rc.1
+VERSION ?= 0.1.0-rc.2
 
 build:
 	mkdir -p dist
