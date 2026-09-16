@@ -18,6 +18,7 @@ import (
 	"github.com/night-sornram/openthaiid/internal/audit"
 	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/card"
+	"github.com/night-sornram/openthaiid/internal/qualify"
 )
 
 //go:embed managerui/index.html managerui/app.js managerui/style.css
@@ -25,6 +26,9 @@ var managerUI embed.FS
 
 const managerTokenHeader = "X-OpenThaiID-Manager"
 const managerBodyLimit = 4096
+const managerDeviceWindow = 2 * time.Second
+const managerDeviceBurst = 4
+const maxLastErrorMessage = 240
 
 type probeView struct {
 	Version    string          `json:"version"`
@@ -164,6 +168,9 @@ func (s *Server) requireManagerAPI(w http.ResponseWriter, r *http.Request) bool 
 }
 
 func (s *Server) managerOriginAllowed(r *http.Request) bool {
+	if crossSiteFetch(r) {
+		return false
+	}
 	raw := strings.TrimSpace(r.Header.Get("Origin"))
 	if raw == "" {
 		// Same-origin document navigation does not send Origin. Mutating
@@ -172,6 +179,61 @@ func (s *Server) managerOriginAllowed(r *http.Request) bool {
 		return r.Method == http.MethodGet
 	}
 	return s.isManagerOrigin(raw)
+}
+
+// crossSiteFetch reports a browser request that came from another site.
+// Missing Sec-Fetch-Site (curl, older browsers, openthaiid quit) is allowed;
+// Origin checks still apply.
+func crossSiteFetch(r *http.Request) bool {
+	return strings.EqualFold(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site")), "cross-site")
+}
+
+func (s *Server) helperLoopbackAllowed(r *http.Request) bool {
+	if crossSiteFetch(r) {
+		return false
+	}
+	raw := strings.TrimSpace(r.Header.Get("Origin"))
+	if raw == "" {
+		return true
+	}
+	return s.isManagerOrigin(raw)
+}
+
+func (s *Server) writeRateLimited(w http.ResponseWriter) {
+	s.writeJSON(w, http.StatusTooManyRequests, map[string]any{
+		"ok":    false,
+		"code":  card.ErrRateLimited,
+		"error": "too many requests",
+	})
+}
+
+func (s *Server) tryBeginDeviceAction() bool {
+	s.deviceMu.Lock()
+	defer s.deviceMu.Unlock()
+	if s.deviceBusy {
+		return false
+	}
+	now := time.Now()
+	cutoff := now.Add(-managerDeviceWindow)
+	kept := s.deviceStamp[:0]
+	for _, ts := range s.deviceStamp {
+		if ts.After(cutoff) {
+			kept = append(kept, ts)
+		}
+	}
+	s.deviceStamp = kept
+	if len(s.deviceStamp) >= managerDeviceBurst {
+		return false
+	}
+	s.deviceBusy = true
+	s.deviceStamp = append(s.deviceStamp, now)
+	return true
+}
+
+func (s *Server) endDeviceAction() {
+	s.deviceMu.Lock()
+	s.deviceBusy = false
+	s.deviceMu.Unlock()
 }
 
 func (s *Server) isManagerOrigin(raw string) bool {
@@ -200,6 +262,11 @@ func (s *Server) handleManagerRefresh(w http.ResponseWriter, r *http.Request) {
 	if !s.requireManagerAPI(w, r) {
 		return
 	}
+	if !s.tryBeginDeviceAction() {
+		s.writeRateLimited(w)
+		return
+	}
+	defer s.endDeviceAction()
 	err := s.readers.Refresh(r.Context())
 	if err != nil {
 		ce := card.AsError(err)
@@ -304,6 +371,11 @@ func (s *Server) handleManagerReconnect(w http.ResponseWriter, r *http.Request) 
 	if !s.requireManagerAPI(w, r) {
 		return
 	}
+	if !s.tryBeginDeviceAction() {
+		s.writeRateLimited(w)
+		return
+	}
+	defer s.endDeviceAction()
 	err := s.readers.Reconnect(r.Context())
 	if err != nil {
 		ce := card.AsError(err)
@@ -463,6 +535,10 @@ func (s *Server) recordError(source, code, message string) {
 	case card.ErrApprovalRequired, card.ErrCancelled:
 		return
 	}
+	source, code, message, ok := sanitizeLastError(source, code, message)
+	if !ok {
+		return
+	}
 	s.lastErrMu.Lock()
 	defer s.lastErrMu.Unlock()
 	s.lastErrs = append(s.lastErrs, managerLastError{
@@ -474,6 +550,38 @@ func (s *Server) recordError(source, code, message string) {
 	if len(s.lastErrs) > maxLastErrors {
 		s.lastErrs = append([]managerLastError(nil), s.lastErrs[len(s.lastErrs)-maxLastErrors:]...)
 	}
+}
+
+func sanitizeLastError(source, code, message string) (string, string, string, bool) {
+	switch source {
+	case "refresh", "reconnect", "websocket":
+	default:
+		source = "helper"
+	}
+	code = strings.TrimSpace(code)
+	if code == "" || len(code) > 64 || qualify.ContainsForbidden(code) {
+		return "", "", "", false
+	}
+	for _, r := range code {
+		if r >= 'A' && r <= 'Z' {
+			continue
+		}
+		if r >= '0' && r <= '9' {
+			continue
+		}
+		if r == '_' {
+			continue
+		}
+		return "", "", "", false
+	}
+	message = strings.TrimSpace(message)
+	if qualify.ContainsForbidden(message) {
+		message = ""
+	}
+	if len(message) > maxLastErrorMessage {
+		message = message[:maxLastErrorMessage]
+	}
+	return source, code, message, true
 }
 
 func (s *Server) copyLastErrors() []managerLastError {

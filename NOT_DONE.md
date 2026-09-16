@@ -1,11 +1,11 @@
 # Not done
 
-Last updated after the **Friday dry-run (ซ้อมก่อนได้เครื่อง)** pass on `dev`
-(post getting-started hub / v0.1.0-rc.3). One command rehearses the
-Friday-morning software path on `-synthetic` without a reader. Physical
-ACR39U execution (including Friday E4–E6 on hardware) is still blocked.
-This tree remains **tag-ready** for `v0.1.0-rc.3` after review of that RC;
-this pass is Unreleased polish.
+Last updated after the **loopback helper HTTP hardening** pass on `dev`
+(post Friday dry-run / v0.1.0-rc.3). Manager/helper Origin, CSRF,
+cross-site fetch, reconnect/refresh bounds, and PII JSON tests are in
+this tree. Physical ACR39U execution (including Friday E4–E6 on hardware)
+is still blocked. This tree remains **tag-ready** for `v0.1.0-rc.3` after
+review of that RC; this pass is Unreleased polish.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional

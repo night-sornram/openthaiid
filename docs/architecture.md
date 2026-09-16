@@ -51,7 +51,8 @@ One Go process owns:
    WebSocket (`/v1/ws`, subprotocol `openthaiid.v1`). The default HTML view
    is clinic-staff status; technician controls are toggled, not the home
    screen. `GET /v1/helper/summary` is staff-safe lights (no personal data);
-   `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`.
+   `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`
+   (browser Origin also needs CSRF). Manager refresh/reconnect are bounded.
 5. A terminal command loop for approvals and revocation (console mode).
 6. Optional tray / background mode (`openthaiid tray`) instead of the
    terminal loop.

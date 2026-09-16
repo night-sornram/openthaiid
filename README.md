@@ -220,8 +220,8 @@ Browser (HTTPS ERP page)
 - Listens only on `127.0.0.1`; rejects non-loopback peers and Host rebinding.
 - Validates browser `Origin` (HTTPS always; HTTP loopback for development).
 - Operator approval per origin + exact field set (Manager or terminal); trust is memory-only.
-- Local Manager is loopback HTML; mutating APIs require a CSRF token and the manager origin. No CORS.
-- `POST /v1/helper/shutdown` is loopback-only and ignores foreign website `Origin` headers.
+- Local Manager is loopback HTML; mutating APIs require a CSRF token and the manager origin. No CORS. Refresh/reconnect are rate-limited.
+- `POST /v1/helper/shutdown` is loopback-only; foreign website `Origin` is rejected (browser Origin also needs CSRF). `GET /v1/helper/summary` has no personal fields.
 - One active read; results are unicast; card-session generations prevent stale data.
 - Never logs citizen IDs, names, dates, raw APDUs, or tokens. The helper page
   does not display personal field values. Technician diagnostics copy the same

@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
+### Security
+
+- Loopback helper/manager HTTP: foreign `Origin` and `Sec-Fetch-Site:
+  cross-site` cannot read summary or mutate shutdown, reader select,
+  reconnect, audit export, or other `/v1/manager/*` APIs. Browser shutdown
+  also requires the CSRF header (`openthaiid quit` still sends no Origin).
+  Refresh/reconnect are bounded (one in flight, four per two seconds).
+  Last-error JSON drops forbidden payloads. Go tests cover Origin/CSRF/PII.
+  Note in [docs/security.md](docs/security.md) and
+  [docs/technician.md](docs/technician.md).
+
 ### Added
 
 - Friday-morning **ซ้อมก่อนได้เครื่อง** rehearsal: `make friday-dry-run`

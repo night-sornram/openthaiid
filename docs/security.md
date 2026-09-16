@@ -90,9 +90,11 @@ within browser security rules only.
   place with leftover values.
 - `GET /v1/helper/summary` (loopback) returns helper/reader/card lights for
   tray and `openthaiid status`. It does not include origins, field tokens, or
-  personal values.
-- `POST /v1/helper/shutdown` is loopback-only. Requests with a non-manager
-  `Origin` are rejected so a website cannot stop the helper via the browser.
+  personal values. A website `Origin` is rejected (CLI/tray send none).
+- `POST /v1/helper/shutdown` is loopback-only. Foreign `Origin` and
+  `Sec-Fetch-Site: cross-site` are rejected so a website cannot stop the
+  helper. A browser `Origin` also needs the manager CSRF header.
+  `openthaiid quit` sends no `Origin` and still works.
 - Verbose logging (`-log-level debug` or the technician checkbox) is optional
   and defaults off; it still must not include personal fields.
 - Terminal approval output is separate from persistent logs.
@@ -117,8 +119,31 @@ within browser security rules only.
   unchanged. Never log photo bytes.
 - The local Manager (`GET /`, `GET/POST /v1/manager/*`) is loopback HTML and
   JSON for the operator on this PC. Mutating calls require the manager origin
-  and a CSRF token embedded in the page (not a cookie). Personal card fields
-  are not included in Manager responses.
+  and a CSRF token embedded in the page (not a cookie). `Sec-Fetch-Site:
+  cross-site` is rejected. Refresh/reconnect are bounded (one in flight, four
+  per two seconds). Personal card fields are not included in Manager responses.
+
+## Loopback HTTP on `127.0.0.1`
+
+The helper binds only IPv4 loopback. Any local process can still call these
+APIs (origin checks protect browsers, not malware on the PC). There is no
+CORS. Endpoints:
+
+| Path | Used by | Mutates | Browser rule |
+|---|---|---|---|
+| `GET /` | Ready / technician page | no | HTML; CSRF token in page |
+| `GET /healthz` | probes | no | liveness only; no readers or card state |
+| `GET /v1/helper/summary` | tray, `openthaiid status` | no | no PII; foreign `Origin` rejected |
+| `POST /v1/helper/shutdown` | `openthaiid quit` | yes | foreign `Origin` rejected; browser `Origin` needs CSRF |
+| `GET /v1/manager/status` | Ready page | no | CSRF + manager origin; no PII |
+| `GET /v1/manager/audit` | technician export | no | CSRF + manager origin; redacted events |
+| `POST /v1/manager/refresh` | technician | yes | CSRF + manager origin; rate-limited |
+| `POST /v1/manager/reconnect` | technician | yes | CSRF + manager origin; rate-limited |
+| `POST /v1/manager/reader/select` | Ready page | yes | CSRF + manager origin; ERP cannot select |
+| `POST /v1/manager/approvals/{id}/allow\|deny` | operator | yes | CSRF + manager origin; ERP cannot allow itself |
+| `POST /v1/manager/trust/revoke` `revoke-all` | operator | yes | CSRF + manager origin |
+| `POST /v1/manager/log-level` | technician | yes | CSRF + manager origin |
+| `GET /v1/ws` | ERP JavaScript | via protocol | eligible `Origin`; approval before card fields |
 
 ## Residual risk
 
