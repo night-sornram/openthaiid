@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bridge + synthetic card, using node-pty for real terminal approval (no bypass)
 - Cross-platform acceptance: Playwright `chrome` / `msedge` channels,
   approval policies (allow / deny / unanswered), allowlisted reports
+- Playwright two-browser-context isolation (H11): a card read is unicast
+  to the requester; the idle peer page and WebSocket frames stay free of
+  personal fields; the peer can still read on its own connection
+- Go integration coverage that two authenticated WebSocket clients never
+  share `card.read` results or session tokens
 - Eight concurrent async operations per connection (`RATE_LIMITED` on excess)
 - Event-queue overflow closes clients with WebSocket 1013 and requires a
   fresh snapshot after reconnect

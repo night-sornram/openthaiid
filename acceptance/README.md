@@ -48,6 +48,9 @@ make acceptance
 4. Full-page refresh reuses the active grant
 5. Connection failure on a closed port
 6. CSP allows `ws://127.0.0.1`
+7. Two browser contexts: requester read is unicast (peer page and
+   WebSocket frames stay free of card fields); peer can still read on its
+   own connection
 
 Origin rejection (HTTP evil origin) is covered by Go integration tests
 (`TestIntegrationBadOriginRejected`), not the browser harness: browsers

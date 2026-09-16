@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -384,6 +385,91 @@ func TestIntegrationDenyApproval(t *testing.T) {
 		return
 	}
 	t.Fatal("no response")
+}
+
+func TestIntegrationUnicastReadIsolation(t *testing.T) {
+	// Two authenticated connections: a card.read result is delivered only to
+	// the requester. The peer may receive metadata events, never field values.
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	connA, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = connA.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, connA, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID, card.FieldThaiName, card.FieldBirthDate},
+	})
+	tokenA := readToken(t, ctx, connA, 1)
+
+	connB, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = connB.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, connB, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID, card.FieldThaiName, card.FieldBirthDate},
+	})
+	tokenB := readToken(t, ctx, connB, 1)
+	if tokenA == tokenB {
+		t.Fatal("competing clients must receive distinct session tokens")
+	}
+
+	writeReq(t, ctx, connA, 2, "card.read", tokenA, protocol.CardReadPayload{})
+	msgA := readByID(t, ctx, connA, 2)
+	if msgA["error"] != nil {
+		t.Fatalf("requester card.read error: %v", msgA["error"])
+	}
+	fieldsA := msgA["result"].(map[string]any)["fields"].(map[string]any)
+	if fieldsA["citizenId"] != "1234567890121" {
+		t.Fatalf("requester citizenId %v", fieldsA["citizenId"])
+	}
+
+	peerFrames := collectFrames(t, ctx, connB, 250*time.Millisecond)
+	assertNoCardFields(t, peerFrames)
+
+	writeReq(t, ctx, connB, 2, "card.read", tokenB, protocol.CardReadPayload{})
+	msgB := readByID(t, ctx, connB, 2)
+	if msgB["error"] != nil {
+		t.Fatalf("peer independent card.read error: %v", msgB["error"])
+	}
+	fieldsB := msgB["result"].(map[string]any)["fields"].(map[string]any)
+	if fieldsB["citizenId"] != "1234567890121" {
+		t.Fatalf("peer citizenId %v", fieldsB["citizenId"])
+	}
+}
+
+func collectFrames(t *testing.T, ctx context.Context, c *websocket.Conn, window time.Duration) []map[string]any {
+	t.Helper()
+	var out []map[string]any
+	deadline := time.Now().Add(window)
+	for time.Now().Before(deadline) {
+		rctx, cancel := context.WithTimeout(ctx, 80*time.Millisecond)
+		_, data, err := c.Read(rctx)
+		cancel()
+		if err != nil {
+			continue
+		}
+		var m map[string]any
+		if err := json.Unmarshal(data, &m); err != nil {
+			t.Fatalf("peer frame: %v", err)
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func assertNoCardFields(t *testing.T, frames []map[string]any) {
+	t.Helper()
+	raw, err := json.Marshal(frames)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(raw)
+	for _, needle := range []string{"1234567890121", "สมชาย", "ใจดี"} {
+		if strings.Contains(s, needle) {
+			t.Fatalf("competing client received unicast card field %q", needle)
+		}
+	}
 }
 
 func TestIntegrationNoFieldExpansion(t *testing.T) {

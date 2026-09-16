@@ -354,6 +354,94 @@ async function runAllowScenarios(browser, httpsBase, wsURL) {
   await context.close();
 }
 
+const PERSONAL_SENTINELS = ["1234567890121", "สมชาย", "ใจดี"];
+
+function assertNoPersonalData(label, text) {
+  for (const needle of PERSONAL_SENTINELS) {
+    if (String(text).includes(needle)) {
+      throw new Error(`${label} contained the requester's card fields`);
+    }
+  }
+}
+
+function attachWsFrameLog(page) {
+  const frames = [];
+  page.on("websocket", (ws) => {
+    ws.on("framereceived", (event) => {
+      const payload = event.payload;
+      if (typeof payload === "string") frames.push(payload);
+    });
+  });
+  return frames;
+}
+
+async function connectAcceptancePage(page, httpsBase, wsURL) {
+  await page.goto(pageURL(httpsBase, wsURL), { waitUntil: "domcontentloaded" });
+  await page.locator("#connect").click();
+  await page.waitForFunction(
+    () => document.getElementById("status")?.textContent === "connected",
+    undefined,
+    { timeout: 20000 },
+  );
+  await page.waitForFunction(
+    () => (document.getElementById("out")?.textContent || "").includes("readers"),
+    undefined,
+    { timeout: 10000 },
+  );
+}
+
+async function waitForSyntheticRead(page) {
+  await page.waitForFunction(
+    () => {
+      const t = document.getElementById("out")?.textContent || "";
+      return t.includes("1234567890121") && t.includes("สมชาย");
+    },
+    undefined,
+    { timeout: 15000 },
+  );
+}
+
+async function runTwoClientIsolation(browser, httpsBase, wsURL) {
+  const ctxA = await browser.newContext({ ignoreHTTPSErrors: true });
+  const ctxB = await browser.newContext({ ignoreHTTPSErrors: true });
+  const pageA = await ctxA.newPage();
+  const pageB = await ctxB.newPage();
+  for (const page of [pageA, pageB]) {
+    page.on("console", (msg) => {
+      diagnostics.push({ type: "console", level: msg.type(), text: msg.text().slice(0, 400) });
+    });
+    page.on("pageerror", (err) => {
+      diagnostics.push({ type: "pageerror", text: String(err).slice(0, 400) });
+    });
+  }
+  const peerFrames = attachWsFrameLog(pageB);
+
+  await scenario("two-browser-client-isolation", async () => {
+    await connectAcceptancePage(pageA, httpsBase, wsURL);
+    await connectAcceptancePage(pageB, httpsBase, wsURL);
+
+    await pageA.locator("#read").click();
+    await waitForSyntheticRead(pageA);
+
+    // Peer must not receive or display the requester's unicast result.
+    await sleep(400);
+    const outB = await pageB.locator("#out").innerText();
+    assertNoPersonalData("idle peer page", outB);
+    assertNoPersonalData("idle peer websocket", peerFrames.join("\n"));
+
+    await pageB.locator("#read").click();
+    await waitForSyntheticRead(pageB);
+
+    const outA = await pageA.locator("#out").innerText();
+    if (!outA.includes("1234567890121")) {
+      throw new Error("requester lost its own unicast result after the peer read");
+    }
+  });
+
+  await ctxA.close();
+  await ctxB.close();
+}
+
 async function runBridgeRestart(browser, httpsBase, wsURL) {
   // Covered by Go tests for process ownership; browser-side reconnect after
   // an explicit stop is exercised by the deny/unanswered phases below.
@@ -434,6 +522,7 @@ async function main() {
 
     if (POLICY === "allow") {
       await runAllowScenarios(browser, httpsBase, wsURL);
+      await runTwoClientIsolation(browser, httpsBase, wsURL);
       await runBridgeRestart(browser, httpsBase, wsURL);
     } else if (POLICY === "deny") {
       const context = await browser.newContext({ ignoreHTTPSErrors: true });

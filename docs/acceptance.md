@@ -30,7 +30,7 @@ and evidence location.
 | B5 | Pending approval cannot be claimed by another connection | Connection-bound approvals | Done |
 | B6 | Tokens fail across origins and bridge restarts | Auth tests | Done |
 | B7 | Grant expiry/revocation during a read suppresses the result | Auth Session() + recheck | Done |
-| B8 | Competing clients never receive each other’s results | Unicast write path | Done |
+| B8 | Competing clients never receive each other’s results | Unicast write path + two-connection integration test | Done |
 | B9 | Eight concurrent async ops per connection; excess is `RATE_LIMITED` | Lifecycle saturation test | Done |
 | B10 | Event-queue overflow closes with WS 1013 and requires a fresh snapshot | Bridge enqueue + overflow path | Done (code); browser reconnect case CI ready |
 
@@ -85,7 +85,7 @@ No browser-cache path guessing.
 | H8 | Full-page refresh | CI ready |
 | H9 | Bridge restart / fresh snapshot after new process | CI ready (allow phase restarts) |
 | H10 | Disconnect clears fields | CI ready |
-| H11 | Two-client isolation | Open (Go unicast covered; browser pair not yet automated) |
+| H11 | Two-client isolation | Done (local Playwright two-context + Go unicast); multi-OS CI ready |
 | H12 | Origin rejection independent of terminal denial | Done (Go `TestIntegrationBadOriginRejected`) |
 | H13 | Connection failure on closed port (renamed scenario) | CI ready |
 
