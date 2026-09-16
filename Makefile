@@ -1,4 +1,4 @@
-.PHONY: build test race vet fmt doctor sdk sdk-test tidy package clean check acceptance test-repeat smoke-helper
+.PHONY: build test race vet fmt doctor sdk sdk-test tidy package package-macos clean check acceptance test-repeat smoke-helper qualify-smoke smoke-package
 
 VERSION ?= 0.1.0-rc.1
 
@@ -39,9 +39,30 @@ package: build
 	chmod +x scripts/package.sh
 	VERSION=$(VERSION) ./scripts/package.sh
 
+# Darwin builds need a Mac host (ebfe/scard + Cocoa tray cgo).
+# Does not sign or notarize.
+package-macos:
+	@host=$$(uname -s | tr '[:upper:]' '[:lower:]'); \
+	if [ "$$host" != "darwin" ]; then \
+		echo "make package-macos must run on a Mac (cgo + PCSC.framework + Cocoa)."; \
+		echo "Linux/Windows cannot cross-compile darwin. See docs/installation.md."; \
+		echo "This target does not produce a signed or notarized build."; \
+		exit 1; \
+	fi
+	chmod +x scripts/package.sh
+	VERSION=$(VERSION) OS=darwin ./scripts/package.sh
+
 smoke-helper: build
 	chmod +x scripts/smoke-clinic-helper.sh
 	./scripts/smoke-clinic-helper.sh
+
+qualify-smoke: build
+	chmod +x scripts/smoke-qualify.sh scripts/hardware-qualify.sh
+	./scripts/smoke-qualify.sh
+
+smoke-package:
+	chmod +x scripts/package.sh scripts/smoke-package.sh
+	./scripts/smoke-package.sh
 
 check: fmt-check vet test sdk-test build
 	@echo "All local checks passed."
