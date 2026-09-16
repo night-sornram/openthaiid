@@ -76,6 +76,11 @@ within browser security rules only.
   or hashes of personal fields.
 - The helper page and technician **Copy diagnostics** omit personal card
   field values. Last errors store protocol codes and generic messages only.
+- `GET /v1/helper/summary` (loopback) returns helper/reader/card lights for
+  tray and `openthaiid status`. It does not include origins, field tokens, or
+  personal values.
+- `POST /v1/helper/shutdown` is loopback-only. Requests with a non-manager
+  `Origin` are rejected so a website cannot stop the helper via the browser.
 - Verbose logging (`-log-level debug` or the technician checkbox) is optional
   and defaults off; it still must not include personal fields.
 - Terminal approval output is separate from persistent logs.

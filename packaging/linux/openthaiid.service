@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenThaiID local helper (loopback only)
+Documentation=file://%h/.local/share/doc/openthaiid/docs/user.md
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/openthaiid tray
+Restart=on-failure
+RestartSec=3
+
+# Opt-in: do not enable this unit unless clinic IT chooses it.
+#   systemctl --user enable --now openthaiid.service
+# Prefer: openthaiid autostart enable  (XDG autostart, works without systemd).
+
+[Install]
+WantedBy=default.target

@@ -52,7 +52,7 @@ the full 11-job matrix on merge to `dev`/`main` or via **workflow_dispatch**
 Do not treat these as MVP gaps:
 
 - Portrait / photo support
-- Installers, tray UI, auto-update
+- Signed store installers and auto-update
 - Official Firefox / Safari support
 - Published GitHub Release / release candidate tag
 - Laser-id / NHSO / other DFs not in the cited APDU table

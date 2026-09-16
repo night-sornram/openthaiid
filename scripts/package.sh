@@ -45,9 +45,38 @@ GOOS="$OS" GOARCH="$ARCH" CGO_ENABLED="$CGO_ENABLED" \
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
-cp "$DIST/$BIN_NAME" "$STAGE/"
+CLINIC_BIN="openthaiid"
+if [ "$OS" = "windows" ]; then
+  CLINIC_BIN="openthaiid.exe"
+fi
+cp "$DIST/$BIN_NAME" "$STAGE/$CLINIC_BIN"
 cp LICENSE NOTICE THIRD_PARTY_NOTICES.md README.md CHANGELOG.md "$STAGE/"
 cp -R docs "$STAGE/docs"
+if [ -f "packaging/START-HERE.${OS}.txt" ]; then
+  cp "packaging/START-HERE.${OS}.txt" "$STAGE/START-HERE.txt"
+fi
+case "$OS" in
+  windows)
+    cp packaging/windows/Start-OpenThaiID.bat "$STAGE/"
+    cp packaging/windows/install.ps1 "$STAGE/"
+    cp packaging/windows/uninstall.ps1 "$STAGE/"
+    ;;
+  linux)
+    cp packaging/linux/start-openthaiid.sh "$STAGE/"
+    cp packaging/linux/install-linux.sh "$STAGE/"
+    cp packaging/linux/openthaiid.desktop "$STAGE/"
+    cp packaging/linux/openthaiid.service "$STAGE/"
+    chmod +x "$STAGE/start-openthaiid.sh" "$STAGE/install-linux.sh" "$STAGE/$CLINIC_BIN"
+    ;;
+  darwin)
+    chmod +x "$STAGE/$CLINIC_BIN"
+    APP="$STAGE/OpenThaiID.app"
+    mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+    cp "$STAGE/$CLINIC_BIN" "$APP/Contents/MacOS/openthaiid"
+    cp packaging/macos/Info.plist "$APP/Contents/Info.plist"
+    chmod +x "$APP/Contents/MacOS/openthaiid"
+    ;;
+esac
 # Dependency inventory (best-effort; empty on failure).
 (go list -m all > "$STAGE/go-modules.txt" 2>/dev/null || true)
 if [ -f sdk/web/package-lock.json ]; then
@@ -58,9 +87,9 @@ if [ -f sdk/react/package-lock.json ]; then
 fi
 
 if command -v shasum >/dev/null 2>&1; then
-  (cd "$STAGE" && shasum -a 256 "$BIN_NAME" > SHA256SUMS)
+  (cd "$STAGE" && shasum -a 256 "$CLINIC_BIN" > SHA256SUMS)
 elif command -v sha256sum >/dev/null 2>&1; then
-  (cd "$STAGE" && sha256sum "$BIN_NAME" > SHA256SUMS)
+  (cd "$STAGE" && sha256sum "$CLINIC_BIN" > SHA256SUMS)
 fi
 
 echo "Creating $ARCHIVE ..."
@@ -83,12 +112,15 @@ if [ "$OS" = "$HOST_OS" ] && [ "$ARCH" = "$HOST_ARCH" ] && [ "$OS" != "windows" 
   rm -rf "$VERIFY"
   mkdir -p "$VERIFY"
   tar -xzf "$ARCHIVE" -C "$VERIFY"
-  got="$("$VERIFY/$BIN_NAME" version)"
+  got="$("$VERIFY/$CLINIC_BIN" version)"
   echo "verified version: $got"
   if [ "$got" != "$VERSION" ]; then
     echo "ERROR: version mismatch" >&2
     exit 1
   fi
+  help="$("$VERIFY/$CLINIC_BIN" help)"
+  echo "$help" | grep -q "openthaiid tray" || { echo "ERROR: help missing tray" >&2; exit 1; }
+  test -f "$VERIFY/START-HERE.txt" || { echo "ERROR: missing START-HERE.txt" >&2; exit 1; }
 fi
 
 echo "OK $ARCHIVE"

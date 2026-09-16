@@ -1,0 +1,38 @@
+OpenThaiID helper — clinic PC
+==============================
+
+This folder is the local helper for Thai National ID autofill. There is no
+OpenThaiID website or cloud backend. The helper listens only on 127.0.0.1.
+
+Happy path
+----------
+1. Double-click "Start OpenThaiID.bat" (or run install.ps1 once for Start Menu).
+2. Allow the helper if Windows SmartScreen warns (unsigned build).
+3. Look for OpenThaiID in the notification area (tray).
+4. Plug in the card reader. Open the clinic ERP. Click Fill.
+5. The first time, Allow the clinic page on the Ready page
+   (http://127.0.0.1:17891/). Match the code if the ERP shows one.
+
+Tray menu
+---------
+- Open Ready page
+- Open Technician tools
+- Show status (helper / reader / card — no personal data)
+- Start at login (opt-in; off by default)
+- Quit
+
+Start at login (opt-in)
+-----------------------
+Tray: check "Start at login"
+or:  openthaiid.exe autostart enable
+off: openthaiid.exe autostart disable
+
+install.ps1 copies files to %LOCALAPPDATA%\OpenThaiID and can create Start
+Menu / Desktop shortcuts. It does not enable autostart unless you pass
+-Autostart.
+
+Technicians: run openthaiid.exe in a terminal, or Open Technician tools.
+See docs\technician.md. Do not send screenshots of card data.
+
+This is an independent open-source project and is not affiliated with or
+endorsed by the Department of Provincial Administration.

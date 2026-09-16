@@ -114,14 +114,26 @@ func (c Config) Validate() error {
 	return nil
 }
 
-// UserConfigPath returns the OS user-config path for OpenThaiID.
-func UserConfigPath() (string, error) {
-	if x := os.Getenv("OPENTHAIID_CONFIG"); x != "" {
+// UserDir returns the per-user OpenThaiID directory (config, logs, pid).
+func UserDir() (string, error) {
+	if x := os.Getenv("OPENTHAIID_HOME"); x != "" {
 		return x, nil
 	}
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "openthaiid", "config.json"), nil
+	return filepath.Join(dir, "openthaiid"), nil
+}
+
+// UserConfigPath returns the OS user-config path for OpenThaiID.
+func UserConfigPath() (string, error) {
+	if x := os.Getenv("OPENTHAIID_CONFIG"); x != "" {
+		return x, nil
+	}
+	dir, err := UserDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "config.json"), nil
 }

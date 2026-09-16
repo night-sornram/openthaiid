@@ -54,6 +54,8 @@ type Server struct {
 
 	lastErrMu sync.Mutex
 	lastErrs  []managerLastError
+
+	onShutdownRequest func()
 }
 
 type clientConn struct {
@@ -159,6 +161,8 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("GET /manager/style.css", s.handleManagerCSS)
 	mux.HandleFunc("GET /favicon.ico", s.handleFavicon)
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
+	mux.HandleFunc("GET /v1/helper/summary", s.handleHelperSummary)
+	mux.HandleFunc("POST /v1/helper/shutdown", s.handleHelperShutdown)
 	mux.HandleFunc("GET /v1/ws", s.handleWS)
 	mux.HandleFunc("GET /v1/manager/status", s.handleManagerStatus)
 	mux.HandleFunc("POST /v1/manager/refresh", s.handleManagerRefresh)
