@@ -29,6 +29,10 @@ The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
   Always-on kiosk: `openthaiid service status` — if installed, skip the tray
   ([installation.md](installation.md)).
 - Confirm `http://127.0.0.1:17891/` loads, or use tray **Open Ready page**.
+- Ready page **ทดสอบการเชื่อมต่อ / Test connection** is `bridge.probe` +
+  status only — if that fails, the ERP Fill path will fail too.
+- After a helper restart, leave the Ready page open: it refreshes the CSRF
+  token and shows **ตัวช่วยหลุดการเชื่อมต่อ** until the helper is back.
 - `openthaiid status` prints helper / reader / card without personal fields.
 - There is no cloud service to restart.
 

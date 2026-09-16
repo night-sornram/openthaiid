@@ -88,8 +88,12 @@ Same config object. `useThaiIDAutofill(config)` if you want `filling` state.
 `probeThaiID()` opens a short WebSocket, sends `bridge.probe`, and closes.
 It reports helper up/down, card service, readers, and card present/absent in
 machine fields. `mountThaiIDStatus` turns that into **Ready** / plug reader /
-insert card. It does **not** return citizen ID, names, or other personal
-fields, and it does **not** skip Allow for a later `autofillThaiID` / `read()`.
+insert card, and **auto-detects the helper coming back** after a restart
+(Thai **ตัวช่วยหลุดการเชื่อมต่อ** / **ตัวช่วยกลับมาแล้ว**). Staff can click
+**ทดสอบการเชื่อมต่อ** for a one-shot probe. `autofillThaiID` waits for the
+helper before opening a session; it still never repeats a card read on its
+own. None of this returns citizen ID, names, or other personal fields, and
+it does **not** skip Allow for a later `autofillThaiID` / `read()`.
 
 ## Operator Allow (security)
 

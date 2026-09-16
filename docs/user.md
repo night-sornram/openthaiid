@@ -18,6 +18,8 @@
 3. **เปิดหน้าคลินิกตามปกติ**
 4. สถานะควรขึ้น **พร้อม** (ตัวช่วยทำงาน เครื่องอ่านต่อแล้ว เสียบบัตรแล้ว)
    เมนู **แสดงสถานะ** ใช้ไฟสามดวงเดียวกัน และไม่แสดงข้อมูลบนบัตร
+   บนหน้า พร้อม กด **ทดสอบการเชื่อมต่อ** ได้ (ไม่อ่านข้อมูลบนบัตร)
+   ถ้าตัวช่วยหลุดระหว่างวัน ไม่ต้องปิดหน้านี้ — รอให้กลับมา แล้วกด กรอกข้อมูล
 5. **เสียบบัตรประชาชนของผู้ป่วย**
 6. กด **กรอกข้อมูล** (Fill / Fill from Thai ID)
 
@@ -49,7 +51,9 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 
 | ที่เห็น | ลองทำ |
 |---|---|
-| OpenThaiID ยังไม่ทำงาน | เปิดตัวช่วย (Start Menu / แอป / `openthaiid tray`) |
+| OpenThaiID ยังไม่ทำงาน | เปิดตัวช่วย (Start Menu / แอป / `openthaiid tray`) หน้านี้รอให้กลับมาได้เอง |
+| ตัวช่วยหลุดการเชื่อมต่อ | ไม่ต้องปิดหน้าคลินิก — รอไฟสถานะ แล้วกด กรอกข้อมูล อีกครั้ง |
+| ทดสอบการเชื่อมต่อ | บนหน้า พร้อม กด **ทดสอบการเชื่อมต่อ** (ไม่อ่านข้อมูลบนบัตร) |
 | ไม่พบเครื่องอ่านบัตร | ถอดแล้วเสียบเครื่องอ่านใหม่ |
 | เสียบบัตรประชาชนไทย | เสียบบัตรให้สุด |
 | เว็บไซต์ต้องการอ่านบัตร | กดอนุญาตหน้าคลินิก (ให้รหัสตรงกัน) |
@@ -89,7 +93,9 @@ Technician tools stay English.
 3. **Open the clinic ERP** as usual.
 4. Status should say **พร้อม / Ready** (helper running, reader plugged in,
    card inserted). Tray **แสดงสถานะ** uses the same three lights and never
-   shows personal card data.
+   shows personal card data. On the Ready page, **ทดสอบการเชื่อมต่อ / Test
+   connection** runs a safe probe (no personal fields). If the helper
+   restarts, leave the page open — it detects the helper coming back.
 5. **Insert the patient’s Thai ID card.**
 6. Click **Fill** (กรอกข้อมูล).
 

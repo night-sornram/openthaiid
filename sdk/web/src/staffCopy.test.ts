@@ -139,6 +139,8 @@ describe("staffCopy status strings", () => {
   it("Thai Ready copy has no protocol jargon", () => {
     const c = staffCopy();
     expect(c.ready).toBe("พร้อม");
+    expect(c.helperLost).toContain("หลุด");
+    expect(c.testConnection).toBe("ทดสอบการเชื่อมต่อ");
     expect(JSON.stringify(c)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
   });
 });

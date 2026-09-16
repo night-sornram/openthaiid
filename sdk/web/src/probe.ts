@@ -43,6 +43,30 @@ export type ProbeThaiIDOptions = {
   lang?: StaffLang | string;
 };
 
+export type WaitForThaiIDOptions = ProbeThaiIDOptions & {
+  /** Pause between unsuccessful probes. Default 400ms. */
+  intervalMs?: number;
+  /** Per-probe WebSocket timeout. Default 2000ms. */
+  probeTimeoutMs?: number;
+};
+
+export type HelperWatchPhase = "checking" | "offline" | "online" | "waiting" | "reconnected";
+
+export type HelperWatchUpdate = {
+  probe: ProbeResult;
+  summary: StatusSummary;
+  phase: HelperWatchPhase;
+  /** True when this tick recovered after a previous reachable helper. */
+  recovered: boolean;
+};
+
+export type WatchThaiIDOptions = ProbeThaiIDOptions & {
+  /** Poll interval while the helper is reachable. Default 2000ms. */
+  intervalMs?: number;
+  /** Poll interval while waiting for the helper to return. Default 500ms. */
+  offlineIntervalMs?: number;
+};
+
 /** Derive the loopback manager URL from a WebSocket endpoint. */
 export function managerUrlFromEndpoint(endpoint = DEFAULT_ENDPOINT): string {
   try {
@@ -188,14 +212,14 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
   });
 }
 
-export type StatusSummary = {
+export interface StatusSummary {
   ready: boolean;
   headline: string;
   helper: string;
   reader: string;
   card: string;
   next: string;
-};
+}
 
 /** Plain-language helper / reader / card state. Default Thai; pass `"en"` for English. */
 export function summarizeProbe(probe: ProbeResult, lang?: StaffLang | string | null): StatusSummary {
@@ -268,9 +292,196 @@ export function summarizeProbe(probe: ProbeResult, lang?: StaffLang | string | n
   };
 }
 
-export type MountThaiIDStatusOptions = ProbeThaiIDOptions & {
-  /** Poll interval. Default 2000ms. */
-  intervalMs?: number;
+/** Override Ready copy while the helper is missing or just returned. */
+export function summarizeHelperWatch(
+  probe: ProbeResult,
+  phase: HelperWatchPhase,
+  lang?: StaffLang | string | null,
+): StatusSummary {
+  const c = staffCopy(lang);
+  const base = summarizeProbe(probe, lang);
+  if (phase === "checking") {
+    return {
+      ready: false,
+      headline: c.checking,
+      helper: c.checking,
+      reader: c.readerUnknown,
+      card: c.cardUnknown,
+      next: c.oneMoment,
+    };
+  }
+  if (phase === "waiting") {
+    return {
+      ...base,
+      ready: false,
+      headline: c.helperLost,
+      helper: c.helperOff,
+      next: c.helperWaiting,
+    };
+  }
+  if (phase === "reconnected") {
+    return {
+      ...base,
+      headline: c.helperBack,
+      next: base.ready ? c.helperBackNext : base.next,
+    };
+  }
+  return base;
+}
+
+/** One-line staff result for an explicit connection test. Never includes card values. */
+export function formatTestConnection(probe: ProbeResult, lang?: StaffLang | string | null): string {
+  const c = staffCopy(lang);
+  if (!probe.reachable) {
+    return c.testFail;
+  }
+  const summary = summarizeProbe(probe, lang);
+  return summary.ready ? c.testOk : `${c.testOk} ${summary.next}`.trim();
+}
+
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(resolve, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * Poll `bridge.probe` until the helper accepts a WebSocket or the budget expires.
+ * Does not open a session and never reads personal fields.
+ */
+export async function waitForThaiID(options: WaitForThaiIDOptions = {}): Promise<ProbeResult> {
+  const lang = staffLang(options.lang);
+  const overall = options.timeoutMs ?? 30_000;
+  const intervalMs = options.intervalMs ?? 400;
+  const probeTimeoutMs = options.probeTimeoutMs ?? 2_000;
+  const started = Date.now();
+  let last: ProbeResult | null = null;
+
+  while (true) {
+    if (options.signal?.aborted) {
+      return { reachable: false, error: probeError("CANCELLED", lang) };
+    }
+    const remaining = overall - (Date.now() - started);
+    if (remaining <= 0) {
+      return (
+        last ?? {
+          reachable: false,
+          error: probeError("BRIDGE_UNAVAILABLE", lang, true),
+        }
+      );
+    }
+    const probe = await probeThaiID({
+      endpoint: options.endpoint,
+      signal: options.signal,
+      lang: options.lang,
+      timeoutMs: Math.max(50, Math.min(probeTimeoutMs, remaining)),
+    });
+    last = probe;
+    if (probe.reachable || probe.error?.code === "CANCELLED") {
+      return probe;
+    }
+    const wait = Math.min(intervalMs, overall - (Date.now() - started));
+    if (wait <= 0) return probe;
+    await delay(wait, options.signal);
+  }
+}
+
+/**
+ * Keep probing the helper and report Thai (default) staff copy as it drops
+ * and comes back. Faster while waiting for a restart. Never reads card fields.
+ */
+export function watchThaiID(
+  onUpdate: (update: HelperWatchUpdate) => void,
+  options: WatchThaiIDOptions = {},
+): () => void {
+  const lang = staffLang(options.lang);
+  const onlineInterval = options.intervalMs ?? 2000;
+  const offlineInterval = options.offlineIntervalMs ?? 500;
+  let stopped = false;
+  let inFlight = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let sawOnline = false;
+  let lastReachable = false;
+  let abort: AbortController | null = null;
+
+  const emit = (probe: ProbeResult, phase: HelperWatchPhase, recovered: boolean) => {
+    if (stopped) return;
+    onUpdate({
+      probe,
+      summary: summarizeHelperWatch(probe, phase, lang),
+      phase,
+      recovered,
+    });
+  };
+
+  const schedule = (ms: number) => {
+    if (stopped) return;
+    timer = setTimeout(() => {
+      timer = null;
+      void tick();
+    }, ms);
+  };
+
+  const tick = async () => {
+    if (stopped || inFlight) return;
+    inFlight = true;
+    abort = new AbortController();
+    const probeTimeout = options.timeoutMs ?? (lastReachable || !sawOnline ? 8_000 : 2_000);
+    const probe = await probeThaiID({
+      endpoint: options.endpoint,
+      lang: options.lang,
+      timeoutMs: probeTimeout,
+      signal: abort.signal,
+    });
+    inFlight = false;
+    if (stopped) return;
+
+    if (probe.error?.code === "CANCELLED") {
+      return;
+    }
+
+    let phase: HelperWatchPhase;
+    let recovered = false;
+    if (probe.reachable) {
+      recovered = sawOnline && !lastReachable;
+      sawOnline = true;
+      lastReachable = true;
+      phase = recovered ? "reconnected" : "online";
+    } else if (sawOnline) {
+      lastReachable = false;
+      phase = "waiting";
+    } else {
+      lastReachable = false;
+      phase = "offline";
+    }
+
+    emit(probe, phase, recovered);
+    schedule(probe.reachable ? onlineInterval : offlineInterval);
+  };
+
+  emit({ reachable: false }, "checking", false);
+  void tick();
+
+  return () => {
+    stopped = true;
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    abort?.abort();
+  };
+}
+
+export type MountThaiIDStatusOptions = WatchThaiIDOptions & {
   /**
    * Default `user`: helper / reader / card in plain language.
    * `advanced` also shows backend, version, and the local helper link.
@@ -281,27 +492,36 @@ export type MountThaiIDStatusOptions = ProbeThaiIDOptions & {
    * Technician chrome stays English when `mode` is `advanced`.
    */
   lang?: StaffLang | string;
+  /**
+   * Show an explicit connection test (probe only, no personal fields).
+   * Default true in `user` mode.
+   */
+  showTestConnection?: boolean;
 };
 
 /**
  * Drop-in reader status into an existing ERP page. No personal field values.
- * Default copy is for clinic staff. Returns a stop function.
+ * Auto-detects the helper coming back after a restart. Default copy is for
+ * clinic staff. Returns a stop function.
  */
 export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptions = {}): () => void {
-  const intervalMs = options.intervalMs ?? 2000;
   const mode = options.mode ?? "user";
   const lang = staffLang(options.lang);
   const copy = staffCopy(lang);
-  let stopped = false;
-  let timer: ReturnType<typeof setInterval> | null = null;
+  const showTest = options.showTestConnection ?? mode === "user";
+  let lastUpdate: HelperWatchUpdate | null = null;
+  let testLine = "";
+  let testing = false;
 
-  const render = (probe: ProbeResult) => {
-    const summary = summarizeProbe(probe, lang);
+  const render = (update: HelperWatchUpdate) => {
+    lastUpdate = update;
+    const { probe, summary, phase } = update;
     root.replaceChildren();
     const box = document.createElement("div");
     box.setAttribute("data-openthaiid-status", "1");
     box.setAttribute("data-openthaiid-status-mode", mode);
     box.setAttribute("data-openthaiid-lang", lang);
+    box.setAttribute("data-openthaiid-phase", phase);
     box.style.fontFamily = "system-ui, sans-serif";
     box.style.fontSize = "0.95rem";
     box.style.lineHeight = "1.4";
@@ -327,6 +547,33 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
       ul.append(li);
     }
     box.append(ul);
+
+    if (showTest) {
+      const actions = document.createElement("div");
+      actions.style.marginTop = "0.7rem";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("data-openthaiid-test-connection", "1");
+      btn.textContent = testing ? copy.testingConnection : copy.testConnection;
+      btn.disabled = testing;
+      btn.style.font = "inherit";
+      btn.style.fontSize = "0.9rem";
+      btn.style.padding = "0.35rem 0.7rem";
+      btn.style.cursor = testing ? "not-allowed" : "pointer";
+      btn.addEventListener("click", () => {
+        void runTest();
+      });
+      actions.append(btn);
+      if (testLine) {
+        const result = document.createElement("p");
+        result.setAttribute("data-openthaiid-test-result", "1");
+        result.style.margin = "0.4rem 0 0";
+        result.style.fontSize = "0.9rem";
+        result.textContent = testLine;
+        actions.append(result);
+      }
+      box.append(actions);
+    }
 
     const pcsc = probe.backend?.status ?? "unknown";
     const ver = probe.version ? `v${probe.version}` : "";
@@ -382,14 +629,32 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
     root.append(box);
   };
 
-  const tick = () => {
-    if (stopped) return;
-    void probeThaiID(options).then(render);
+  const runTest = async () => {
+    if (testing) return;
+    testing = true;
+    testLine = "";
+    if (lastUpdate) render(lastUpdate);
+    const probe = await probeThaiID({
+      endpoint: options.endpoint,
+      lang: options.lang,
+      timeoutMs: options.timeoutMs ?? 8_000,
+    });
+    testing = false;
+    testLine = formatTestConnection(probe, lang);
+    const phase: HelperWatchPhase = probe.reachable ? "online" : lastUpdate?.phase === "waiting" ? "waiting" : "offline";
+    render({
+      probe,
+      summary: summarizeHelperWatch(probe, phase, lang),
+      phase,
+      recovered: false,
+    });
   };
-  tick();
-  timer = setInterval(tick, intervalMs);
+
+  const stopWatch = watchThaiID((update) => {
+    render(update);
+  }, options);
+
   return () => {
-    stopped = true;
-    if (timer) clearInterval(timer);
+    stopWatch();
   };
 }

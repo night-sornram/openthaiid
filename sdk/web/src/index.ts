@@ -286,6 +286,7 @@ export class ThaiID {
   #clearSession() {
     this.#token = null;
     this.#expiresAt = null;
+    this.#instanceId = null;
     this.#clearPersonalData();
     if (this.#renewTimer) {
       clearTimeout(this.#renewTimer);
@@ -549,6 +550,7 @@ export class ThaiID {
       // Await an authenticated snapshot before resolving.
       await this.#withAbort(this.#awaitSnapshot(2000), signal);
       this.#reconnectAttempt = 0;
+      this.#reconnectDeadline = 0;
       this.#setState("connected");
     } catch (err) {
       this.#cleanupSocket(ws);
@@ -890,16 +892,24 @@ export {
 
 export {
   DEFAULT_ENDPOINT as PROBE_DEFAULT_ENDPOINT,
+  formatTestConnection,
   managerUrlFromEndpoint,
   mountThaiIDStatus,
   probeThaiID,
+  summarizeHelperWatch,
   summarizeProbe,
+  waitForThaiID,
+  watchThaiID,
+  type HelperWatchPhase,
+  type HelperWatchUpdate,
   type MountThaiIDStatusOptions,
   type ProbeBackend,
   type ProbeReader,
   type ProbeResult,
   type ProbeThaiIDOptions,
   type StatusSummary,
+  type WaitForThaiIDOptions,
+  type WatchThaiIDOptions,
 } from "./probe.js";
 export {
   formatStaffError,

@@ -57,9 +57,27 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, `id="training-card"`) {
 		t.Fatal("missing training card")
 	}
+	if !strings.Contains(page, `id="test-connection"`) {
+		t.Fatal("missing test-connection button")
+	}
+	if !strings.Contains(page, "ทดสอบการเชื่อมต่อ") {
+		t.Fatal("missing Thai test-connection label")
+	}
 	js := getBody(t, tb, "/manager/app.js")
 	if !strings.Contains(js, "trainingTitle") || !strings.Contains(js, "Practice before the real reader arrives") {
 		t.Fatal("missing training i18n")
+	}
+	if !strings.Contains(js, "refreshCsrfFromPage") || !strings.Contains(js, "testConnection") {
+		t.Fatal("missing helper restart recovery or test-connection")
+	}
+	if !strings.Contains(js, "refreshTestResultCopy") {
+		t.Fatal("missing test-result language refresh")
+	}
+	if !strings.Contains(js, "helperLostHeadline") || !strings.Contains(js, "bridge.probe") {
+		t.Fatal("missing reconnect copy or WS probe test")
+	}
+	if strings.Contains(js, "card.read") {
+		t.Fatal("Ready-page test connection must not issue card.read")
 	}
 	if strings.Contains(js, "1234567890121") || strings.Contains(js, "สมชาย") {
 		t.Fatal("manager JS must not embed card field values")

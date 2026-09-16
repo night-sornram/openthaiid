@@ -23,6 +23,7 @@ import {
 } from "./index.js";
 import { staffLang, type StaffLang } from "./staffCopy.js";
 import { localizeThaiIDError } from "./staffError.js";
+import { waitForThaiID } from "./probe.js";
 
 export const AUTOFILL_ATTRIBUTE = "data-openthaiid";
 
@@ -635,6 +636,18 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
 
     const shouldDisconnect = options.disconnect ?? ownsClient;
     try {
+      if (ownsClient || client.state() !== "connected") {
+        options.onConnectionChanged?.("connecting");
+        const helper = await waitForThaiID({
+          endpoint: options.endpoint ?? (ownsClient ? undefined : client.endpoint),
+          signal: options.signal,
+          lang: options.lang,
+          timeoutMs: options.connectTimeoutMs ?? 30_000,
+        });
+        if (!helper.reachable) {
+          throw helper.error ?? new ThaiIDError("BRIDGE_UNAVAILABLE", "helper is not reachable", true);
+        }
+      }
       await client.connect({ signal: options.signal });
       const result = await client.read({
         fields: requested,

@@ -118,6 +118,9 @@ consumer establishes interface requirements.
   `request.cancel` stay synchronous and responsive.
 - Slow clients or an overflowed reader-event queue close the socket with
   WebSocket status 1013; reconnect obtains a fresh snapshot.
+- Helper process restart: the SDK clears the previous `instanceId`, waits
+  for `bridge.probe` (autofill / status widget), and never auto-repeats
+  `card.read`. Ready page refreshes its CSRF token.
 
 ## State dimensions
 

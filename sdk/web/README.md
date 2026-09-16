@@ -38,6 +38,13 @@ This talks to the local helper with `bridge.probe`. It never returns citizen
 ID or names. Card reads still need Allow. Default status copy is for clinic
 staff; `{ lang: "en" }` for English; `{ mode: "advanced" }` adds technician details.
 
+`mountThaiIDStatus` keeps probing and, if the helper restarts mid-session,
+shows Thai **ตัวช่วยหลุดการเชื่อมต่อ** then **ตัวช่วยกลับมาแล้ว** without a
+page reload. There is an optional **ทดสอบการเชื่อมต่อ** button (probe only).
+`waitForThaiID()` / `watchThaiID()` are the same loop without DOM. `autofillThaiID`
+waits for the helper to come back before opening a session; it never auto-repeats
+a card read.
+
 ## Form autofill (plain JavaScript)
 
 Mark inputs and call `autofillThaiID` from a button click:

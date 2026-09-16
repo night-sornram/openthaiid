@@ -193,6 +193,21 @@ main {
   background: var(--bad);
 }
 
+.hero-actions {
+  margin-top: 0.9rem;
+}
+
+.test-result,
+.live-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.95rem;
+}
+
+.live-note {
+  color: var(--ok);
+  font-weight: 650;
+}
+
 .card-head {
   display: flex;
   justify-content: space-between;

@@ -1,8 +1,15 @@
-const csrf = document.querySelector('meta[name="openthaiid-csrf"]')?.content || "";
+const csrfMeta = document.querySelector('meta[name="openthaiid-csrf"]');
+let csrf = csrfMeta?.content || "";
 const headers = {
   "X-OpenThaiID-Manager": csrf,
   Accept: "application/json",
 };
+
+function setCsrf(token) {
+  csrf = token || "";
+  headers["X-OpenThaiID-Manager"] = csrf;
+  if (csrfMeta) csrfMeta.content = csrf;
+}
 
 const I18N = {
   th: {
@@ -39,6 +46,16 @@ const I18N = {
     practiceNext: "โหมดฝึกซ้อม: กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
     bannerPractice:
       "โหมดฝึกซ้อม: เครื่องอ่านและบัตรจำลอง ไม่มีข้อมูลบุคคล กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
+    helperLostHeadline: "ตัวช่วยหลุดการเชื่อมต่อ",
+    helperWaiting: "กำลังรอให้ OpenThaiID กลับมาบนเครื่องนี้ ไม่ต้องปิดหน้านี้",
+    helperBack: "ตัวช่วยกลับมาแล้ว กด กรอกข้อมูล ได้ตามปกติ",
+    readerUnknown: "เครื่องอ่านบัตร: ยังไม่ทราบ จนกว่าตัวช่วยจะกลับมา",
+    cardUnknown: "บัตร: ยังไม่ทราบ จนกว่าตัวช่วยจะกลับมา",
+    testConnection: "ทดสอบการเชื่อมต่อ",
+    testingConnection: "กำลังทดสอบการเชื่อมต่อ…",
+    testOk: "การเชื่อมต่อปกติ — ไม่ได้อ่านข้อมูลบนบัตร",
+    testFail: "ทดสอบการเชื่อมต่อไม่สำเร็จ กำลังรอให้ OpenThaiID กลับมา",
+    testWsFail: "หน้านี้ติดต่อช่องทางเดียวกับหน้าคลินิกไม่ได้",
     trainingTitle: "ฝึกใช้ก่อนได้เครื่องจริง",
     trainingHelp:
       "ใช้ตัวช่วยโหมดฝึกซ้อม ไม่ต้องมีเครื่องอ่านจริง ครั้งแรกยังต้องกดอนุญาต ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต",
@@ -98,6 +115,16 @@ const I18N = {
     practiceNext: "Practice mode: Fill in the clinic page still needs Allow the first time.",
     bannerPractice:
       "Practice mode: fictional reader and card. No personal data. Fill in the clinic page still needs Allow the first time.",
+    helperLostHeadline: "The helper disconnected",
+    helperWaiting: "Waiting for OpenThaiID to come back on this computer. Leave this page open.",
+    helperBack: "The helper is back. Click Fill as usual.",
+    readerUnknown: "Card reader: unknown until the helper is back.",
+    cardUnknown: "Card: unknown until the helper is back.",
+    testConnection: "Test connection",
+    testingConnection: "Testing connection…",
+    testOk: "Connection is OK — no personal card fields were read.",
+    testFail: "Connection test failed. Waiting for OpenThaiID to come back.",
+    testWsFail: "This page could not reach the same channel the clinic page uses.",
     trainingTitle: "Practice before the real reader arrives",
     trainingHelp:
       "Use the practice helper. No physical reader required. The first Fill still needs Allow. Do not send screenshots or field values in tickets.",
@@ -179,7 +206,14 @@ function setLang(next) {
     // ignore
   }
   applyStaticCopy();
+  if (els.testConnection) els.testConnection.textContent = t("testConnection");
+  if (window.__helperOffline) {
+    renderOffline();
+    refreshTestResultCopy();
+    return;
+  }
   if (window.__lastStatus) render(window.__lastStatus);
+  refreshTestResultCopy();
 }
 
 const els = {
@@ -217,6 +251,9 @@ const els = {
   exportAudit: document.getElementById("export-audit"),
   auditEmpty: document.getElementById("audit-empty"),
   auditEvents: document.getElementById("audit-events"),
+  testConnection: document.getElementById("test-connection"),
+  testResult: document.getElementById("test-result"),
+  liveNote: document.getElementById("live-note"),
 };
 
 function pill(text, kind) {
@@ -250,9 +287,162 @@ async function api(path, opts) {
   }
   if (!res.ok) {
     const msg = (body && (body.error || body.message)) || res.statusText;
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
   }
   return body;
+}
+
+function parseCsrfFromHtml(html) {
+  const m = String(html).match(/name="openthaiid-csrf"\s+content="([a-f0-9]+)"/i);
+  return m ? m[1] : "";
+}
+
+async function refreshCsrfFromPage() {
+  const res = await fetch("/", { credentials: "same-origin", cache: "no-store" });
+  if (!res.ok) {
+    throw new Error("helper down");
+  }
+  const token = parseCsrfFromHtml(await res.text());
+  if (!token) {
+    throw new Error("csrf missing");
+  }
+  setCsrf(token);
+}
+
+function setLiveNote(text) {
+  if (!els.liveNote) return;
+  if (!text) {
+    els.liveNote.hidden = true;
+    els.liveNote.textContent = "";
+    return;
+  }
+  els.liveNote.hidden = false;
+  els.liveNote.textContent = text;
+}
+
+function setTestResult(text) {
+  if (!els.testResult) return;
+  if (!text) {
+    els.testResult.hidden = true;
+    els.testResult.textContent = "";
+    return;
+  }
+  els.testResult.hidden = false;
+  els.testResult.textContent = text;
+}
+
+function refreshTestResultCopy() {
+  if (!els.testResult || els.testResult.hidden) return;
+  if (window.__helperOffline) {
+    setTestResult(t("testFail"));
+    return;
+  }
+  if (window.__lastTestProbe) {
+    setTestResult(formatTestResult(window.__lastStatus || {}, window.__lastTestProbe));
+  }
+}
+
+function renderOffline() {
+  const wasOnline = Boolean(window.__lastStatus) || window.__helperOffline;
+  window.__helperOffline = true;
+  setText(els.headline, t("helperLostHeadline"));
+  els.headline.className = "headline wait";
+  setText(els.next, t("helperWaiting"));
+  setLight(els.lightHelper, "bad", t("helperOff"));
+  setLight(els.lightReader, "", t("readerUnknown"));
+  setLight(els.lightCard, "", t("cardUnknown"));
+  if (els.userPendingCard) els.userPendingCard.hidden = true;
+  if (!wasOnline) {
+    setLiveNote("");
+  }
+}
+
+function noteHelperBack() {
+  if (!window.__helperOffline) return;
+  window.__helperOffline = false;
+  setLiveNote(t("helperBack"));
+  if (window.__liveNoteTimer) clearTimeout(window.__liveNoteTimer);
+  window.__liveNoteTimer = setTimeout(() => {
+    setLiveNote("");
+  }, 4000);
+}
+
+function helperWsUrl() {
+  const fromStatus = window.__lastStatus && window.__lastStatus.wsUrl;
+  if (typeof fromStatus === "string" && fromStatus) return fromStatus;
+  const loc = window.location;
+  const ws = loc.protocol === "https:" ? "wss:" : "ws:";
+  return `${ws}//${loc.host}/v1/ws`;
+}
+
+function probeHelper() {
+  return new Promise((resolve, reject) => {
+    if (typeof WebSocket === "undefined") {
+      reject(new Error("websocket"));
+      return;
+    }
+    let settled = false;
+    let ws = null;
+    const timer = setTimeout(() => finish(null, new Error("timeout")), 5000);
+    const finish = (result, err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (ws) {
+        try {
+          ws.onopen = null;
+          ws.onerror = null;
+          ws.onmessage = null;
+          ws.close();
+        } catch {
+          // ignore
+        }
+      }
+      if (err) reject(err);
+      else resolve(result);
+    };
+    try {
+      ws = new WebSocket(helperWsUrl(), ["openthaiid.v1"]);
+    } catch (err) {
+      finish(null, err);
+      return;
+    }
+    ws.onerror = () => finish(null, new Error("ws"));
+    ws.onopen = () => {
+      try {
+        ws.send(JSON.stringify({ v: 1, id: 1, type: "bridge.probe" }));
+      } catch (err) {
+        finish(null, err);
+      }
+    };
+    ws.onmessage = (ev) => {
+      let msg;
+      try {
+        msg = JSON.parse(typeof ev.data === "string" ? ev.data : String(ev.data));
+      } catch {
+        return;
+      }
+      if (msg.id !== 1) return;
+      if (msg.error) {
+        finish(null, new Error(msg.error.message || "probe"));
+        return;
+      }
+      finish(msg.result || {}, null);
+    };
+  });
+}
+
+function formatTestResult(data, probe) {
+  const backend = (probe && probe.backend && probe.backend.status) || (data.backend && data.backend.status) || "";
+  const readers = (probe && probe.readers) || data.readers || [];
+  const present = readers.some((r) => r.presence === "present");
+  if (backend === "stalled") return `${t("testOk")} · ${t("serviceStalled")}`;
+  if (backend === "unavailable") return `${t("testOk")} · ${t("serviceOff")}`;
+  if (!readers.length) return `${t("testOk")} · ${t("plugReader")}`;
+  if (present) return `${t("testOk")} · ${t("cardInserted")}`;
+  return `${t("testOk")} · ${t("insertCard")}`;
 }
 
 function technicianWanted() {
@@ -657,9 +847,57 @@ function render(data) {
   renderAudit(data);
 }
 
-async function load() {
+async function loadOnce() {
   const data = await api("/v1/manager/status");
+  noteHelperBack();
   render(data);
+}
+
+async function load() {
+  try {
+    await loadOnce();
+    return;
+  } catch {
+    // Helper restart invalidates the CSRF token baked into this page.
+  }
+  try {
+    await refreshCsrfFromPage();
+    await loadOnce();
+  } catch {
+    renderOffline();
+  }
+}
+
+async function testConnection() {
+  if (!els.testConnection) return;
+  els.testConnection.disabled = true;
+  els.testConnection.textContent = t("testingConnection");
+  setTestResult("");
+  try {
+    try {
+      await refreshCsrfFromPage();
+    } catch {
+      // Page fetch failing is the same as helper down; load() reports it.
+    }
+    await load();
+    if (window.__helperOffline) {
+      setTestResult(t("testFail"));
+      return;
+    }
+    let probe = null;
+    try {
+      probe = await probeHelper();
+    } catch {
+      setTestResult(`${t("testOk")} · ${t("testWsFail")}`);
+      return;
+    }
+    const data = window.__lastStatus || {};
+    window.__lastTestProbe = probe;
+    setTestResult(formatTestResult(data, probe));
+  } finally {
+    els.testConnection.disabled = false;
+    els.testConnection.textContent = t("testConnection");
+  }
 }
 
 async function refresh() {
@@ -815,6 +1053,7 @@ window.addEventListener("hashchange", () => {
 });
 els.refresh.addEventListener("click", () => void refresh());
 els.reconnect.addEventListener("click", () => void reconnect());
+els.testConnection?.addEventListener("click", () => void testConnection());
 els.revokeAll.addEventListener("click", () => void revokeAll());
 els.copyDiag.addEventListener("click", () => void copyDiagnostics());
 els.copyAudit?.addEventListener("click", () => void copyAuditJSON());

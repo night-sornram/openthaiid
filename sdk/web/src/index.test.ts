@@ -4,6 +4,7 @@ import { DEFAULT_FIELDS, SUPPORTED_FIELDS, TEXTUAL_FIELDS, ThaiID, ThaiIDError, 
 type FakeWS = {
   readyState: number;
   sent: string[];
+  instanceId?: string;
   onopen: (() => void) | null;
   onerror: (() => void) | null;
   onmessage: ((ev: { data: string }) => void) | null;
@@ -13,7 +14,7 @@ type FakeWS = {
   respondTo: (s: string) => void;
 };
 
-function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean; autoOpen?: boolean } = {}) {
+function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean; autoOpen?: boolean; instanceIds?: string[] } = {}) {
   const sockets: FakeWS[] = [];
   const sendSnapshot = opts.snapshot !== false;
   class Fake {
@@ -23,12 +24,14 @@ function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean;
     static CLOSED = 3;
     readyState = 0;
     sent: string[] = [];
+    instanceId = "bridge-x";
     onopen: (() => void) | null = null;
     onerror: (() => void) | null = null;
     onmessage: ((ev: { data: string }) => void) | null = null;
     onclose: (() => void) | null = null;
     constructor(public url: string, public protocols?: string[]) {
       sockets.push(this as unknown as FakeWS);
+      this.instanceId = opts.instanceIds?.[sockets.length - 1] ?? "bridge-x";
       if (opts.autoOpen === false) return;
       queueMicrotask(() => {
         this.readyState = 1;
@@ -53,7 +56,7 @@ function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean;
           data: JSON.stringify({
             v: 1,
             type: "approval.required",
-            instanceId: "bridge-x",
+            instanceId: this.instanceId,
             sequence: 1,
             payload: { approvalId: 1, comparisonCode: "123456", fields: msg.payload?.fields },
           }),
@@ -66,7 +69,7 @@ function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean;
               token: "tok-1",
               fields: msg.payload?.fields ?? DEFAULT_FIELDS,
               expiresAt: new Date(Date.now() + 60_000).toISOString(),
-              instanceId: "bridge-x",
+              instanceId: this.instanceId,
             },
           }),
         });
@@ -77,7 +80,7 @@ function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean;
               data: JSON.stringify({
                 v: 1,
                 type: "status.snapshot",
-                instanceId: "bridge-x",
+                instanceId: this.instanceId,
                 sequence: 2,
                 payload: {
                   connection: "connected",
@@ -370,4 +373,54 @@ describe("ThaiID", () => {
       fake.restore();
     }
   }, 10_000);
+
+  it("reconnects after a helper restart with a new instance id", async () => {
+    const fake = installFakeWebSocket({ autoRespond: true, instanceIds: ["bridge-a", "bridge-b"] });
+    const id = new ThaiID();
+    try {
+      const states: string[] = [];
+      id.on("connectionChanged", (s) => states.push(s));
+      await id.connect();
+      expect(id.state()).toBe("connected");
+      fake.sockets[0]!.close();
+      await vi.waitFor(() => {
+        expect(fake.sockets.length).toBe(2);
+      });
+      await vi.waitFor(() => {
+        expect(id.state()).toBe("connected");
+      });
+      expect(states).toContain("reconnecting");
+      expect(id.state()).toBe("connected");
+    } finally {
+      await id.disconnect();
+      fake.restore();
+    }
+  });
+
+  it("keeps auto-reconnect after a successful recovery past the original budget", async () => {
+    let now = 1_000;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const fake = installFakeWebSocket({ autoRespond: true, instanceIds: ["bridge-a", "bridge-b", "bridge-c"] });
+    const id = new ThaiID();
+    try {
+      await id.connect();
+      fake.sockets[0]!.close();
+      await vi.waitFor(() => {
+        expect(id.state()).toBe("connected");
+        expect(fake.sockets.length).toBe(2);
+      });
+      now = 1_000 + 130_000;
+      fake.sockets[1]!.close();
+      await vi.waitFor(() => {
+        expect(id.state()).not.toBe("disconnected");
+      });
+      await vi.waitFor(() => {
+        expect(id.state()).toBe("connected");
+        expect(fake.sockets.length).toBe(3);
+      });
+    } finally {
+      await id.disconnect();
+      fake.restore();
+    }
+  });
 });
