@@ -32,7 +32,15 @@ export type {
   ThaiName,
 } from "@openthaiid/web";
 
-export { DEFAULT_FIELDS, SUPPORTED_FIELDS, ThaiID, ThaiIDError } from "@openthaiid/web";
+export { DEFAULT_FIELDS, SUPPORTED_FIELDS, ThaiID, ThaiIDError, autofillThaiID } from "@openthaiid/web";
+export type {
+  AutofillFieldMap,
+  AutofillResult,
+  AutofillThaiIDOptions,
+} from "@openthaiid/web";
+
+export { useThaiIDAutofill } from "./autofill.js";
+export type { AutofillApproval, UseThaiIDAutofillResult } from "./autofill.js";
 
 export type ApprovalRequired = {
   approvalId: number;

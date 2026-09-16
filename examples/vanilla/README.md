@@ -69,6 +69,9 @@ when you need the `ThaiID` class events yourself.
 The page must call `connect()` (or `autofillThaiID()`) from a visible user
 gesture.
 
+A clinic-oriented Create Patient screen (configurable `request` + `map`,
+phone left blank) lives in `examples/clinic-patient/`.
+
 ## Data handling
 
 Clear any displayed card fields on card removal, disconnect, or revocation.

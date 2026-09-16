@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disconnects (existing `ThaiID` class API unchanged)
 - Vanilla form example (`examples/vanilla/autofill.html`) with a single
   “Autofill from Thai ID” button
+- Clinic ERP example (`examples/clinic-patient/`): New patient form plus a
+  developer settings object (`request` allowlist, `map` of slots to
+  selectors, format tweaks, `onApprovalRequired` / `onError`)
+- `autofillThaiID` `request` (field allowlist), `map` (alias of `fields`),
+  and `onError` chrome hook; existing selector / `data-openthaiid` calls
+  stay unchanged
+- `@openthaiid/react` `useThaiIDAutofill(config)` thin wrapper around the
+  same settings object (does not connect on mount)
 - Playwright browser acceptance harness (`acceptance/`) against the real
   bridge + synthetic card, using node-pty for real terminal approval (no bypass)
 - Cross-platform acceptance: Playwright `chrome` / `msedge` channels,

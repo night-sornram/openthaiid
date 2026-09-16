@@ -70,6 +70,47 @@ See `examples/vanilla/autofill.html` for a copy-paste page. With
 `./dist/openthaiid -synthetic`, the seeded fictional card is citizen ID
 `1234567890121`, Thai name `นาย สมชาย ใจดี`, birth `1990-04-12`.
 
+## Clinic / ERP settings object
+
+For a Create Patient screen, keep one config object (clinic admin can persist
+`request`) and call it from the button:
+
+```js
+import { autofillThaiID } from "@openthaiid/web";
+
+const clinicPatientAutofill = {
+  request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
+  map: {
+    citizenId: "#patient-cid",
+    "thaiName.givenName": "#patient-given",
+    "thaiName.familyName": "#patient-family",
+    birthDate: "#patient-dob",
+    gender: "#patient-gender",
+    address: "#patient-address",
+  },
+  dateFormat: "iso",
+  genderLabels: { male: "male", female: "female" },
+  onApprovalRequired: ({ comparisonCode, approvalId }) => {
+    showBanner(`Approve in the terminal — request ${approvalId}, code ${comparisonCode}`);
+  },
+  onError: (err) => {
+    showBanner(`${err.code ?? "ERROR"}: ${err.message ?? err}`);
+  },
+};
+
+fillBtn.addEventListener("click", async () => {
+  await autofillThaiID(clinicPatientAutofill);
+});
+```
+
+- `request` — allowlist of protocol fields (not nested slots). The session
+  asks only for fields that also have a mapped or `data-openthaiid` target.
+- `map` — alias of `fields` (slot → selector). Phone / HN stay off the map.
+- `onApprovalRequired` / `onError` — ERP chrome; the promise still rejects.
+- Portrait is not available. Do not call this on page load.
+
+Worked example: `examples/clinic-patient/`.
+
 ## Full connect / read / status
 
 ```ts

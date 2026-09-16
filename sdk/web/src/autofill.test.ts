@@ -4,8 +4,10 @@ import {
   autofillThaiID,
   collectAutofillTargets,
   discoverAutofillTargets,
+  filterTargetsByRequest,
   formatAutofillValue,
   formatCardDateIso,
+  normalizeAutofillRequest,
   parseSlot,
   slotsToFields,
   ThaiID,
@@ -406,5 +408,156 @@ describe("autofillThaiID", () => {
     document.body.innerHTML = `<input data-openthaiid="address" />`;
     const client = new ThaiID({ fields: ["citizenId"] });
     await expect(autofillThaiID({ client })).rejects.toMatchObject({ code: "FIELD_NOT_ALLOWED" });
+  });
+
+  it("uses map + request allowlist (ERP config)", async () => {
+    const fake = installFakeWebSocket();
+    document.body.innerHTML = `
+      <input id="patient-cid" />
+      <input id="patient-given" />
+      <input id="patient-family" />
+      <input id="patient-dob" type="date" />
+      <select id="patient-gender">
+        <option value=""></option>
+        <option value="male">male</option>
+        <option value="female">female</option>
+      </select>
+      <textarea id="patient-address"></textarea>
+      <input id="patient-phone" />
+    `;
+    const errors: unknown[] = [];
+    try {
+      const out = await autofillThaiID({
+        request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
+        map: {
+          citizenId: "#patient-cid",
+          "thaiName.givenName": "#patient-given",
+          "thaiName.familyName": "#patient-family",
+          birthDate: "#patient-dob",
+          gender: "#patient-gender",
+          address: "#patient-address",
+        },
+        onError: (err) => errors.push(err),
+      });
+      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      expect(open.payload.fields).toEqual(["citizenId", "thaiName", "birthDate", "gender", "address"]);
+      expect((document.getElementById("patient-cid") as HTMLInputElement).value).toBe("1234567890121");
+      expect((document.getElementById("patient-given") as HTMLInputElement).value).toBe("สมชาย");
+      expect((document.getElementById("patient-family") as HTMLInputElement).value).toBe("ใจดี");
+      expect((document.getElementById("patient-phone") as HTMLInputElement).value).toBe("");
+      expect(out.filled.map((f) => f.slot).sort()).toEqual([
+        "address",
+        "birthDate",
+        "citizenId",
+        "gender",
+        "thaiName.familyName",
+        "thaiName.givenName",
+      ]);
+      expect(errors).toEqual([]);
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("does not request fields omitted from the allowlist", async () => {
+    const fake = installFakeWebSocket();
+    document.body.innerHTML = `
+      <input id="patient-cid" />
+      <textarea id="patient-address"></textarea>
+    `;
+    try {
+      await autofillThaiID({
+        request: ["citizenId"],
+        map: {
+          citizenId: "#patient-cid",
+          address: "#patient-address",
+        },
+      });
+      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      expect(open.payload.fields).toEqual(["citizenId"]);
+      expect((document.getElementById("patient-cid") as HTMLInputElement).value).toBe("1234567890121");
+      expect((document.getElementById("patient-address") as HTMLTextAreaElement).value).toBe("");
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("throws when the allowlist matches no mapped slots", async () => {
+    document.body.innerHTML = `<input id="cid" />`;
+    await expect(
+      autofillThaiID({
+        request: ["englishName"],
+        map: { citizenId: "#cid" },
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+  });
+
+  it("calls onError then still rejects", async () => {
+    document.body.innerHTML = `<input id="unrelated" />`;
+    const errors: unknown[] = [];
+    await expect(
+      autofillThaiID({
+        discover: false,
+        onError: (err) => errors.push(err),
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ code: "INVALID_REQUEST" });
+  });
+});
+
+describe("autofill request allowlist", () => {
+  it("normalizes protocol fields and rejects slots", () => {
+    expect(normalizeAutofillRequest(["citizenId", "thaiName", "citizenId"])).toEqual(["citizenId", "thaiName"]);
+    expect(normalizeAutofillRequest(undefined)).toBeNull();
+    expect(() => normalizeAutofillRequest([])).toThrow(ThaiIDError);
+    expect(() => normalizeAutofillRequest(["thaiName.givenName"])).toThrow(ThaiIDError);
+    expect(() => normalizeAutofillRequest(["portrait"])).toThrow(ThaiIDError);
+    try {
+      normalizeAutofillRequest(["portrait"]);
+    } catch (err) {
+      expect(err).toMatchObject({ code: "UNSUPPORTED_FIELD" });
+    }
+  });
+
+  it("filters targets to requested protocol fields", () => {
+    const filtered = filterTargetsByRequest(
+      [
+        { slot: "citizenId", elements: [] },
+        { slot: "thaiName.givenName", elements: [] },
+        { slot: "address", elements: [] },
+      ],
+      ["citizenId", "thaiName"],
+    );
+    expect(filtered.map((t) => t.slot)).toEqual(["citizenId", "thaiName.givenName"]);
+  });
+
+  it("collects map alias and applies request", () => {
+    document.body.innerHTML = `<input id="cid" /><input id="name" /><textarea id="addr"></textarea>`;
+    const targets = collectAutofillTargets({
+      request: ["citizenId", "thaiName"],
+      map: {
+        citizenId: "#cid",
+        thaiName: "#name",
+        address: "#addr",
+      },
+    });
+    expect(targets.map((t) => t.slot).sort()).toEqual(["citizenId", "thaiName"]);
+  });
+
+  it("allowlists discovered data-openthaiid slots", () => {
+    document.body.innerHTML = `
+      <form id="patient">
+        <input data-openthaiid="citizenId" />
+        <input data-openthaiid="thaiName" />
+        <textarea data-openthaiid="address"></textarea>
+        <input id="phone" />
+      </form>
+    `;
+    const targets = collectAutofillTargets({
+      root: document.getElementById("patient")!,
+      request: ["citizenId", "thaiName"],
+    });
+    expect(targets.map((t) => t.slot).sort()).toEqual(["citizenId", "thaiName"]);
   });
 });
