@@ -4,21 +4,49 @@ package card
 type Field string
 
 const (
-	FieldCitizenID Field = "citizenId"
-	FieldThaiName  Field = "thaiName"
-	FieldBirthDate Field = "birthDate"
+	FieldCitizenID   Field = "citizenId"
+	FieldThaiName    Field = "thaiName"
+	FieldEnglishName Field = "englishName"
+	FieldBirthDate   Field = "birthDate"
+	FieldGender      Field = "gender"
+	FieldIssuer      Field = "issuer"
+	FieldIssueDate   Field = "issueDate"
+	FieldExpireDate  Field = "expireDate"
+	FieldAddress     Field = "address"
 )
 
-// MVPFields are the only fields implemented in the first release.
-var MVPFields = []Field{FieldCitizenID, FieldThaiName, FieldBirthDate}
+// GenderValue is the normalized gender after mapping the card's 1-byte code.
+const (
+	GenderMale   = "male"
+	GenderFemale = "female"
+)
 
 // DefaultFields are requested by the SDK when the application does not override.
+// This remains the original three-field set (least privilege).
 var DefaultFields = []Field{FieldCitizenID, FieldThaiName, FieldBirthDate}
 
-// Supported reports whether f is in the MVP allowlist.
+// MVPFields is the original three-field set. Prefer DefaultFields.
+var MVPFields = []Field{FieldCitizenID, FieldThaiName, FieldBirthDate}
+
+// SupportedFields is every textual field this profile can return.
+// Order follows the cited APDU table (dotnetthailand APDU.md). Portrait is excluded.
+var SupportedFields = []Field{
+	FieldCitizenID,
+	FieldThaiName,
+	FieldEnglishName,
+	FieldBirthDate,
+	FieldGender,
+	FieldIssuer,
+	FieldIssueDate,
+	FieldExpireDate,
+	FieldAddress,
+}
+
+// Supported reports whether f is in the textual-field allowlist.
 func Supported(f Field) bool {
 	switch f {
-	case FieldCitizenID, FieldThaiName, FieldBirthDate:
+	case FieldCitizenID, FieldThaiName, FieldEnglishName, FieldBirthDate,
+		FieldGender, FieldIssuer, FieldIssueDate, FieldExpireDate, FieldAddress:
 		return true
 	default:
 		return false
@@ -70,7 +98,7 @@ type CardDate struct {
 	Day   *int `json:"day"`
 }
 
-// ThaiName is a structured Thai personal name.
+// ThaiName is a structured personal name (Thai or English card block).
 type ThaiName struct {
 	Title      *string `json:"title"`
 	GivenName  *string `json:"givenName"`
@@ -79,13 +107,44 @@ type ThaiName struct {
 	FullName   string  `json:"fullName"`
 }
 
+// Gender is a 1-byte card code plus a normalized value.
+// Community convention (not stated in APDU.md): "1" = male, "2" = female.
+// Unrecognized codes keep Code and set Value to null with a warning.
+type Gender struct {
+	Code  string  `json:"code"`
+	Value *string `json:"value"`
+}
+
+// ThaiAddress is a structured registered address.
+// Community convention: one 100-byte '#'-delimited block:
+//
+//	houseNo # villageNo # alley # street # subdistrict # district # province
+//
+// Component order is a hypothesis pending physical-card confirmation.
+type ThaiAddress struct {
+	HouseNo     *string `json:"houseNo"`
+	VillageNo   *string `json:"villageNo"`
+	Alley       *string `json:"alley"`
+	Street      *string `json:"street"`
+	Subdistrict *string `json:"subdistrict"`
+	District    *string `json:"district"`
+	Province    *string `json:"province"`
+	FullAddress string  `json:"fullAddress"`
+}
+
 // FieldValues holds normalized field results for one read.
 // Unrequested fields are omitted from JSON. Requested but unavailable
 // fields marshal as null and carry a warning.
 type FieldValues struct {
-	CitizenID *string   `json:"citizenId,omitempty"`
-	ThaiName  *ThaiName `json:"thaiName,omitempty"`
-	BirthDate *CardDate `json:"birthDate,omitempty"`
+	CitizenID   *string      `json:"citizenId,omitempty"`
+	ThaiName    *ThaiName    `json:"thaiName,omitempty"`
+	EnglishName *ThaiName    `json:"englishName,omitempty"`
+	BirthDate   *CardDate    `json:"birthDate,omitempty"`
+	Gender      *Gender      `json:"gender,omitempty"`
+	Issuer      *string      `json:"issuer,omitempty"`
+	IssueDate   *CardDate    `json:"issueDate,omitempty"`
+	ExpireDate  *CardDate    `json:"expireDate,omitempty"`
+	Address     *ThaiAddress `json:"address,omitempty"`
 
 	requested []Field
 }
@@ -104,15 +163,27 @@ func (f FieldValues) MarshalJSON() ([]byte, error) {
 		type alias FieldValues
 		return jsonMarshal((*alias)(&f))
 	}
-	m := make(map[string]any, 3)
+	m := make(map[string]any, len(f.requested))
 	for _, field := range f.requested {
 		switch field {
 		case FieldCitizenID:
 			m["citizenId"] = f.CitizenID
 		case FieldThaiName:
 			m["thaiName"] = f.ThaiName
+		case FieldEnglishName:
+			m["englishName"] = f.EnglishName
 		case FieldBirthDate:
 			m["birthDate"] = f.BirthDate
+		case FieldGender:
+			m["gender"] = f.Gender
+		case FieldIssuer:
+			m["issuer"] = f.Issuer
+		case FieldIssueDate:
+			m["issueDate"] = f.IssueDate
+		case FieldExpireDate:
+			m["expireDate"] = f.ExpireDate
+		case FieldAddress:
+			m["address"] = f.Address
 		}
 	}
 	return jsonMarshal(m)

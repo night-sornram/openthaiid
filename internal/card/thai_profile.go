@@ -6,10 +6,10 @@ import (
 	"fmt"
 )
 
-// ThaiCitizenMVP is the reviewed community-reference profile for the three
-// MVP fields. Command bytes and offsets follow the published APDU table in
-// docs/provenance.md (dotnetthailand/ThaiNationalIDCard APDU.md). The
-// implementation is independent; no upstream source was copied.
+// ThaiCitizenMVP is the reviewed community-reference profile for textual
+// Thai National ID fields. Command bytes and offsets follow the published
+// APDU table in docs/provenance.md (dotnetthailand/ThaiNationalIDCard
+// APDU.md). The implementation is independent; no upstream source was copied.
 //
 // READ BINARY command form (from the cited table):
 //
@@ -17,9 +17,17 @@ import (
 //
 // Field memory map (READ BINARY offsets):
 //
-//	citizenId   0x0004  13 bytes, ASCII digits
-//	thaiName    0x0011  100 bytes, Windows-874 / TIS-620, '#'-delimited
-//	birthDate   0x00D9  8 bytes, YYYYMMDD Buddhist Era
+//	citizenId    0x0004  13 bytes, ASCII digits
+//	thaiName     0x0011  100 bytes, Windows-874 / TIS-620, '#'-delimited
+//	englishName  0x0075  100 bytes, ASCII, '#'-delimited (same shape as thaiName)
+//	birthDate    0x00D9  8 bytes, YYYYMMDD Buddhist Era
+//	gender       0x00E1  1 byte, community convention "1"=male "2"=female
+//	issuer       0x00F6  100 bytes, Windows-874 / TIS-620
+//	issueDate    0x0167  8 bytes, YYYYMMDD Buddhist Era
+//	expireDate   0x016F  8 bytes, YYYYMMDD Buddhist Era
+//	address      0x1579  100 bytes, Windows-874 / TIS-620, '#'-delimited
+//
+// Portrait/photo blocks are intentionally not implemented.
 type ThaiCitizenMVP struct{}
 
 // Profile ID constants.
@@ -39,14 +47,39 @@ var (
 	}
 )
 
-// Named offsets used by this profile.
+// Named offsets used by this profile (from the cited APDU table).
 const (
-	offCitizenID = 0x0004
-	lenCitizenID = 0x0D
-	offThaiName  = 0x0011
-	lenThaiName  = 0x64
-	offBirthDate = 0x00D9
-	lenBirthDate = 0x08
+	offCitizenID   = 0x0004
+	lenCitizenID   = 0x0D
+	offThaiName    = 0x0011
+	lenThaiName    = 0x64
+	offEnglishName = 0x0075
+	lenEnglishName = 0x64
+	offBirthDate   = 0x00D9
+	lenBirthDate   = 0x08
+	offGender      = 0x00E1
+	lenGender      = 0x01
+	offIssuer      = 0x00F6
+	lenIssuer      = 0x64
+	offIssueDate   = 0x0167
+	lenIssueDate   = 0x08
+	offExpireDate  = 0x016F
+	lenExpireDate  = 0x08
+	offAddress     = 0x1579
+	lenAddress     = 0x64
+)
+
+// Command names produced by readBinary (Name@offset). Must stay in sync with Parse.
+const (
+	cmdCID     = "CID@0x0004"
+	cmdTHName  = "TH_NAME@0x0011"
+	cmdENName  = "EN_NAME@0x0075"
+	cmdBirth   = "BIRTH@0x00D9"
+	cmdGender  = "GENDER@0x00E1"
+	cmdIssuer  = "ISSUER@0x00F6"
+	cmdIssue   = "ISSUE@0x0167"
+	cmdExpire  = "EXPIRE@0x016F"
+	cmdAddress = "ADDRESS@0x1579"
 )
 
 // MaxReadLe is the maximum Le for a single READ BINARY.
@@ -101,8 +134,26 @@ func (ThaiCitizenMVP) ReadCommands(fields []Field) ([]APDU, error) {
 	if want[FieldThaiName] {
 		cmds = append(cmds, readBinary("TH_NAME", offThaiName, lenThaiName)...)
 	}
+	if want[FieldEnglishName] {
+		cmds = append(cmds, readBinary("EN_NAME", offEnglishName, lenEnglishName)...)
+	}
 	if want[FieldBirthDate] {
 		cmds = append(cmds, readBinary("BIRTH", offBirthDate, lenBirthDate)...)
+	}
+	if want[FieldGender] {
+		cmds = append(cmds, readBinary("GENDER", offGender, lenGender)...)
+	}
+	if want[FieldIssuer] {
+		cmds = append(cmds, readBinary("ISSUER", offIssuer, lenIssuer)...)
+	}
+	if want[FieldIssueDate] {
+		cmds = append(cmds, readBinary("ISSUE", offIssueDate, lenIssueDate)...)
+	}
+	if want[FieldExpireDate] {
+		cmds = append(cmds, readBinary("EXPIRE", offExpireDate, lenExpireDate)...)
+	}
+	if want[FieldAddress] {
+		cmds = append(cmds, readBinary("ADDRESS", offAddress, lenAddress)...)
 	}
 	return cmds, nil
 }
@@ -161,7 +212,7 @@ func (ThaiCitizenMVP) Parse(fields []Field, responses [][]byte) (*FieldValues, [
 	var warns []Warning
 
 	if containsField(fields, FieldCitizenID) {
-		raw, ok := bodies["CID@0x0004"]
+		raw, ok := bodies[cmdCID]
 		if !ok || len(raw) < lenCitizenID {
 			warns = append(warns, Warning{Field: FieldCitizenID, Code: "TRUNCATED", Message: "citizen id truncated"})
 		} else if id, w := parseCitizenID(raw[:lenCitizenID]); w != nil {
@@ -175,11 +226,11 @@ func (ThaiCitizenMVP) Parse(fields []Field, responses [][]byte) (*FieldValues, [
 	}
 
 	if containsField(fields, FieldThaiName) {
-		raw, ok := bodies["TH_NAME@0x0011"]
+		raw, ok := bodies[cmdTHName]
 		if !ok || len(raw) == 0 {
 			warns = append(warns, Warning{Field: FieldThaiName, Code: "TRUNCATED", Message: "thai name truncated"})
 		} else {
-			name, w := parseThaiNameBlock(raw)
+			name, w := parseNameBlock(raw, FieldThaiName)
 			if w != nil {
 				warns = append(warns, *w)
 			}
@@ -189,17 +240,107 @@ func (ThaiCitizenMVP) Parse(fields []Field, responses [][]byte) (*FieldValues, [
 		}
 	}
 
+	if containsField(fields, FieldEnglishName) {
+		raw, ok := bodies[cmdENName]
+		if !ok || len(raw) == 0 {
+			warns = append(warns, Warning{Field: FieldEnglishName, Code: "TRUNCATED", Message: "english name truncated"})
+		} else {
+			name, w := parseNameBlock(raw, FieldEnglishName)
+			if w != nil {
+				warns = append(warns, *w)
+			}
+			if name != nil {
+				vals.EnglishName = name
+			}
+		}
+	}
+
 	if containsField(fields, FieldBirthDate) {
-		raw, ok := bodies["BIRTH@0x00D9"]
+		raw, ok := bodies[cmdBirth]
 		if !ok || len(raw) < lenBirthDate {
 			warns = append(warns, Warning{Field: FieldBirthDate, Code: "TRUNCATED", Message: "birth date truncated"})
 		} else {
-			d, w := parseBirthDate(raw[:lenBirthDate])
+			d, w := parseCardDate(raw[:lenBirthDate], FieldBirthDate)
 			if w != nil {
 				warns = append(warns, *w)
 			}
 			if d != nil {
 				vals.BirthDate = d
+			}
+		}
+	}
+
+	if containsField(fields, FieldGender) {
+		raw, ok := bodies[cmdGender]
+		if !ok || len(raw) < lenGender {
+			warns = append(warns, Warning{Field: FieldGender, Code: "TRUNCATED", Message: "gender truncated"})
+		} else {
+			g, w := parseGender(raw[:lenGender])
+			if w != nil {
+				warns = append(warns, *w)
+			}
+			if g != nil {
+				vals.Gender = g
+			}
+		}
+	}
+
+	if containsField(fields, FieldIssuer) {
+		raw, ok := bodies[cmdIssuer]
+		if !ok || len(raw) == 0 {
+			warns = append(warns, Warning{Field: FieldIssuer, Code: "TRUNCATED", Message: "issuer truncated"})
+		} else {
+			iss, w := parseIssuer(raw)
+			if w != nil {
+				warns = append(warns, *w)
+			}
+			if iss != nil {
+				vals.Issuer = iss
+			}
+		}
+	}
+
+	if containsField(fields, FieldIssueDate) {
+		raw, ok := bodies[cmdIssue]
+		if !ok || len(raw) < lenIssueDate {
+			warns = append(warns, Warning{Field: FieldIssueDate, Code: "TRUNCATED", Message: "issue date truncated"})
+		} else {
+			d, w := parseCardDate(raw[:lenIssueDate], FieldIssueDate)
+			if w != nil {
+				warns = append(warns, *w)
+			}
+			if d != nil {
+				vals.IssueDate = d
+			}
+		}
+	}
+
+	if containsField(fields, FieldExpireDate) {
+		raw, ok := bodies[cmdExpire]
+		if !ok || len(raw) < lenExpireDate {
+			warns = append(warns, Warning{Field: FieldExpireDate, Code: "TRUNCATED", Message: "expire date truncated"})
+		} else {
+			d, w := parseCardDate(raw[:lenExpireDate], FieldExpireDate)
+			if w != nil {
+				warns = append(warns, *w)
+			}
+			if d != nil {
+				vals.ExpireDate = d
+			}
+		}
+	}
+
+	if containsField(fields, FieldAddress) {
+		raw, ok := bodies[cmdAddress]
+		if !ok || len(raw) == 0 {
+			warns = append(warns, Warning{Field: FieldAddress, Code: "TRUNCATED", Message: "address truncated"})
+		} else {
+			addr, w := parseAddressBlock(raw)
+			if w != nil {
+				warns = append(warns, *w)
+			}
+			if addr != nil {
+				vals.Address = addr
 			}
 		}
 	}

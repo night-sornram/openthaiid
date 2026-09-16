@@ -144,8 +144,26 @@ describe("ThaiID", () => {
     }
   });
 
-  it("SUPPORTED_FIELDS matches MVP", () => {
-    expect([...SUPPORTED_FIELDS].sort()).toEqual(["birthDate", "citizenId", "thaiName"]);
+  it("SUPPORTED_FIELDS lists textual fields and keeps MVP defaults", () => {
+    expect(DEFAULT_FIELDS).toEqual(["citizenId", "thaiName", "birthDate"]);
+    expect([...SUPPORTED_FIELDS].sort()).toEqual(
+      [
+        "address",
+        "birthDate",
+        "citizenId",
+        "englishName",
+        "expireDate",
+        "gender",
+        "issueDate",
+        "issuer",
+        "thaiName",
+      ].sort(),
+    );
+  });
+
+  it("accepts extra textual fields in the constructor", () => {
+    const id = new ThaiID({ fields: ["gender", "address", "englishName"] });
+    expect(id.fields).toEqual(["gender", "address", "englishName"]);
   });
 
   it("import is SSR-safe (no window required)", () => {

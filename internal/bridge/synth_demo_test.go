@@ -55,7 +55,134 @@ func TestSyntheticDemoReadAllFields(t *testing.T) {
 		if birth == nil || birth["year"] != 1990.0 || birth["month"] != 4.0 || birth["day"] != 12.0 {
 			t.Fatalf("birth %v (expected 1990-04-12)", birth)
 		}
+		// Extra textual fields must stay omitted when not requested.
+		for _, leaked := range []string{"englishName", "gender", "issuer", "issueDate", "expireDate", "address"} {
+			if _, ok := fields[leaked]; ok {
+				t.Fatalf("unrequested %s returned", leaked)
+			}
+		}
 		return
 	}
 	t.Fatal("no read response")
+}
+
+func TestSyntheticDemoReadTextualFields(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: card.SupportedFields,
+	})
+	open := readByID(t, ctx, conn, 1)
+	if open["error"] != nil {
+		t.Fatalf("session.open error: %v", open["error"])
+	}
+	openResult := open["result"].(map[string]any)
+	token, _ := openResult["token"].(string)
+	if token == "" {
+		t.Fatal("missing token")
+	}
+	proto, _ := openResult["protocol"].(map[string]any)
+	if proto["major"] != 1.0 || proto["minor"] != 1.0 {
+		t.Fatalf("protocol %+v want major=1 minor=1", proto)
+	}
+	supported, _ := openResult["fieldsSupported"].([]any)
+	if len(supported) != len(card.SupportedFields) {
+		t.Fatalf("fieldsSupported %v", supported)
+	}
+	foundEN := false
+	for _, f := range supported {
+		if f == string(card.FieldEnglishName) {
+			foundEN = true
+		}
+	}
+	if !foundEN {
+		t.Fatalf("fieldsSupported missing englishName: %v", supported)
+	}
+
+	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
+		Fields: card.SupportedFields,
+	})
+	msg := readByID(t, ctx, conn, 2)
+	if msg["error"] != nil {
+		t.Fatalf("read error: %v", msg["error"])
+	}
+	fields := msg["result"].(map[string]any)["fields"].(map[string]any)
+	if fields["citizenId"] != "1234567890121" {
+		t.Fatalf("cid %v", fields["citizenId"])
+	}
+	en, _ := fields["englishName"].(map[string]any)
+	if en == nil || en["givenName"] != "Somchai" || en["familyName"] != "Jaidee" || en["fullName"] != "Mr. Somchai Jaidee" {
+		t.Fatalf("englishName %v", en)
+	}
+	gender, _ := fields["gender"].(map[string]any)
+	if gender == nil || gender["code"] != "1" || gender["value"] != "male" {
+		t.Fatalf("gender %v", gender)
+	}
+	if fields["issuer"] != "เทศบาลนครนิทาน" {
+		t.Fatalf("issuer %v", fields["issuer"])
+	}
+	issue, _ := fields["issueDate"].(map[string]any)
+	if issue == nil || issue["year"] != 2017.0 || issue["month"] != 1.0 || issue["day"] != 15.0 {
+		t.Fatalf("issueDate %v", issue)
+	}
+	expire, _ := fields["expireDate"].(map[string]any)
+	if expire == nil || expire["year"] != 2027.0 || expire["day"] != 14.0 {
+		t.Fatalf("expireDate %v", expire)
+	}
+	addr, _ := fields["address"].(map[string]any)
+	if addr == nil || addr["houseNo"] != "99" || addr["alley"] != nil || addr["province"] != "จังหวัดนิทาน" {
+		t.Fatalf("address %v", addr)
+	}
+	if addr["fullAddress"] != "99 หมู่ที่ 1 ถนนนิทาน ตำบลบ้านใหม่ อำเภอเมือง จังหวัดนิทาน" {
+		t.Fatalf("fullAddress %v", addr["fullAddress"])
+	}
+}
+
+func TestIntegrationUngrantedTextualFieldRejected(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: card.DefaultFields,
+	})
+	token := readToken(t, ctx, conn, 1)
+
+	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldGender},
+	})
+	msg := readByID(t, ctx, conn, 2)
+	errObj, _ := msg["error"].(map[string]any)
+	if errObj == nil || errObj["code"] != "FIELD_NOT_ALLOWED" {
+		t.Fatalf("expected FIELD_NOT_ALLOWED, got %v", msg["error"])
+	}
+
+	writeReq(t, ctx, conn, 3, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	ok := readByID(t, ctx, conn, 3)
+	if ok["error"] != nil {
+		t.Fatalf("granted read failed: %v", ok["error"])
+	}
+	fields := ok["result"].(map[string]any)["fields"].(map[string]any)
+	if fields["citizenId"] != "1234567890121" {
+		t.Fatalf("cid %v", fields["citizenId"])
+	}
+	if _, present := fields["gender"]; present {
+		t.Fatal("gender must not appear without a grant")
+	}
 }

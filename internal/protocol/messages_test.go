@@ -49,3 +49,12 @@ func TestCardReadPayloadRoundTrip(t *testing.T) {
 		t.Fatalf("got %+v", p)
 	}
 }
+
+func TestProtocolMinorIsAdditive(t *testing.T) {
+	if Major != 1 {
+		t.Fatalf("major %d", Major)
+	}
+	if Minor != 1 {
+		t.Fatalf("minor %d want 1 (textual field expansion)", Minor)
+	}
+}

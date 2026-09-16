@@ -15,7 +15,7 @@ and evidence location.
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| A1 | All five OS/arch artifacts build and start | CI matrix + version smoke | CI ready |
+| A1 | All five OS/arch artifacts build and start | CI matrix + version smoke | Done (PR #1 run 35054867099); re-confirm on this branch |
 | A2 | `openthaiid doctor` reports PC/SC status without reading personal fields | CLI output | Done |
 | A3 | `openthaiid version` prints module version (injected at release build) | CLI + package.sh verify | Done |
 
@@ -38,14 +38,14 @@ and evidence location.
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| C1 | `citizenId`, `thaiName`, `birthDate` normalize correctly | Parser fixtures + APDU byte tests | Done (synthetic) |
-| C2 | Field selection limits returned data and necessary reads | Integration + APDU script | Done |
+| C1 | `citizenId`, `thaiName`, `birthDate` plus remaining textual fields (`englishName`, `gender`, `issuer`, `issueDate`, `expireDate`, `address`) normalize correctly | Parser fixtures + APDU byte tests + `TestEngineTextualFields` | Done (synthetic) |
+| C2 | Field selection limits returned data and necessary reads | Integration + APDU script; extra textual fields omitted unless granted (`TestIntegrationUngrantedTextualFieldRejected`) | Done |
 | C3 | Removal/replacement cannot produce stale results | Lifecycle tests | Done |
 | C4 | Unsupported/malformed cards yield typed errors and monitoring continues | Synthetic + engine tests | Done |
 | C5 | No personal-data logging (sentinel log tests) | Privacy tests | Done |
 | C6 | Published APDU bytes/offsets match the cited table | `TestThaiProfileCommandPlanMatchesPublishedAPDU` | Done |
 | C7 | BE→Gregorian dates, leap-year validation, null fields | Parser tests | Done |
-| C8 | Synthetic CLI demonstration reads a fictional card | `TestSyntheticDemoReadAllFields` | Done |
+| C8 | Synthetic CLI demonstration reads a fictional card | `TestSyntheticDemoReadAllFields` + `TestSyntheticDemoReadTextualFields` | Done |
 | C9 | Exact synthetic field values (full Thai name + 1990-04-12) asserted | Seeded integration tests | Done |
 | C10 | Native worker owns open→tx→read→end→close; exactly-once cleanup | Reader ownership tests | Done |
 | C11 | Prompt `CANCELLED`/`READ_TIMEOUT`; slot retained; late results discarded | Reader + bridge cancel tests | Done |
@@ -161,8 +161,8 @@ Successful compilation alone does not close these checks.
 | G10 | Grant-lifetime and revocation enforcement | Done |
 | G11 | PC/SC StateUnaware retention + recovery; stall + ownership | Done |
 | G12 | Shared synthetic demo card end-to-end | Done |
-| G13 | Green five-target CI with version smoke + npm ci | CI ready |
-| G14 | Playwright browser acceptance (Chrome × 3 OS + Edge on Windows) | CI ready |
+| G13 | Green five-target CI with version smoke + npm ci | Done (PR #1) |
+| G14 | Playwright browser acceptance (Chrome × 3 OS + Edge on Windows) | Done (PR #1); re-confirm on this branch |
 | G15 | Hardware qualification evidence | Open |
 | G16 | node-pty cross-platform terminal approval harness | Done (local macOS); multi-OS CI ready |
 

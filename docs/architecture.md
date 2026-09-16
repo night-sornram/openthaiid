@@ -5,7 +5,10 @@ card fields to browser applications over a loopback WebSocket.
 
 ## Goals
 
-- Predictable web access to `citizenId`, `thaiName`, and `birthDate`.
+- Predictable web access to selected Thai ID textual fields. The default
+  grant is `citizenId`, `thaiName`, and `birthDate`; remaining textual
+  fields (`englishName`, `gender`, `issuer`, `issueDate`, `expireDate`,
+  `address`) are opt-in and returned only when granted.
 - Explicit operator approval for each new origin and field set.
 - No card-data persistence, telemetry, or cloud dependency.
 - Hardware behavior separated from browser behavior so synthetic backends can
@@ -14,7 +17,7 @@ card fields to browser applications over a loopback WebSocket.
 ## Non-goals (MVP)
 
 - Biometrics, PIN bypass, card writes, arbitrary APDUs.
-- Portraits, remaining demographic fields, React hooks, installers, tray UI.
+- Portraits / photo binary, laser-id / NHSO profiles, React hooks, installers, tray UI.
 - Persistent trust across bridge restarts.
 - Official Firefox or Safari support.
 

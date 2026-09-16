@@ -463,8 +463,8 @@ func sessionResult(sess *auth.Session) protocol.SessionOpenResult {
 		ExpiresAt:       sess.ExpiresAt.UTC().Format(time.RFC3339),
 		Fields:          sess.Fields,
 		InstanceID:      sess.InstanceID,
-		Protocol:        protocol.ProtocolInfo{Major: protocol.Major, Minor: 0},
-		FieldsSupported: card.MVPFields,
+		Protocol:        protocol.ProtocolInfo{Major: protocol.Major, Minor: protocol.Minor},
+		FieldsSupported: card.SupportedFields,
 	}
 }
 

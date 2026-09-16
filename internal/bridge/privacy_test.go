@@ -12,7 +12,10 @@ func TestLogsNeverContainFieldSentinels(t *testing.T) {
 	sentinels := []string{
 		"1101701234567",
 		"สมชาย",
+		"Somchai",
+		"เทศบาลนครนิทาน",
 		"25330412",
+		"25600115",
 		"cs_secret",
 		"tok_abcdef",
 	}
