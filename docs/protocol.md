@@ -185,7 +185,10 @@ type ThaiIDError = {
   at its deadline instead.
 
 Messages never contain raw field contents, command responses, or native error
-dumps.
+dumps. Wire `message` text is English for technicians. Clinic ERP helpers
+(`autofillThaiID`, `probeThaiID`, `formatStaffError`) replace the human
+message with Thai staff guidance by default; **`code` does not change**.
+Pass `{ lang: "en" }` for English staff guidance.
 
 ## Normalized textual fields
 

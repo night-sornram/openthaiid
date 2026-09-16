@@ -109,6 +109,19 @@ describe("probeThaiID", () => {
       const r = await probeThaiID({ timeoutMs: 200 });
       expect(r.reachable).toBe(false);
       expect(r.error?.code).toBe("BRIDGE_UNAVAILABLE");
+      expect(r.error?.message).toContain("ยังไม่ทำงาน");
+      expect(r.error?.message).not.toContain("helper is not running");
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("English probe errors keep BRIDGE_UNAVAILABLE", async () => {
+    const fake = installFakeWebSocket("fail-open");
+    try {
+      const r = await probeThaiID({ timeoutMs: 200, lang: "en" });
+      expect(r.error?.code).toBe("BRIDGE_UNAVAILABLE");
+      expect(r.error?.message).toMatch(/not running/i);
     } finally {
       fake.restore();
     }
@@ -122,6 +135,7 @@ describe("probeThaiID", () => {
       const r = await probeThaiID({ signal: c.signal });
       expect(r.reachable).toBe(false);
       expect(r.error?.code).toBe("CANCELLED");
+      expect(r.error?.message).toContain("ยกเลิก");
       expect(fake.sockets.length).toBe(0);
     } finally {
       fake.restore();

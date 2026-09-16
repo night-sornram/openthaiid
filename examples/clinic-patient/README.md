@@ -13,8 +13,12 @@ fillBtn.addEventListener("click", async () => {
 });
 ```
 
-The flow stays **manual**: a user clicks **Fill from Thai ID**. The helper
-connects from that gesture. Origin + field Allow still happens on this PC
+The flow stays **manual**: a user clicks **กรอกข้อมูล / Fill from Thai ID**.
+Staff copy on this example is Thai by default (`?lang=en` for English).
+Practice without hardware: [docs/training.md](../../docs/training.md)
+(`openthaiid -synthetic` + this page).
+
+The helper connects from that gesture. Origin + field Allow still happens on this PC
 (the page cannot approve itself). There is no silent background read.
 Portrait is optional and **off by default**. Tick `portrait` in **request**
 to include it in the grant; the example shows an `<img>` preview only.
@@ -26,7 +30,7 @@ screen needs the photo. Do not `console.log` photo bytes.
 On Create Patient (or a dedicated fill button):
 
 ```js
-import { autofillThaiID, probeThaiID, mountThaiIDStatus } from "@openthaiid/web";
+import { autofillThaiID, formatStaffError, mountThaiIDStatus, staffApprovalGuidance } from "@openthaiid/web";
 
 const clinicPatientAutofill = {
   request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
@@ -41,11 +45,12 @@ const clinicPatientAutofill = {
   dateFormat: "iso",
   genderLabels: { male: "male", female: "female" },
   discover: false,
-  onApprovalRequired: ({ comparisonCode, approvalId }) => {
-    showBanner(`Allow this ERP origin on the PC — request ${approvalId}, code ${comparisonCode}`);
+  onApprovalRequired: (info) => {
+    const g = staffApprovalGuidance(info);
+    showBanner(`${g.message} ${g.next}`);
   },
   onError: (err) => {
-    showBanner(`${err.code ?? "ERROR"}: ${err.message ?? err}`);
+    showBanner(`${formatStaffError(err)} (${err.code ?? "ERROR"})`);
   },
 };
 
@@ -68,6 +73,8 @@ clinic can drop gender or opt into `englishName` without changing selectors.
 
 `probeThaiID()` / `mountThaiIDStatus()` show helper up/down, reader, and card
 present/absent in clinic-staff Thai (พร้อม). Pass `{ lang: "en" }` for English.
+Fill failures from `autofillThaiID` use the same Thai guidance by default
+(`formatStaffError` / `{ lang: "en" }`); protocol **codes** do not change.
 They never display personal field values. Pass `{ mode: "advanced" }` for
 technician details.
 

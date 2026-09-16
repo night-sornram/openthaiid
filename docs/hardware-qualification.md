@@ -10,6 +10,8 @@ text, dates of birth, or portrait / photo bytes (including Base64 and
 codes**, and the technician diagnostics copy below.
 
 Synthetic `openthaiid qualify -synthetic` proves the kit, not the reader.
+One-page Friday sheet: [friday-checklist.md](friday-checklist.md).
+Practice Fill without hardware: [training.md](training.md).
 
 ## Order of platforms
 

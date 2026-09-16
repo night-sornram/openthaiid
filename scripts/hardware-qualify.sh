@@ -69,7 +69,7 @@ if [ "$OPERATOR" = 1 ]; then
   echo "Operator mode: type pass, fail, or skip only. Do not type card data."
 fi
 
-echo "See docs/hardware-qualification.md for E4–E7 and M1 (HTTPS local-network)."
+echo "See docs/friday-checklist.md (one page) and docs/hardware-qualification.md for E4–E7 and M1."
 echo "report will be: $REPORT"
 set +e
 "$BIN" "${args[@]}" "${EXTRA[@]}"

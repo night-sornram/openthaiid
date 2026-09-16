@@ -4,7 +4,8 @@
  */
 
 import { ThaiIDError, type ReaderView } from "./index.js";
-import { staffCopy, staffLang, type StaffLang } from "./staffCopy.js";
+import { formatStaffError, staffCopy, staffLang, type StaffLang } from "./staffCopy.js";
+import { localizeThaiIDError } from "./staffError.js";
 
 export const DEFAULT_ENDPOINT = "ws://127.0.0.1:17891/v1/ws";
 const SUBPROTOCOL = "openthaiid.v1";
@@ -38,6 +39,8 @@ export type ProbeThaiIDOptions = {
   endpoint?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Staff language for `error.message`. Default `"th"`. Codes stay unchanged. */
+  lang?: StaffLang | string;
 };
 
 /** Derive the loopback manager URL from a WebSocket endpoint. */
@@ -51,6 +54,14 @@ export function managerUrlFromEndpoint(endpoint = DEFAULT_ENDPOINT): string {
   }
 }
 
+function probeError(
+  code: ThaiIDError["code"],
+  lang?: StaffLang | string | null,
+  retryable = false,
+): ThaiIDError {
+  return new ThaiIDError(code, formatStaffError({ code }, lang), retryable);
+}
+
 /**
  * Ask the local helper whether it is running and what the reader looks like.
  *
@@ -59,16 +70,17 @@ export function managerUrlFromEndpoint(endpoint = DEFAULT_ENDPOINT): string {
  * SSR-safe: returns `{ reachable: false }` when `WebSocket` is missing.
  */
 export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<ProbeResult> {
+  const lang = staffLang(options.lang);
   if (options.signal?.aborted) {
     return {
       reachable: false,
-      error: new ThaiIDError("CANCELLED", "probe aborted"),
+      error: probeError("CANCELLED", lang),
     };
   }
   if (typeof WebSocket === "undefined") {
     return {
       reachable: false,
-      error: new ThaiIDError("CONNECTION_FAILED", "probeThaiID() requires a browser"),
+      error: probeError("CONNECTION_FAILED", lang),
     };
   }
 
@@ -97,7 +109,7 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
       resolve(result);
     };
     const onAbort = () => {
-      finish({ reachable: false, error: new ThaiIDError("CANCELLED", "probe aborted") });
+      finish({ reachable: false, error: probeError("CANCELLED", lang) });
     };
     options.signal?.addEventListener("abort", onAbort, { once: true });
     if (options.signal?.aborted) {
@@ -108,7 +120,7 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
     const timer = setTimeout(() => {
       finish({
         reachable: false,
-        error: new ThaiIDError("BRIDGE_UNAVAILABLE", "OpenThaiID helper is not running on this PC", true),
+        error: probeError("BRIDGE_UNAVAILABLE", lang, true),
       });
     }, timeoutMs);
 
@@ -117,7 +129,7 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
     } catch {
       finish({
         reachable: false,
-        error: new ThaiIDError("CONNECTION_FAILED", "could not open local WebSocket", true),
+        error: probeError("CONNECTION_FAILED", lang, true),
       });
       return;
     }
@@ -125,11 +137,7 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
     ws.onerror = () => {
       finish({
         reachable: false,
-        error: new ThaiIDError(
-          "BRIDGE_UNAVAILABLE",
-          "OpenThaiID helper is not running on this PC",
-          true,
-        ),
+        error: probeError("BRIDGE_UNAVAILABLE", lang, true),
       });
     };
     ws.onopen = () => {
@@ -138,7 +146,7 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
       } catch {
         finish({
           reachable: false,
-          error: new ThaiIDError("CONNECTION_FAILED", "probe send failed", true),
+          error: probeError("CONNECTION_FAILED", lang, true),
         });
       }
     };
@@ -153,10 +161,13 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
       if (msg.error) {
         finish({
           reachable: true,
-          error: new ThaiIDError(
-            (msg.error.code as ThaiIDError["code"]) ?? "CONNECTION_FAILED",
-            msg.error.message ?? "probe failed",
-          ),
+          error: localizeThaiIDError(
+            new ThaiIDError(
+              (msg.error.code as ThaiIDError["code"]) ?? "CONNECTION_FAILED",
+              msg.error.message ?? "probe failed",
+            ),
+            lang,
+          ) as ThaiIDError,
         });
         return;
       }

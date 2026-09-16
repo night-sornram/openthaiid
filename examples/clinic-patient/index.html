@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenThaiID — clinic create patient</title>
+    <title>OpenThaiID — สร้างผู้ป่วย (ฝึกใช้)</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -201,63 +201,97 @@
       .portrait-preview img[hidden] {
         display: none;
       }
+      .training {
+        margin: 0 1.25rem 0.85rem;
+        padding: 0.75rem 0.9rem;
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        font-size: 0.92rem;
+      }
+      .training h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1rem;
+      }
+      .training ol {
+        margin: 0.35rem 0 0;
+        padding-left: 1.25rem;
+      }
+      .training li {
+        margin: 0.2rem 0;
+      }
     </style>
   </head>
   <body>
     <header class="app">
-      <h1>Clinic ERP — New patient</h1>
+      <h1>คลินิก — สร้างผู้ป่วย</h1>
       <p>
-        This page only uses the <code>@openthaiid/web</code> library. There is
-        no OpenThaiID backend or frontend to deploy. Not affiliated with the
-        Department of Provincial Administration.
+        หน้านี้เรียกไลบรารี <code>@openthaiid/web</code> ในแอปที่มีอยู่แล้ว
+        ไม่มีเว็บไซต์หรือเซิร์ฟเวอร์ OpenThaiID ให้ติดตั้ง
+        Not affiliated with the Department of Provincial Administration.
       </p>
     </header>
+    <aside class="training" id="training">
+      <h2>ฝึกใช้ก่อนได้เครื่องจริง</h2>
+      <p>
+        เปิดตัวช่วยด้วย <code>./dist/openthaiid -synthetic</code>
+        แล้วใช้หน้านี้ — ไม่ต้องมีเครื่องอ่าน ACR39U
+      </p>
+      <ol>
+        <li>ไฟสถานะด้านล่างต้องขึ้น <strong>พร้อม (บัตรฝึกซ้อม)</strong></li>
+        <li>กด <strong>กรอกข้อมูล</strong></li>
+        <li>ที่หน้า พร้อม ของ OpenThaiID กด <strong>อนุญาต</strong> (ให้รหัสตรงกันถ้ามี)</li>
+        <li>ช่องชื่อ/วันเกิดมีข้อมูลบัตรจำลอง — นั่นไม่ใช่ผู้ป่วยจริง</li>
+      </ol>
+      <p class="hint">
+        ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต ส่งได้เฉพาะ Copy diagnostics
+        และรหัสผิดพลาด เช่น <code>NO_CARD</code>
+      </p>
+    </aside>
     <div id="banner" class="banner" role="status"></div>
     <div class="layout">
       <section>
-        <h2>Create patient</h2>
+        <h2>สร้างผู้ป่วย</h2>
         <p class="hint">
-          Click <strong>Fill from Thai ID</strong>. This is a library call in
-          your existing ERP — origin + field Allow still happens on this PC.
-          Phone and HN are not on the card and stay blank.
+          กด <strong>กรอกข้อมูล</strong> — เป็นการเรียกไลบรารีในหน้าคลินิกที่มีอยู่แล้ว
+          อนุญาตต้นทางยังเกิดบนเครื่องนี้ เบอร์โทรและ HN ไม่อยู่บนบัตรจึงว่างไว้
         </p>
         <div id="thaiid-status" class="reader-status" aria-live="polite"></div>
         <div class="actions">
-          <button id="fill" class="primary" type="button">Fill from Thai ID</button>
-          <button id="reset" type="button">Clear</button>
+          <button id="fill" class="primary" type="button">กรอกข้อมูลจากบัตรประชาชน</button>
+          <button id="reset" type="button">ล้างฟอร์ม</button>
         </div>
         <form id="patient-form" autocomplete="off">
           <label>
-            Hospital number (HN)
-            <input id="patient-hn" name="hn" placeholder="Assigned by clinic" />
-            <span class="hint">Manual — not an OpenThaiID field</span>
+            เลขประจำตัวผู้ป่วย (HN)
+            <input id="patient-hn" name="hn" placeholder="คลินิกกำหนดเอง" />
+            <span class="hint">กรอกมือ — ไม่ใช่ช่อง OpenThaiID</span>
           </label>
           <label>
-            Citizen ID
+            เลขประจำตัวประชาชน
             <input id="patient-cid" name="citizenId" inputmode="numeric" />
           </label>
           <div class="pair">
             <label>
-              Given name
+              ชื่อ
               <input id="patient-given" name="givenName" />
             </label>
             <label>
-              Family name
+              นามสกุล
               <input id="patient-family" name="familyName" />
             </label>
           </div>
           <label>
-            English name
+            ชื่อภาษาอังกฤษ
             <input id="patient-english" name="englishName" />
-            <span class="hint">Off by default; enable it in settings to request</span>
+            <span class="hint">ปิดไว้เป็นค่าเริ่มต้น เปิดในแผงตั้งค่าถ้าต้องการ</span>
           </label>
           <div class="pair">
             <label>
-              Date of birth
+              วันเกิด
               <input id="patient-dob" name="birthDate" type="date" />
             </label>
             <label>
-              Gender
+              เพศ
               <select id="patient-gender" name="gender">
                 <option value="">—</option>
                 <option value="male">male</option>
@@ -266,26 +300,27 @@
             </label>
           </div>
           <label>
-            Address
+            ที่อยู่
             <textarea id="patient-address" name="address"></textarea>
           </label>
           <div class="portrait-preview">
-            <span class="hint">Portrait (opt-in) — example UI preview only</span>
-            <img id="patient-photo" alt="Thai ID portrait preview (example only)" hidden width="96" height="96" />
-            <span class="hint">Off by default. Enable <code>portrait</code> in request, then Fill. Do not screenshot or store the photo.</span>
+            <span class="hint">รูปถ่าย (เลือกเปิด) — ตัวอย่างในหน้านี้เท่านั้น</span>
+            <img id="patient-photo" alt="ตัวอย่างรูปบนบัตร (ไม่เก็บและไม่ส่งต่อ)" hidden width="96" height="96" />
+            <span class="hint">ค่าเริ่มต้นไม่ขอรูป เปิด <code>portrait</code> ใน request แล้วกดกรอก ห้ามถ่ายภาพหน้าจอหรือเก็บไฟล์รูป</span>
           </div>
           <label>
-            Phone
+            โทรศัพท์
             <input id="patient-phone" name="phone" inputmode="tel" />
-            <span class="hint">Manual — not printed on the Thai ID chip</span>
+            <span class="hint">กรอกมือ — ชิปบัตรประชาชนไม่มีเบอร์โทร</span>
           </label>
         </form>
       </section>
       <section>
         <h2>Developer settings</h2>
         <p class="hint">
-          ERP integrator panel — not the clinic-staff Fill path. Staff only
-          need the status box and <strong>Fill from Thai ID</strong>.
+          Integrator panel — not the clinic-staff Fill path. Staff only need
+          the status box and <strong>กรอกข้อมูล</strong>. Pass
+          <code>?lang=en</code> for English error banners.
         </p>
         <fieldset>
           <legend>request (allowlist)</legend>
@@ -296,8 +331,8 @@
           <label>
             Gender labels
             <select id="gender-labels">
-              <option value="en" selected>male / female</option>
-              <option value="th">ชาย / หญิง</option>
+              <option value="th" selected>ชาย / หญิง</option>
+              <option value="en">male / female</option>
             </select>
           </label>
           <p class="hint">Dates stay ISO (<code>YYYY-MM-DD</code>) for <code>input[type=date]</code>.</p>

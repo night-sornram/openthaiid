@@ -416,13 +416,27 @@ describe("autofillThaiID", () => {
 
   it("throws when there are no targets", async () => {
     document.body.innerHTML = `<input id="unrelated" />`;
-    await expect(autofillThaiID({ discover: false })).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    const err = await autofillThaiID({ discover: false }).catch((e) => e);
+    expect(err).toMatchObject({ code: "INVALID_REQUEST" });
+    expect(err.message).toContain("คำขอกรอกข้อมูลไม่ถูกต้อง");
+    expect(err.message).not.toContain("no autofill targets");
   });
 
   it("rejects a supplied client that is missing a required field", async () => {
     document.body.innerHTML = `<input data-openthaiid="address" />`;
     const client = new ThaiID({ fields: ["citizenId"] });
-    await expect(autofillThaiID({ client })).rejects.toMatchObject({ code: "FIELD_NOT_ALLOWED" });
+    const err = await autofillThaiID({ client }).catch((e) => e);
+    expect(err).toMatchObject({ code: "FIELD_NOT_ALLOWED" });
+    expect(err.message).toContain("ช่องที่ยังไม่อนุญาต");
+    expect(err.message).not.toContain("approved set");
+  });
+
+  it("English Fill errors keep the same codes", async () => {
+    document.body.innerHTML = `<input data-openthaiid="address" />`;
+    const client = new ThaiID({ fields: ["citizenId"] });
+    const err = await autofillThaiID({ client, lang: "en" }).catch((e) => e);
+    expect(err).toMatchObject({ code: "FIELD_NOT_ALLOWED" });
+    expect(err.message).toMatch(/field that is not allowed/i);
   });
 
   it("uses map + request allowlist (ERP config)", async () => {

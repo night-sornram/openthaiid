@@ -887,6 +887,18 @@ export {
   type ProbeThaiIDOptions,
   type StatusSummary,
 } from "./probe.js";
-export { staffCopy, staffLang, type StaffCopy, type StaffLang } from "./staffCopy.js";
+export {
+  formatStaffError,
+  staffApprovalGuidance,
+  staffCopy,
+  staffErrorCode,
+  staffErrorGuidance,
+  staffLang,
+  type StaffApprovalGuidance,
+  type StaffCopy,
+  type StaffErrorGuidance,
+  type StaffLang,
+} from "./staffCopy.js";
+export { localizeThaiIDError } from "./staffError.js";
 
 export default ThaiID;

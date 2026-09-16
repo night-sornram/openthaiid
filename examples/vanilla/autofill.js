@@ -1,4 +1,4 @@
-import { autofillThaiID, mountThaiIDStatus } from "../../sdk/web/dist/index.js";
+import { autofillThaiID, formatStaffError, mountThaiIDStatus, staffApprovalGuidance } from "../../sdk/web/dist/index.js";
 
 const form = document.getElementById("kyc");
 const statusEl = document.getElementById("status");
@@ -28,16 +28,20 @@ fillBtn.addEventListener("click", async () => {
         if (state === "awaiting-approval") return;
         statusEl.textContent = state === "connecting" ? "Connecting…" : `Status: ${state}`;
       },
-      onApprovalRequired: ({ comparisonCode, approvalId }) => {
-        statusEl.textContent = `Approve in the terminal — request ${approvalId}, code ${comparisonCode}`;
+      onApprovalRequired: (info) => {
+        const g = staffApprovalGuidance(info);
+        statusEl.textContent = `${g.message} ${g.next}`;
       },
     });
     const photo = document.getElementById("photo");
     const gotPhoto = filled.some((f) => f.slot === "portrait" || f.slot.startsWith("portrait."));
     if (photo) photo.hidden = !gotPhoto;
-    statusEl.textContent = filled.length ? `Filled ${filled.length} field(s).` : "Connected, but no values to fill.";
+    statusEl.textContent = filled.length
+      ? `กรอกแล้ว ${filled.length} ช่อง`
+      : "เชื่อมต่อแล้ว แต่ไม่มีค่าให้กรอก";
   } catch (err) {
-    statusEl.textContent = `Autofill failed: ${err.code ?? err.message}${err.message ? ` — ${err.message}` : ""}`;
+    const code = err && err.code ? err.code : "";
+    statusEl.textContent = `${formatStaffError(err)}${code ? ` (${code})` : ""}`;
   } finally {
     fillBtn.disabled = false;
   }

@@ -44,6 +44,19 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, `lang="th"`) {
 		t.Fatal("default html lang should be Thai")
 	}
+	if !strings.Contains(page, "ฝึกใช้ก่อนได้เครื่องจริง") {
+		t.Fatal("missing Thai training heading")
+	}
+	if !strings.Contains(page, `id="training-card"`) {
+		t.Fatal("missing training card")
+	}
+	js := getBody(t, tb, "/manager/app.js")
+	if !strings.Contains(js, "trainingTitle") || !strings.Contains(js, "Practice before the real reader arrives") {
+		t.Fatal("missing training i18n")
+	}
+	if strings.Contains(js, "1234567890121") || strings.Contains(js, "สมชาย") {
+		t.Fatal("manager JS must not embed card field values")
+	}
 	css := getBody(t, tb, "/manager/style.css")
 	if !strings.Contains(css, ".tech[hidden]") {
 		t.Fatal("technician section must stay display:none while hidden")

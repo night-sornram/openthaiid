@@ -21,6 +21,8 @@ import {
   type ThaiAddress,
   type ThaiIDOptions,
 } from "./index.js";
+import { staffLang, type StaffLang } from "./staffCopy.js";
+import { localizeThaiIDError } from "./staffError.js";
 
 export const AUTOFILL_ATTRIBUTE = "data-openthaiid";
 
@@ -139,6 +141,11 @@ export type AutofillThaiIDOptions = AutofillFormatOptions &
      * client, `false` when `client` was passed in.
      */
     disconnect?: boolean;
+    /**
+     * Staff language for thrown / `onError` messages. Default `"th"`.
+     * Protocol `code` is unchanged. Pass `"en"` for English guidance.
+     */
+    lang?: StaffLang | string;
     signal?: AbortSignal;
     readerId?: string;
     cardSessionId?: string;
@@ -159,6 +166,7 @@ const OPTION_KEYS = new Set<string>([
   "onConnectionChanged",
   "onError",
   "disconnect",
+  "lang",
   "dateFormat",
   "dateLocale",
   "genderLabels",
@@ -616,7 +624,8 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
       }
     }
   } catch (err) {
-    options.onError?.(err);
-    throw err;
+    const localized = localizeThaiIDError(err, staffLang(options.lang));
+    options.onError?.(localized);
+    throw localized;
   }
 }
