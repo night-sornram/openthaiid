@@ -45,7 +45,14 @@ Cross-compilation notes:
 
 Default WebSocket endpoint: `ws://127.0.0.1:17891/v1/ws`
 
-Approvals are handled in the terminal:
+Local Manager (device status, readers, Allow/Deny): `http://127.0.0.1:17891/`
+
+```bash
+./dist/openthaiid manager   # run and try to open the Manager
+./dist/openthaiid -open     # same
+```
+
+Approvals are handled in the Manager or the terminal:
 
 ```text
 allow <request-id>
@@ -76,7 +83,16 @@ npm run dev
 ```
 
 Serve the example from an HTTPS origin for real browser testing. HTTP on
-`localhost` is limited to development and still requires terminal approval.
+`localhost` is limited to development and still requires Manager (or terminal)
+approval.
+
+## Clinic ERP
+
+Add `@openthaiid/web` to the existing app — that is the install for the
+website. See [clinic.md](clinic.md).
+
+The PC with the reader still needs the local helper running (`openthaiid` or
+`openthaiid -synthetic`). That is hardware access, not a backend you deploy.
 
 ## Privacy reminder
 

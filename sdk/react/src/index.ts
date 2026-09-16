@@ -32,11 +32,13 @@ export type {
   ThaiName,
 } from "@openthaiid/web";
 
-export { DEFAULT_FIELDS, SUPPORTED_FIELDS, ThaiID, ThaiIDError, autofillThaiID } from "@openthaiid/web";
+export { DEFAULT_FIELDS, SUPPORTED_FIELDS, ThaiID, ThaiIDError, autofillThaiID, probeThaiID, mountThaiIDStatus } from "@openthaiid/web";
 export type {
   AutofillFieldMap,
   AutofillResult,
   AutofillThaiIDOptions,
+  ProbeResult,
+  ProbeThaiIDOptions,
 } from "@openthaiid/web";
 
 export { useThaiIDAutofill } from "./autofill.js";

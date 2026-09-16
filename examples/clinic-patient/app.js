@@ -1,4 +1,4 @@
-import { autofillThaiID } from "../../sdk/web/dist/index.js";
+import { autofillThaiID, mountThaiIDStatus } from "../../sdk/web/dist/index.js";
 import {
   CLINIC_GENDER_LABELS,
   CLINIC_PATIENT_MAP,
@@ -107,7 +107,7 @@ fillBtn.addEventListener("click", async () => {
       onApprovalRequired: ({ comparisonCode, approvalId, fields }) => {
         showBanner(
           "approval",
-          `Approve in the OpenThaiID terminal — request ${approvalId}, code ${comparisonCode} (fields: ${fields.join(", ")}).`,
+          `Approve this ERP origin on this PC (OpenThaiID helper) — request ${approvalId}, code ${comparisonCode} (fields: ${fields.join(", ")}).`,
         );
       },
       onError: (err) => {
@@ -159,3 +159,5 @@ genderLabelsSelect.addEventListener("change", () => {
 
 renderSettings();
 syncGenderOptions();
+const statusHost = document.getElementById("thaiid-status");
+if (statusHost) mountThaiIDStatus(statusHost);

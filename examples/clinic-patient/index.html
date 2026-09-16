@@ -178,14 +178,22 @@
       a {
         color: inherit;
       }
+      .reader-status {
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        padding: 0.65rem 0.75rem;
+        margin: 0 0 0.85rem;
+        font-size: 0.92rem;
+      }
     </style>
   </head>
   <body>
     <header class="app">
       <h1>Clinic ERP — New patient</h1>
       <p>
-        Demo of OpenThaiID autofill with a developer <code>config</code> object.
-        Not affiliated with the Department of Provincial Administration.
+        This page only uses the <code>@openthaiid/web</code> library. There is
+        no OpenThaiID backend or frontend to deploy. Not affiliated with the
+        Department of Provincial Administration.
       </p>
     </header>
     <div id="banner" class="banner" role="status"></div>
@@ -193,10 +201,11 @@
       <section>
         <h2>Create patient</h2>
         <p class="hint">
-          Click <strong>Fill from Thai ID</strong>. The local bridge still
-          requires terminal origin + field approval. Phone and HN are not on
-          the card and stay blank.
+          Click <strong>Fill from Thai ID</strong>. This is a library call in
+          your existing ERP — origin + field Allow still happens on this PC.
+          Phone and HN are not on the card and stay blank.
         </p>
+        <div id="thaiid-status" class="reader-status" aria-live="polite"></div>
         <div class="actions">
           <button id="fill" class="primary" type="button">Fill from Thai ID</button>
           <button id="reset" type="button">Clear</button>

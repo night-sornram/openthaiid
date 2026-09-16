@@ -11,7 +11,7 @@ import (
 const Major = 1
 
 // Minor is the protocol minor version. Additive field expansions bump minor.
-const Minor = 1
+const Minor = 2
 
 // Subprotocol is the WebSocket subprotocol name.
 const Subprotocol = "openthaiid.v1"
@@ -25,6 +25,7 @@ const (
 	TypeSessionRenew  Type = "session.renew"
 	TypeSessionClose  Type = "session.close"
 	TypeBridgeStatus  Type = "bridge.status"
+	TypeBridgeProbe   Type = "bridge.probe"
 	TypeCardRead      Type = "card.read"
 	TypeRequestCancel Type = "request.cancel"
 
@@ -133,7 +134,7 @@ func ValidateRequest(r Request) error {
 	}
 	switch r.Type {
 	case TypeSessionOpen, TypeSessionRenew, TypeSessionClose,
-		TypeBridgeStatus, TypeCardRead, TypeRequestCancel:
+		TypeBridgeStatus, TypeBridgeProbe, TypeCardRead, TypeRequestCancel:
 		return nil
 	default:
 		return card.NewError(card.ErrInvalidRequest, "unknown operation")

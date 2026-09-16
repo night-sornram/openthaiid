@@ -8,12 +8,18 @@ and PC/SC.
 
 ## What it does
 
-A local Go process talks to a PC/SC smart-card reader and exposes selected
+A **JavaScript library** (`@openthaiid/web`) that an existing clinic ERP page
+calls to autofill Thai National ID fields. There is no OpenThaiID website or
+backend to deploy.
+
+A small local helper on the PC talks to a PC/SC reader and exposes selected
 Thai ID fields (`citizenId`, `thaiName`, `birthDate` by default; additional
 textual fields such as `englishName`, `gender`, `issuer`, `issueDate`,
-`expireDate`, and `address` when requested and granted) to browser apps over a
-loopback WebSocket — only after the operator approves the website origin and
-field set in the terminal.
+`expireDate`, and `address` when requested and granted) over a loopback
+WebSocket — only after the operator Allows the website origin and field set.
+
+See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the
+reader from the same page, call `autofillThaiID(config)`.
 
 ## Quick start
 
@@ -27,6 +33,9 @@ make build
 # Run with real hardware
 ./dist/openthaiid
 
+# Run and open the local Manager in a browser
+./dist/openthaiid manager
+
 # Or run without hardware (synthetic backend + fictional demo card)
 ./dist/openthaiid -synthetic
 ```
@@ -34,7 +43,9 @@ make build
 The synthetic backend seeds one clearly labeled fictional reader and Thai ID
 card so the documented connect → approve → read path works from a clean
 checkout without hardware.
-Default WebSocket endpoint: `ws://127.0.0.1:17891/v1/ws`
+
+Local helper (hardware): `ws://127.0.0.1:17891/v1/ws`
+Optional operator Allow UI: `http://127.0.0.1:17891/`
 
 ### Terminal commands
 
@@ -46,7 +57,10 @@ When a website first connects, the terminal prints the exact origin, requested
 fields, request id, and comparison code. Type `allow <id>` to grant in-memory
 trust (8 hours or until the bridge stops).
 
-## Browser SDK
+## Browser SDK (the library)
+
+Add `@openthaiid/web` to the existing ERP. Check the reader and autofill from
+the same page — nothing extra to install for the website:
 
 For a HTML form, one click is enough — `autofillThaiID` connects (from that
 gesture), waits for terminal approval, reads, fills inputs, then disconnects:
@@ -61,21 +75,21 @@ gesture), waits for terminal approval, reads, fills inputs, then disconnects:
 ```
 
 ```js
-import { autofillThaiID } from "@openthaiid/web";
+import { autofillThaiID, mountThaiIDStatus } from "@openthaiid/web";
+
+mountThaiIDStatus(document.getElementById("reader-status"));
 
 document.getElementById("fill").addEventListener("click", async () => {
   await autofillThaiID({
     root: document.getElementById("kyc"),
-    onApprovalRequired: ({ comparisonCode }) => {
-      console.log("Approve in the terminal, code", comparisonCode);
-    },
   });
 });
 ```
 
 Selectors work too: `await autofillThaiID({ citizenId: "#cid", thaiName: "#name", birthDate: "#dob" })`.
-Call it from a user gesture. Origin + field approval still happens in the
-bridge terminal. See `sdk/web/README.md` and `examples/vanilla/autofill.html`.
+Call it from a user gesture. Origin + field Allow still happens on this PC
+(the ERP cannot approve itself). See `sdk/web/README.md` and
+`examples/vanilla/autofill.html`.
 
 Clinic / ERP screens should pass a **settings object** (`request` allowlist +
 `map` of slots to selectors) from the Create Patient click — same helper, no
@@ -93,7 +107,7 @@ const thaiID = new ThaiID({
 });
 
 thaiID.on("approvalRequired", ({ comparisonCode }) => {
-  console.log("Approve in terminal, code", comparisonCode);
+  console.log("Approve in OpenThaiID Manager, code", comparisonCode);
 });
 
 // Call connect() from a click so the browser can prompt for local network access.
@@ -140,10 +154,11 @@ Copy-paste React usage is in `examples/react/README.md` and `sdk/react/README.md
 ## Architecture
 
 ```text
-Browser (HTTPS page)
+Browser (HTTPS ERP page)
   └─ WebSocket ws://127.0.0.1:17891/v1/ws
-       └─ OpenThaiID bridge (Go)
-            ├─ Origin + field grants (terminal approval)
+       └─ OpenThaiID on the clinic PC (Go)
+            ├─ Local Manager http://127.0.0.1:17891/
+            ├─ Origin + field grants (Manager or terminal approval)
             ├─ Reader manager (card generations)
             └─ PC/SC adapter → Thai ID card
 ```
@@ -164,9 +179,10 @@ Browser (HTTPS page)
 
 - Listens only on `127.0.0.1`; rejects non-loopback peers and Host rebinding.
 - Validates browser `Origin` (HTTPS always; HTTP loopback for development).
-- Terminal approval per origin + exact field set; trust is memory-only.
+- Operator approval per origin + exact field set (Manager or terminal); trust is memory-only.
+- Local Manager is loopback HTML; mutating APIs require a CSRF token and the manager origin. No CORS.
 - One active read; results are unicast; card-session generations prevent stale data.
-- Never logs citizen IDs, names, dates, raw APDUs, or tokens.
+- Never logs citizen IDs, names, dates, raw APDUs, or tokens. The Manager does not display personal field values.
 
 See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md).
 
@@ -174,6 +190,7 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 
 | Document | Contents |
 |---|---|
+| [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
 | [docs/security.md](docs/security.md) | Threat model |
 | [docs/protocol.md](docs/protocol.md) | Protocol v1 |

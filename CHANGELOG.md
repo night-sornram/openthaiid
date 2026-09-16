@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Local loopback WebSocket bridge (`openthaiid.v1`) on `127.0.0.1:17891`
+- `@openthaiid/web` library helpers `probeThaiID()` and `mountThaiIDStatus()`
+  so an existing ERP page can check helper/PC/SC/readers without installing
+  a separate OpenThaiID app (no personal field values)
+- Protocol `bridge.probe` (minor 2): unauthenticated metadata for the library
+- Loopback operator page (`GET /`) for Allow/Deny when a TTY is unavailable;
+  CSRF-gated `/v1/manager/*` (no CORS)
+- Clinic docs: add the JS library to the ERP; no OpenThaiID stack to deploy
+  (`docs/clinic.md`)
 - CLI: `openthaiid`, `openthaiid doctor`, `openthaiid version`
 - Terminal origin/field approval (`allow` / `deny` / `revoke` / `revoke-all`)
 - PC/SC backend for Windows, Linux, macOS (`ebfe/scard` pinned)

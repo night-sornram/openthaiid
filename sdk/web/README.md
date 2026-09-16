@@ -1,11 +1,16 @@
 # `@openthaiid/web`
 
-Browser SDK for the OpenThaiID local bridge. Importing the module is SSR-safe;
-`connect()` and `autofillThaiID()` still require a browser and must be called
-from a visible user gesture (so the browser can prompt for local-network access).
+JavaScript library for Thai ID autofill in an existing ERP page. Importing
+the module is SSR-safe. There is no OpenThaiID frontend or backend to
+deploy — add this package to the app you already have.
 
-Terminal origin + field approval is always required. This package does not
-bypass the bridge, and it does not read portraits/photos.
+`connect()` / `autofillThaiID()` / `probeThaiID()` still need a browser.
+Autofill and connect must be called from a visible user gesture (so the
+browser can prompt for local-network access).
+
+Origin + field Allow is still required before personal fields are returned.
+This package does not bypass the local helper, and it does not read
+portraits/photos.
 
 ## Install
 
@@ -15,6 +20,20 @@ cd sdk/web && npm ci && npm test && npm run build
 
 Until the package is published, import the built `dist/index.js` (as the vanilla
 examples do) or depend on this folder.
+
+## Check the reader (no personal data)
+
+```js
+import { probeThaiID, mountThaiIDStatus } from "@openthaiid/web";
+
+mountThaiIDStatus(document.getElementById("reader-status"));
+
+const probe = await probeThaiID();
+// probe.reachable, probe.backend.status, probe.readers[].presence
+```
+
+This talks to the local helper with `bridge.probe`. It never returns citizen
+ID or names. Card reads still need Allow.
 
 ## Form autofill (plain JavaScript)
 
@@ -51,9 +70,9 @@ await autofillThaiID({
   birthDate: "#dob",
   gender: "#gender",
   address: "#address",
-  onApprovalRequired: ({ comparisonCode }) => {
-    status.textContent = `Approve in the terminal, code ${comparisonCode}`;
-  },
+    onApprovalRequired: ({ comparisonCode }) => {
+      status.textContent = `Allow this origin on the PC, code ${comparisonCode}`;
+    },
 });
 ```
 

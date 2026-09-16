@@ -36,8 +36,10 @@ within browser security rules only.
 - Reject missing, `null`, malformed, wildcard, and insecure non-loopback
   origins.
 - Match origin by scheme, normalized hostname, and effective port.
-- An eligible but untrusted origin is pairing-only: no inventory, events, or
-  card data until approved.
+- An eligible but untrusted origin is pairing-only for **unsolicited**
+  events: no inventory push, and no card data, until approved. The origin
+  may call `bridge.probe` (metadata only: helper/PC/SC/readers/presence) so
+  the JS library can check connection without a separate install.
 
 ## Authorization
 
@@ -45,8 +47,9 @@ within browser security rules only.
 2. SDK sends `session.open` with the intended field set.
 3. Bridge derives origin from the handshake and creates an expiring pending
    request.
-4. Terminal shows exact origin, fields, request id, and comparison code.
-5. Operator runs `allow <id>` or `deny <id>`.
+4. The local helper shows the origin, fields, request id, and comparison code
+   (loopback Manager page or terminal).
+5. Operator clicks Allow/Deny (the ERP page cannot approve itself).
 6. Approval creates an in-memory origin grant and authenticates the connection.
 
 - Origin grants hold the exact permitted field set.
@@ -57,7 +60,9 @@ within browser security rules only.
 - Sessions bind to origin, grant, and bridge instance.
 - Revocation cancels pending reads, closes sessions, and blocks delivery.
 - Authorization is rechecked before delivering a completed read.
-- Noninteractive processes fail closed on new approvals.
+- Noninteractive processes may still create pending approvals because the
+  local Manager is the operator UI (stdin need not be a TTY). Set
+  `NonInteractive` only for explicit fail-closed tests.
 - At most eight asynchronous operations may be in flight per connection.
 - Revocation during a blocked read suppresses the result and closes the socket.
 
@@ -82,6 +87,10 @@ within browser security rules only.
 - Never require disabled browser security, public tunnels, bundled TLS private
   keys, or installed root certificates.
 - HTTP endpoints expose no cross-origin data interface and no wildcard CORS.
+- The local Manager (`GET /`, `GET/POST /v1/manager/*`) is loopback HTML and
+  JSON for the operator on this PC. Mutating calls require the manager origin
+  and a CSRF token embedded in the page (not a cookie). Personal card fields
+  are not included in Manager responses.
 
 ## Residual risk
 

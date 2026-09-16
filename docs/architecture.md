@@ -1,7 +1,8 @@
 # Architecture
 
-OpenThaiID is a local, read-only bridge that exposes selected Thai National ID
-card fields to browser applications over a loopback WebSocket.
+OpenThaiID is a JavaScript library for existing clinic ERP pages, plus a
+local read-only helper that talks to a PC/SC reader over loopback
+WebSocket. There is no hosted OpenThaiID frontend or backend.
 
 ## Goals
 
@@ -9,17 +10,23 @@ card fields to browser applications over a loopback WebSocket.
   grant is `citizenId`, `thaiName`, and `birthDate`; remaining textual
   fields (`englishName`, `gender`, `issuer`, `issueDate`, `expireDate`,
   `address`) are opt-in and returned only when granted.
-- Explicit operator approval for each new origin and field set.
+- Explicit operator approval for each new origin and field set (local
+  Manager or terminal).
 - No card-data persistence, telemetry, or cloud dependency.
 - Hardware behavior separated from browser behavior so synthetic backends can
   exercise the full bridge.
+- Clinic ERP integration as a JS library (`probeThaiID`, `autofillThaiID`)
+  with no extra website to install.
+- A loopback HTML page on the helper for operator Allow/Deny (the ERP cannot
+  approve itself).
 
 ## Non-goals (MVP)
 
 - Biometrics, PIN bypass, card writes, arbitrary APDUs.
-- Portraits / photo binary, laser-id / NHSO profiles, installers, tray UI.
+- Portraits / photo binary, laser-id / NHSO profiles, Windows MSI / tray app.
 - Persistent trust across bridge restarts.
 - Official Firefox or Safari support.
+- A hosted multi-tenant OpenThaiID backend.
 
 ## Process model
 
@@ -28,8 +35,10 @@ One Go process owns:
 1. A reader-monitoring loop (separate PC/SC context).
 2. A single bounded native read worker (serialized card connection).
 3. An in-memory authorization module (origin grants + sessions).
-4. A loopback WebSocket server (`/v1/ws`, subprotocol `openthaiid.v1`).
-5. A terminal command loop for approvals and revocation.
+4. A loopback HTTP server: local Manager (`/`, `/v1/manager/*`) plus
+   WebSocket (`/v1/ws`, subprotocol `openthaiid.v1`).
+5. A terminal command loop for approvals and revocation (optional when using
+   the Manager).
 
 ```mermaid
 flowchart LR
@@ -39,7 +48,8 @@ flowchart LR
     Adapter --> Manager[Reader manager]
     Manager --> Profile[Thai card profile]
     Manager --> Bridge[Local WebSocket bridge]
-    Approval[Terminal approval] --> Auth[Origin and field grants]
+    ManagerUI[Local Manager HTML] --> Bridge
+    Approval[Manager or terminal approval] --> Auth[Origin and field grants]
     Auth --> Bridge
     Bridge --> SDK[TypeScript SDK]
     SDK --> ReactHooks[React hooks]
@@ -57,11 +67,12 @@ flowchart LR
 | `internal/pcsc` | OS PC/SC adapter and native resource ownership |
 | `internal/auth` | Pending approvals, origin grants, sessions, revocation |
 | `internal/protocol` | Versioned browser messages and validation |
-| `internal/bridge` | Loopback listener, WebSocket connections, dispatch |
+| `internal/bridge` | Loopback listener, Manager HTML, WebSocket connections, dispatch |
 | `internal/config` | Typed configuration and validation |
 | `sdk/web` | `@openthaiid/web` browser SDK |
 | `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |
 | `examples/vanilla` | Minimal demonstration app |
+| `examples/clinic-patient` | Create-patient ERP sample (`autofillThaiID` settings object) |
 | `examples/react` | Copy-paste React usage |
 
 There is no public Go `pkg/thaiid` in the MVP. Extract one when a real native

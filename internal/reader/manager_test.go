@@ -114,6 +114,35 @@ func TestSelectReader(t *testing.T) {
 	}
 }
 
+func TestPreferredReaderSelection(t *testing.T) {
+	ctx := context.Background()
+	m, mon, _, _ := startPair(t)
+	mon.AddReader("r1", "A")
+	mon.AddReader("r2", "B")
+	mon.InsertCard("r1")
+	mon.InsertCard("r2")
+	if err := m.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.SetPreferredReader("r2"); err != nil {
+		t.Fatal(err)
+	}
+	id, err := m.SelectReader("")
+	if err != nil || id != "r2" {
+		t.Fatalf("preferred r2: id=%q err=%v", id, err)
+	}
+	if err := m.SetPreferredReader("missing"); err == nil {
+		t.Fatal("unknown reader must fail")
+	}
+	mon.RemoveReader("r2")
+	if err := m.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if m.PreferredReader() != "" {
+		t.Fatalf("preferred should clear after disconnect, got %q", m.PreferredReader())
+	}
+}
+
 func TestReadBusyAndGeneration(t *testing.T) {
 	ctx := context.Background()
 	m, mon, rdb, _ := startPair(t)

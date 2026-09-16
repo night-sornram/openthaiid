@@ -72,6 +72,11 @@ func (c Config) WSURL() string {
 	return fmt.Sprintf("ws://%s/v1/ws", c.Addr())
 }
 
+// ManagerURL is the local HTML manager served by the bridge.
+func (c Config) ManagerURL() string {
+	return fmt.Sprintf("http://%s/", c.Addr())
+}
+
 // Validate rejects unsafe values before the process listens.
 func (c Config) Validate() error {
 	ip := net.ParseIP(c.BindAddress)

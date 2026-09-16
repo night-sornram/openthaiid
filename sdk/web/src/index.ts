@@ -1,8 +1,11 @@
 /**
- * @openthaiid/web — browser SDK for the OpenThaiID local bridge.
+ * @openthaiid/web — JavaScript library for Thai ID autofill in an existing ERP.
  *
- * Connect from a visible user action. The bridge may ask the operator to
- * approve this origin in the terminal before card data is available.
+ * Drop this into your page. There is no OpenThaiID backend or frontend to
+ * deploy. A small local helper on the clinic PC talks to the reader.
+ *
+ * Connect / autofill from a visible user action. Reading personal fields
+ * still requires an operator Allow for this origin.
  */
 
 export type Field =
@@ -843,5 +846,17 @@ export {
   type AutofillThaiIDOptions,
   type GenderLabels,
 } from "./autofill.js";
+
+export {
+  DEFAULT_ENDPOINT as PROBE_DEFAULT_ENDPOINT,
+  managerUrlFromEndpoint,
+  mountThaiIDStatus,
+  probeThaiID,
+  type MountThaiIDStatusOptions,
+  type ProbeBackend,
+  type ProbeReader,
+  type ProbeResult,
+  type ProbeThaiIDOptions,
+} from "./probe.js";
 
 export default ThaiID;

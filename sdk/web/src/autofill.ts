@@ -1,8 +1,9 @@
 /**
  * One-shot form autofill on top of ThaiID.
  *
- * Call from a visible user gesture (click). The local bridge still requires
- * terminal origin + field approval; this helper never bypasses that path.
+ * Call from a visible user gesture (click). This is a library helper for an
+ * existing ERP page — not a product to install. Origin + field Allow still
+ * happens on the local helper (Manager page or terminal).
  */
 
 import {
