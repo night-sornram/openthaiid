@@ -713,6 +713,7 @@ func (s *Server) forwardReaderEvents(ctx context.Context) {
 		}
 		s.readerSubMu.Unlock()
 	}()
+	s.auditCurrentReaders()
 	overflowTick := time.NewTicker(200 * time.Millisecond)
 	defer overflowTick.Stop()
 	for {
@@ -768,6 +769,23 @@ func (s *Server) recordReaderAudit(ev reader.ChangeEvent) {
 		s.recordAudit(audit.Event{Kind: audit.KindCardPresent, Reader: name, Presence: "present"})
 	case "card.removed":
 		s.recordAudit(audit.Event{Kind: audit.KindCardAbsent, Reader: name, Presence: "absent"})
+	}
+}
+
+func (s *Server) auditCurrentReaders() {
+	snap := s.readers.Snapshot()
+	for _, r := range snap.Readers {
+		name := r.Name
+		if name == "" {
+			name = r.ID
+		}
+		s.recordAudit(audit.Event{Kind: audit.KindReaderConnected, Reader: name})
+		switch string(r.Presence) {
+		case "present":
+			s.recordAudit(audit.Event{Kind: audit.KindCardPresent, Reader: name, Presence: "present"})
+		case "unsupported":
+			s.recordAudit(audit.Event{Kind: audit.KindCardUnsupported, Reader: name, Presence: "unsupported"})
+		}
 	}
 }
 

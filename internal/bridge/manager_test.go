@@ -114,6 +114,13 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if _, ok := st["audit"].([]any); !ok {
 		t.Fatalf("audit missing: %v", st["audit"])
 	}
+	kinds := auditKinds(st)
+	if !containsKind(kinds, "helper.start") {
+		t.Fatalf("audit missing helper.start: %v", kinds)
+	}
+	if !containsKind(kinds, "reader.connected") || !containsKind(kinds, "card.present") {
+		t.Fatalf("audit missing reader/card snapshot: %v", kinds)
+	}
 }
 
 func TestManagerCSRFRejectsForeignOrigin(t *testing.T) {
