@@ -127,4 +127,32 @@ grep -q "compatibility.md" packaging/START-HERE.darwin.txt
 grep -q "0.1.0-rc.5" cmd/openthaiid/main.go
 grep -q "0.1.0-rc.5" Makefile
 
+echo "== friday-desk-card staff-only (not the qualify kit) =="
+test -f docs/friday-desk-card.md
+test -f docs/friday-desk-card.html
+grep -q "เสียบเครื่องอ่าน" docs/friday-desk-card.md
+grep -q "ทดสอบการเชื่อมต่อ" docs/friday-desk-card.md
+grep -q "กรอกข้อมูล" docs/friday-desk-card.md
+grep -q "เรียกช่าง" docs/friday-desk-card.md
+grep -q "ทดสอบการเชื่อมต่อ" docs/friday-desk-card.html
+grep -q "เรียกช่าง" docs/friday-desk-card.html
+grep -q "@media print" docs/friday-desk-card.html
+grep -q "friday-desk-card.html" docs/friday-desk-card.md
+grep -q "friday-desk-card.md" docs/friday-checklist.md
+grep -q "friday-desk-card.md" docs/getting-started.md
+grep -q "friday-desk-card.md" docs/training.md
+grep -q "friday-desk-card.md" docs/user.md
+grep -q "friday-desk-card.md" packaging/START-HERE.linux.txt
+grep -q "friday-desk-card.md" packaging/START-HERE.windows.txt
+grep -q "friday-desk-card.md" packaging/START-HERE.darwin.txt
+grep -q "friday-desk-card.md" README.md
+if grep -q "openthaiid qualify" docs/friday-desk-card.md docs/friday-desk-card.html; then
+  echo "ERROR: staff desk card must not include qualify" >&2
+  exit 1
+fi
+if grep -qiE "laser-id|NHSO" docs/friday-desk-card.md docs/friday-desk-card.html; then
+  echo "ERROR: staff desk card must not mention Laser-id/NHSO" >&2
+  exit 1
+fi
+
 echo "OK smoke-package"

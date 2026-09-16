@@ -12,6 +12,7 @@ codes**, and the technician diagnostics copy below.
 Synthetic `openthaiid qualify -synthetic` proves the kit, not the reader.
 Friday-morning index: [getting-started.md](getting-started.md).
 One-command software rehearsal: `make friday-dry-run` (ซ้อมก่อนได้เครื่อง).
+Staff desk card (print one Thai page): [friday-desk-card.md](friday-desk-card.md).
 One-page Friday sheet: [friday-checklist.md](friday-checklist.md).
 Practice Fill without hardware: [training.md](training.md).
 Loopback helper HTTP inventory (foreign Origin cannot stop the helper):

@@ -48,7 +48,7 @@ function Get-Json {
 }
 
 Write-Host "== OpenThaiID Friday dry-run (synthetic; not a hardware pass) =="
-Write-Host "docs: getting-started.md · training.md · friday-checklist.md"
+Write-Host "docs: getting-started.md · training.md · friday-desk-card.md · friday-checklist.md"
 Write-Host "never print citizen ID, names, address, or photo bytes"
 
 if (-not (Test-Path $Bin)) {
@@ -193,7 +193,8 @@ Write-Host ""
 Write-Host "หน้า พร้อม / Ready: $Ready"
 Write-Host "ดัชนีเช้านี้: docs/getting-started.md"
 Write-Host "ฝึกกรอกข้อมูลต่อ: docs/training.md"
-Write-Host "เช้าที่มีเครื่องจริง: docs/friday-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)"
+Write-Host "เช้าที่มีเครื่องจริง: พิมพ์ docs/friday-desk-card.md ที่โต๊ะ"
+Write-Host "ชุด qualify: docs/friday-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)"
 Write-Host ""
 Write-Host "ห้ามส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR ที่มียอด card.read"
 Write-Host "Do not send citizen ID, names, address, date of birth, photos, filled-form"

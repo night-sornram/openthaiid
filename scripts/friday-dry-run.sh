@@ -277,7 +277,7 @@ PY
 }
 
 echo "== OpenThaiID Friday dry-run (synthetic; not a hardware pass) =="
-echo "docs: getting-started.md · training.md · friday-checklist.md"
+echo "docs: getting-started.md · training.md · friday-desk-card.md · friday-checklist.md"
 echo "never print citizen ID, names, address, or photo bytes"
 
 if [ ! -x "$BIN" ]; then
@@ -408,7 +408,8 @@ Friday-morning software path rehearsed on -synthetic (not a hardware pass).
 หน้า พร้อม / Ready: ${READY}
 ดัชนีเช้านี้: docs/getting-started.md
 ฝึกกรอกข้อมูลต่อ: docs/training.md  (examples/clinic-patient/ แล้วกด อนุญาต)
-เช้าที่มีเครื่องจริง: docs/friday-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)
+เช้าที่มีเครื่องจริง: พิมพ์ docs/friday-desk-card.md ที่โต๊ะ
+ชุด qualify: docs/friday-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)
 
 ห้ามส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR ที่มียอด card.read
 Do not send citizen ID, names, address, date of birth, photos, filled-form

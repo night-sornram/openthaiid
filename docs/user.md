@@ -78,7 +78,8 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 ตาม [training.md](training.md) ครั้งแรกยังต้องกดอนุญาต
 ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต
 
-วันศุกร์ที่มีเครื่องอ่าน: [friday-checklist.md](friday-checklist.md)
+วันศุกร์ที่มีเครื่องอ่าน: พิมพ์ [friday-desk-card.md](friday-desk-card.md) ที่โต๊ะ
+ชุด qualify: [friday-checklist.md](friday-checklist.md)
 ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)
 
 ---
@@ -137,8 +138,10 @@ Do not send screenshots of the patient’s card or of filled form fields.
 
 Practice without a reader: [training.md](training.md) (`make friday-dry-run`, then
 `openthaiid -synthetic`).
-Friday with ACR39U (multi-reader, E4 card-removed / unplug, E5/E6 sleep and
-PC/SC recovery): [friday-checklist.md](friday-checklist.md).
+Friday with ACR39U: print the staff desk card
+[friday-desk-card.md](friday-desk-card.md). Operator qualify (multi-reader,
+E4 card-removed / unplug, E5/E6 sleep and PC/SC recovery):
+[friday-checklist.md](friday-checklist.md).
 Technicians (Reconnect card service, **Use this reader**):
 [technician.md](technician.md).
 Friday-morning index: [getting-started.md](getting-started.md).

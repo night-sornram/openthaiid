@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>บัตรโต๊ะเจ้าหน้าที่ — OpenThaiID</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 12mm;
+      }
+      :root {
+        color-scheme: light;
+      }
+      body {
+        font-family: "Sarabun", "Noto Sans Thai", "Leelawadee UI", "Segoe UI",
+          system-ui, sans-serif;
+        font-size: 18pt;
+        line-height: 1.35;
+        color: #1c1917;
+        max-width: 46rem;
+        margin: 1rem auto;
+        padding: 0 1.25rem 2rem;
+      }
+      h1 {
+        font-size: 26pt;
+        font-weight: 700;
+        margin: 0 0 0.35rem;
+        line-height: 1.2;
+      }
+      .sub {
+        font-size: 13pt;
+        color: #44403c;
+        margin: 0 0 1rem;
+      }
+      ol {
+        margin: 0;
+        padding-left: 1.35em;
+      }
+      ol li {
+        margin: 0.55rem 0;
+      }
+      h2 {
+        font-size: 16pt;
+        margin: 1.15rem 0 0.4rem;
+      }
+      .tips {
+        font-size: 13pt;
+        margin: 0;
+        padding-left: 1.2em;
+      }
+      .tips li {
+        margin: 0.35rem 0;
+      }
+      .privacy {
+        font-size: 12pt;
+        margin-top: 1rem;
+      }
+      .en {
+        font-size: 10pt;
+        color: #57534e;
+        margin-top: 0.9rem;
+        line-height: 1.4;
+      }
+      .noprint {
+        font-size: 12pt;
+        margin: 0 0 1rem;
+      }
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+          font-size: 18pt;
+        }
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+        .noprint {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p class="noprint">พิมพ์หนึ่งหน้านี้ (Ctrl+P / Command+P) วางไว้ที่โต๊ะเจ้าหน้าที่</p>
+    <h1>บัตรโต๊ะเจ้าหน้าที่ — เช้าได้เครื่อง ACR39U</h1>
+    <p class="sub">พิมพ์หนึ่งหน้า วางไว้ที่โต๊ะ · ตัวใหญ่ อ่านตอนเช้าได้</p>
+
+    <ol>
+      <li><strong>เสียบเครื่องอ่าน</strong> ACR39U เข้าคอมพิวเตอร์เครื่องนี้</li>
+      <li>
+        <strong>เปิดหน้า พร้อม</strong> — เปิด OpenThaiID แล้วไปที่
+        <code>http://127.0.0.1:17891/</code><br />
+        เสียบบัตรประชาชนให้สุด รอไฟขึ้น <strong>พร้อม</strong>
+      </li>
+      <li>กด <strong>ทดสอบการเชื่อมต่อ</strong> (ไม่อ่านข้อมูลบนบัตร)</li>
+      <li><strong>เปิดหน้าคลินิก (ERP)</strong> ตามปกติ</li>
+      <li>
+        กด <strong>กรอกข้อมูล</strong> — ครั้งแรกกด <strong>อนุญาต</strong> บนหน้า
+        พร้อม
+      </li>
+      <li>
+        <strong>ถ้าติด</strong> เรียกช่างเทคนิค — อย่าส่งภาพบัตรหรือค่าในช่อง
+      </li>
+    </ol>
+
+    <h2>ติดนิดหน่อย (ยังไม่ต้องรีสตาร์ทเครื่อง)</h2>
+    <ul class="tips">
+      <li>
+        <strong>ถอดบัตรระหว่างกรอก</strong> — เสียบให้สุด รอ
+        <strong>พร้อม</strong> แล้วกด กรอกข้อมูล อีกครั้ง · อย่าใช้ค่าที่ค้างในช่อง
+      </li>
+      <li>
+        <strong>เครื่องหลับแล้วตื่น</strong> — อย่ารีสตาร์ท · กด
+        <strong>ทดสอบการเชื่อมต่อ</strong> แล้วรอ <strong>พร้อม</strong>
+      </li>
+      <li>
+        <strong>หน้าคลินิกเป็น https กรอกไม่ขึ้น</strong> (มักเป็น Firefox /
+        Safari) — เรียกช่างเทคนิคเปิด TLS ของตัวช่วย · อย่าปิดความปลอดภัยของเบราว์เซอร์
+      </li>
+    </ul>
+
+    <p class="privacy">
+      ห้ามส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย หรือภาพหน้าจอฟอร์ม
+    </p>
+    <p class="en">
+      EN (tiny): Plug ACR39U → open Ready
+      <code>http://127.0.0.1:17891/</code> → Test connection → open ERP → Fill.
+      If stuck, call a technician. Card pulled: reinsert, wait for Ready, Fill
+      again. After sleep: do not reboot; Test connection. HTTPS ERP: ask tech
+      for helper TLS — do not turn off browser security.
+    </p>
+  </body>
+</html>

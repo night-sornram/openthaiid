@@ -27,6 +27,7 @@ have.
 
 Clinic staff (start helper, plug reader, Fill): [user.md](user.md).
 Practice without a reader: [training.md](training.md).
+Friday staff desk card: [friday-desk-card.md](friday-desk-card.md).
 Friday with ACR39U: [friday-checklist.md](friday-checklist.md).
 Technicians (Fill failed): [technician.md](technician.md).
 Friday-morning index: [getting-started.md](getting-started.md).

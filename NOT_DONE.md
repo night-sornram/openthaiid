@@ -1,10 +1,8 @@
 # Not done
 
-Last updated after **Go module hygiene** on tagged **v0.1.0-rc.5**:
-direct deps `coder/websocket` 1.8.15, `golang.org/x/sys` 0.48.0,
-`golang.org/x/text` 0.42.0; `go` / toolchain held at **1.27** /
-**go1.27.1**; `ebfe/scard` pin held (`7af069cabc25`). Physical ACR39U
-execution (including Friday E4–E6 on hardware) is still blocked.
+Last updated after the **Friday staff desk card** (`docs/friday-desk-card.md`)
+on tagged **v0.1.0-rc.5**. Physical ACR39U execution (including Friday
+E4–E6 on hardware) is still blocked.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -12,8 +10,9 @@ portrait (synthetic), the qualification *kit*, unsigned macOS packaging
 instructions, reconnect/test-connection staff UX, multi-reader select,
 card-removed / unplug clinic UX, sleep/wake + PC/SC recovery mapping,
 operator GitHub Releases **check**, honest Firefox/Safari HTTPS Fill
-errors, optional technician-managed loopback HTTPS/WSS, and Go module
-hygiene are implemented. This file lists everything that is **not**
+errors, optional technician-managed loopback HTTPS/WSS, Go module
+hygiene, and the staff Friday **desk card** (`docs/friday-desk-card.md`)
+are implemented. This file lists everything that is **not**
 complete for a **hardware-qualified** release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
@@ -97,4 +96,5 @@ explicit and unsigned. There is no Store-signed auto-update.
 
 Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
 Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.5]` plus
-`[Unreleased]` for this hygiene pass.
+`[Unreleased]` (staff desk card on this pass; Go module hygiene already
+merged).

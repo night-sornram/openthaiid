@@ -72,7 +72,9 @@ make friday-dry-run
 ## เมื่อได้เครื่องจริง
 
 ปิดตัวช่วยฝึกซ้อม แล้วเปิดใหม่ **โดยไม่ใส่** `-synthetic`
-เสียบ ACR39U ตาม [friday-checklist.md](friday-checklist.md)
+พิมพ์ [friday-desk-card.md](friday-desk-card.md) ไว้ที่โต๊ะเจ้าหน้าที่
+เสียบ ACR39U ตามบัตรนั้น (ไม่ใช่ชุด qualify)
+ชุดช่างเทคนิค: [friday-checklist.md](friday-checklist.md)
 อย่าสับสนบัตรจำลองกับบัตรผู้ป่วย
 
 รายละเอียดช่างเทคนิค: [technician.md](technician.md)
@@ -91,6 +93,7 @@ values in tickets — diagnostics, `openthaiid audit` JSON, and error
 Pass `{ lang: "en" }` / `?lang=en` for English staff banners.
 When the ACR39U arrives, restart the helper without `-synthetic`.
 Friday-morning index: [getting-started.md](getting-started.md).
+Staff desk card (print one Thai page): [friday-desk-card.md](friday-desk-card.md).
 Friday one-page (multi-reader, E4–E6): [friday-checklist.md](friday-checklist.md).
 Technicians: [technician.md](technician.md).
 Loopback HTTP inventory: [security.md](security.md).

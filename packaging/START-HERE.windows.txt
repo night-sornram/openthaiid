@@ -33,7 +33,8 @@ Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
 
 Never type or save citizen ID, names, address, or photo bytes. One JSON
 report path is printed as `report: ...`. Friday-morning index:
-docs\getting-started.md. One-page sheet: docs\friday-checklist.md
+docs\getting-started.md. Staff desk card (print one Thai page):
+docs\friday-desk-card.md. Operator one-page: docs\friday-checklist.md
 (full kit: docs\hardware-qualification.md). Always-on without a tray:
 docs\installation.md (Install-OpenThaiID-Service.ps1 /
 openthaiid.exe service install). Technician audit JSON: Technician tools
@@ -70,7 +71,8 @@ Menu / Desktop shortcuts. It does not enable autostart unless you pass
 -Autostart. It does not install a Windows service.
 
 Technicians: run openthaiid.exe in a terminal, or Technician tools.
-See docs\getting-started.md, docs\technician.md, docs\friday-checklist.md,
+See docs\getting-started.md, docs\friday-desk-card.md (staff print card),
+docs\technician.md, docs\friday-checklist.md,
 docs\user.md
 (multi-reader, CARD_REMOVED / READER_REMOVED, sleep/wake PC/SC recovery),
 docs\security.md (loopback HTTP inventory), docs\compatibility.md

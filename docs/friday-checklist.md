@@ -1,6 +1,7 @@
 # วันศุกร์ — ACR39U (หนึ่งหน้า)
 
-ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)
+ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)  
+บัตรโต๊ะเจ้าหน้าที่ (พิมพ์หนึ่งหน้า ไทย): [friday-desk-card.md](friday-desk-card.md)
 
 เสียบเครื่องอ่าน → พร้อม → qualify → กรอกข้อมูล → ส่งให้ jarvis เฉพาะวินิจฉัย
 **ห้าม** ส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR ที่มียอด `card.read`
