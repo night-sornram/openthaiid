@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/night-sornram/openthaiid/dev/sdk/web/schema/autofill-clinic-config.schema.json",
+  "title": "OpenThaiID clinic autofill config",
+  "description": "JSON-serializable subset of autofillThaiID options for a clinic/hospital ERP Create Patient (or KYC) screen. request is a protocol-field allowlist; map is slot → CSS selector. Callbacks (onApprovalRequired, onError, onConnectionChanged) and runtime objects (root, client, signal, Element map values, dateFormat functions) are code-only and must not appear here. Attach them in the click handler. Do not store personal field values in this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "anyOf": [{ "required": ["request"] }, { "required": ["map"] }],
+  "properties": {
+    "$schema": { "type": "string", "minLength": 1 },
+    "$id": { "type": "string", "minLength": 1 },
+    "$comment": { "type": "string" },
+    "kind": {
+      "const": "openthaiid.autofill-clinic",
+      "description": "Optional marker so tools can recognize this file."
+    },
+    "request": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Allowlist of protocol fields (not nested slots such as thaiName.givenName). The session asks only for the intersection with mapped slots. Portrait is opt-in. Laser-id / NHSO fields are not supported.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "citizenId",
+          "thaiName",
+          "englishName",
+          "birthDate",
+          "gender",
+          "issuer",
+          "issueDate",
+          "expireDate",
+          "address",
+          "portrait"
+        ]
+      }
+    },
+    "map": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Slot → CSS selector string on this screen. Phone / HN stay unmapped. JSON cannot hold Element references.",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "propertyNames": {
+        "enum": [
+          "citizenId",
+          "issuer",
+          "thaiName",
+          "thaiName.title",
+          "thaiName.givenName",
+          "thaiName.middleName",
+          "thaiName.familyName",
+          "thaiName.fullName",
+          "englishName",
+          "englishName.title",
+          "englishName.givenName",
+          "englishName.middleName",
+          "englishName.familyName",
+          "englishName.fullName",
+          "birthDate",
+          "birthDate.year",
+          "birthDate.month",
+          "birthDate.day",
+          "issueDate",
+          "issueDate.year",
+          "issueDate.month",
+          "issueDate.day",
+          "expireDate",
+          "expireDate.year",
+          "expireDate.month",
+          "expireDate.day",
+          "gender",
+          "gender.code",
+          "gender.value",
+          "address",
+          "address.houseNo",
+          "address.villageNo",
+          "address.alley",
+          "address.street",
+          "address.subdistrict",
+          "address.district",
+          "address.province",
+          "address.fullAddress",
+          "portrait",
+          "portrait.dataUrl",
+          "portrait.data",
+          "portrait.mimeType"
+        ]
+      }
+    },
+    "lang": {
+      "type": "string",
+      "enum": ["th", "en"],
+      "description": "Staff language for Fill-error messages. Default th. Protocol codes are unchanged."
+    },
+    "dateFormat": {
+      "type": "string",
+      "enum": ["iso", "locale"],
+      "description": "String dates. A formatter function is code-only. input[type=date] always receives YYYY-MM-DD."
+    },
+    "dateLocale": { "type": "string", "minLength": 1 },
+    "genderLabels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["male", "female"],
+      "properties": {
+        "male": { "type": "string", "minLength": 1 },
+        "female": { "type": "string", "minLength": 1 },
+        "unknown": { "type": "string" }
+      }
+    },
+    "discover": {
+      "type": "boolean",
+      "description": "Scan data-openthaiid attributes. Default true when map is omitted. Clinic screens typically set false."
+    },
+    "endpoint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "WebSocket URL of the local helper. Default ws://127.0.0.1:17891/v1/ws."
+    },
+    "connectTimeoutMs": { "type": "integer", "minimum": 0 },
+    "renewLeadMs": { "type": "integer", "minimum": 0 },
+    "disconnect": { "type": "boolean" },
+    "attribute": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Discovery attribute. Default data-openthaiid."
+    },
+    "readerId": { "type": "string", "minLength": 1 },
+    "cardSessionId": { "type": "string", "minLength": 1 }
+  }
+}

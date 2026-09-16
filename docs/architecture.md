@@ -81,10 +81,10 @@ flowchart LR
 | `internal/bridge` | Loopback listener, Manager HTML, WebSocket connections, dispatch |
 | `internal/config` | Typed configuration and validation |
 | `internal/update` | GitHub Releases version check / unsigned download / apply |
-| `sdk/web` | `@openthaiid/web` browser SDK |
+| `sdk/web` | `@openthaiid/web` (includes clinic JSON Schema + `parseAutofillClinicConfig`) |
 | `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |
 | `examples/vanilla` | Minimal demonstration app |
-| `examples/clinic-patient` | Create-patient ERP sample (`autofillThaiID` settings object) |
+| `examples/clinic-patient` | Create-patient ERP sample (`autofillThaiID` JSON config + settings import/export) |
 | `examples/react` | Copy-paste React usage |
 
 There is no public Go `pkg/thaiid` in the MVP. Extract one when a real native

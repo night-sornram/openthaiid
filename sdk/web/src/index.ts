@@ -863,6 +863,7 @@ export {
   normalizeAutofillRequest,
   parseSlot,
   slotsToFields,
+  AUTOFILL_SLOTS,
   type AutofillFieldMap,
   type AutofillFilled,
   type AutofillFormatOptions,
@@ -873,6 +874,19 @@ export {
   type AutofillThaiIDOptions,
   type GenderLabels,
 } from "./autofill.js";
+
+export {
+  AUTOFILL_CLINIC_CONFIG_KIND,
+  AUTOFILL_CLINIC_CONFIG_SCHEMA_ID,
+  CODE_ONLY_AUTOFILL_OPTION_KEYS,
+  autofillClinicConfigDocument,
+  autofillSlotNames,
+  clinicConfigToAutofillOptions,
+  parseAutofillClinicConfig,
+  serializeAutofillClinicConfig,
+  type AutofillClinicConfig,
+  type AutofillClinicConfigMap,
+} from "./clinicConfig.js";
 
 export {
   DEFAULT_ENDPOINT as PROBE_DEFAULT_ENDPOINT,

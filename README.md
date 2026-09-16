@@ -19,7 +19,8 @@ fields such as `englishName`, `gender`, `issuer`, `issueDate`,
 WebSocket — only after the operator Allows the website origin and field set.
 
 See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the
-reader from the same page, call `autofillThaiID(config)`.
+reader from the same page, call `autofillThaiID(config)`. Drop-in JSON
+(`request` + `map`, schema + samples): [docs/erp-integration.md](docs/erp-integration.md).
 
 Clinic staff: [docs/user.md](docs/user.md) (Thai-first Ready lights; tray /
 Start menu, not a developer terminal). Practice without a reader:
@@ -114,7 +115,8 @@ Call it from a user gesture. Origin + field Allow still happens on this PC
 
 Clinic / ERP screens should pass a **settings object** (`request` allowlist +
 `map` of slots to selectors) from the Create Patient click — same helper, no
-SDK fork. Copy-paste: `examples/clinic-patient/`.
+SDK fork. Copy-paste: `examples/clinic-patient/`. JSON Schema and samples:
+[docs/erp-integration.md](docs/erp-integration.md).
 
 The `ThaiID` class is unchanged when you need connect / read / status yourself:
 
@@ -217,6 +219,7 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 | Document | Contents |
 |---|---|
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
+| [docs/erp-integration.md](docs/erp-integration.md) | Drop-in JSON config + schema for an existing hospital/clinic ERP |
 | [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill |
 | [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives |
 | [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → what to send |

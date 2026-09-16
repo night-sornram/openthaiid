@@ -1,10 +1,19 @@
-import { autofillThaiID, formatStaffError, mountThaiIDStatus, staffApprovalGuidance, staffLang } from "../../sdk/web/dist/index.js";
+import {
+  SUPPORTED_FIELDS,
+  autofillClinicConfigDocument,
+  autofillThaiID,
+  clinicConfigToAutofillOptions,
+  formatStaffError,
+  mountThaiIDStatus,
+  parseAutofillClinicConfig,
+  serializeAutofillClinicConfig,
+  staffApprovalGuidance,
+  staffLang,
+} from "../../sdk/web/dist/index.js";
 import {
   CLINIC_GENDER_LABELS,
   CLINIC_PATIENT_MAP,
   CLINIC_PATIENT_REQUEST,
-  OPTIONAL_PATIENT_REQUEST,
-  OPTIONAL_PORTRAIT_REQUEST,
   clinicPatientAutofill,
 } from "./settings.js";
 
@@ -16,13 +25,26 @@ const requestHost = document.getElementById("request-fields");
 const mapRows = document.getElementById("map-rows");
 const preview = document.getElementById("config-preview");
 const genderLabelsSelect = document.getElementById("gender-labels");
+const downloadBtn = document.getElementById("download-config");
+const uploadBtn = document.getElementById("upload-config");
+const uploadFile = document.getElementById("upload-config-file");
+const loadKycBtn = document.getElementById("load-kyc-minimal");
+const loadClinicBtn = document.getElementById("load-clinic-full");
 
 const qs = new URLSearchParams(location.search);
 const endpoint = qs.get("ws") || undefined;
-const lang = staffLang(qs.get("lang"));
+const pageLang = staffLang(qs.get("lang"));
 
-const requestable = [...CLINIC_PATIENT_REQUEST, ...OPTIONAL_PATIENT_REQUEST, ...OPTIONAL_PORTRAIT_REQUEST];
+const TH_GENDER_LABELS = { male: "ชาย", female: "หญิง" };
+const requestable = [...SUPPORTED_FIELDS];
 const selected = new Set(CLINIC_PATIENT_REQUEST);
+
+let currentMap = { ...CLINIC_PATIENT_MAP };
+let currentDateFormat = "iso";
+let currentDateLocale = undefined;
+let currentDiscover = false;
+let currentConfigLang = pageLang;
+let customGenderLabels = null;
 
 function showBanner(kind, text) {
   banner.className = `banner show ${kind}`;
@@ -34,9 +56,16 @@ function hideBanner() {
   banner.textContent = "";
 }
 
+function labelsMatch(a, b) {
+  return a.male === b.male && a.female === b.female && (a.unknown ?? "") === (b.unknown ?? "");
+}
+
 function genderLabels() {
+  if (genderLabelsSelect.value === "custom" && customGenderLabels) {
+    return { ...customGenderLabels };
+  }
   if (genderLabelsSelect.value === "th") {
-    return { male: "ชาย", female: "หญิง" };
+    return { ...TH_GENDER_LABELS };
   }
   return { ...CLINIC_GENDER_LABELS };
 }
@@ -45,20 +74,18 @@ function currentConfig() {
   return clinicPatientAutofill({
     root: form,
     request: requestable.filter((f) => selected.has(f)),
+    map: currentMap,
+    dateFormat: currentDateFormat,
+    ...(currentDateLocale ? { dateLocale: currentDateLocale } : {}),
     genderLabels: genderLabels(),
+    discover: currentDiscover,
+    lang: currentConfigLang,
     ...(endpoint ? { endpoint } : {}),
   });
 }
 
 function previewConfig() {
-  const cfg = currentConfig();
-  return {
-    request: cfg.request,
-    map: cfg.map,
-    dateFormat: cfg.dateFormat,
-    genderLabels: cfg.genderLabels,
-    discover: cfg.discover,
-  };
+  return serializeAutofillClinicConfig(currentConfig());
 }
 
 function renderSettings() {
@@ -84,7 +111,7 @@ function renderSettings() {
   }
 
   mapRows.innerHTML = "";
-  for (const [slot, selector] of Object.entries(CLINIC_PATIENT_MAP)) {
+  for (const [slot, selector] of Object.entries(currentMap)) {
     const tr = document.createElement("tr");
     const tdSlot = document.createElement("td");
     const tdSel = document.createElement("td");
@@ -97,7 +124,41 @@ function renderSettings() {
 }
 
 function renderPreview() {
-  preview.textContent = JSON.stringify(previewConfig(), null, 2);
+  preview.textContent = JSON.stringify(autofillClinicConfigDocument(previewConfig()), null, 2);
+}
+
+function applyClinicConfig(cfg, sourceLabel) {
+  selected.clear();
+  for (const field of cfg.request ?? []) selected.add(field);
+  if (cfg.map) currentMap = { ...cfg.map };
+  if (cfg.dateFormat) currentDateFormat = cfg.dateFormat;
+  currentDateLocale = cfg.dateLocale;
+  if (typeof cfg.discover === "boolean") currentDiscover = cfg.discover;
+  if (cfg.lang) currentConfigLang = cfg.lang;
+  const customOpt = genderLabelsSelect.querySelector('option[value="custom"]');
+  if (cfg.genderLabels) {
+    customGenderLabels = cfg.genderLabels;
+    if (labelsMatch(cfg.genderLabels, TH_GENDER_LABELS)) {
+      genderLabelsSelect.value = "th";
+      customOpt.hidden = true;
+    } else if (labelsMatch(cfg.genderLabels, CLINIC_GENDER_LABELS)) {
+      genderLabelsSelect.value = "en";
+      customOpt.hidden = true;
+    } else {
+      customOpt.hidden = false;
+      genderLabelsSelect.value = "custom";
+    }
+  }
+  renderSettings();
+  syncGenderOptions();
+  showBanner("ok", sourceLabel);
+}
+
+async function loadClinicJson(url, label) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Could not fetch ${url} (${res.status})`);
+  const parsed = parseAutofillClinicConfig(await res.json());
+  applyClinicConfig(parsed, label);
 }
 
 fillBtn.addEventListener("click", async () => {
@@ -105,21 +166,23 @@ fillBtn.addEventListener("click", async () => {
   hideBanner();
   const config = currentConfig();
   if (!config.request.length) {
-    showBanner("error", lang === "en" ? "Enable at least one field in request." : "เลือกอย่างน้อยหนึ่งช่องใน request");
+    showBanner("error", pageLang === "en" ? "Enable at least one field in request." : "เลือกอย่างน้อยหนึ่งช่องใน request");
     fillBtn.disabled = false;
     return;
   }
   try {
     const { filled } = await autofillThaiID({
-      ...config,
-      lang,
+      ...clinicConfigToAutofillOptions(serializeAutofillClinicConfig(config)),
+      root: form,
+      lang: config.lang ?? pageLang,
+      ...(endpoint ? { endpoint } : {}),
       onApprovalRequired: (info) => {
-        const g = staffApprovalGuidance(info, lang);
+        const g = staffApprovalGuidance(info, pageLang);
         showBanner("approval", `${g.message} ${g.next}`);
       },
       onError: (err) => {
         const code = err && err.code ? err.code : "ERROR";
-        showBanner("error", `${formatStaffError(err, lang)} (${code})`);
+        showBanner("error", `${formatStaffError(err, pageLang)} (${code})`);
       },
     });
     const photo = document.getElementById("patient-photo");
@@ -137,7 +200,7 @@ fillBtn.addEventListener("click", async () => {
           filledPortrait ? " Portrait preview is example-only — do not screenshot it." : ""
         }`
       : "Connected, but no values to fill.";
-    showBanner("ok", lang === "en" ? okEn : okTh);
+    showBanner("ok", pageLang === "en" ? okEn : okTh);
   } catch {
     // onError already updated ERP chrome; keep the rejection from bubbling as an unhandled promise.
   } finally {
@@ -174,11 +237,62 @@ function syncGenderOptions() {
 }
 
 genderLabelsSelect.addEventListener("change", () => {
+  if (genderLabelsSelect.value !== "custom") {
+    customGenderLabels = null;
+    const customOpt = genderLabelsSelect.querySelector('option[value="custom"]');
+    if (customOpt) customOpt.hidden = true;
+  }
   syncGenderOptions();
   renderPreview();
+});
+
+downloadBtn.addEventListener("click", () => {
+  const doc = autofillClinicConfigDocument(previewConfig());
+  const blob = new Blob([`${JSON.stringify(doc, null, 2)}\n`], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "openthaiid-clinic-config.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+uploadBtn.addEventListener("click", () => {
+  uploadFile.click();
+});
+
+uploadFile.addEventListener("change", async () => {
+  const file = uploadFile.files && uploadFile.files[0];
+  uploadFile.value = "";
+  if (!file) return;
+  try {
+    const parsed = parseAutofillClinicConfig(await file.text());
+    applyClinicConfig(parsed, `Loaded ${file.name}`);
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    showBanner("error", `Invalid clinic config JSON: ${message}`);
+  }
+});
+
+loadKycBtn.addEventListener("click", async () => {
+  try {
+    await loadClinicJson("./kyc-minimal.json", "Loaded kyc-minimal.json");
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    showBanner("error", `Could not load KYC sample: ${message}`);
+  }
+});
+
+loadClinicBtn.addEventListener("click", async () => {
+  try {
+    await loadClinicJson("./clinic-full.json", "Loaded clinic-full.json");
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    showBanner("error", `Could not load clinic sample: ${message}`);
+  }
 });
 
 renderSettings();
 syncGenderOptions();
 const statusHost = document.getElementById("thaiid-status");
-if (statusHost) mountThaiIDStatus(statusHost, { lang, ...(endpoint ? { endpoint } : {}) });
+if (statusHost) mountThaiIDStatus(statusHost, { lang: pageLang, ...(endpoint ? { endpoint } : {}) });

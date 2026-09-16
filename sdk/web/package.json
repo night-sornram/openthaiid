@@ -11,10 +11,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./schema/autofill-clinic-config.json": "./schema/autofill-clinic-config.schema.json"
   },
   "files": [
     "dist",
+    "schema",
     "README.md"
   ],
   "sideEffects": false,

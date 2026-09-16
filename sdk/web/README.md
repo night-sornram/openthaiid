@@ -94,49 +94,47 @@ See `examples/vanilla/autofill.html` for a copy-paste page. With
 
 ## Clinic / ERP settings object
 
-For a Create Patient screen, keep one config object (clinic admin can persist
-`request`) and call it from the button:
+For a Create Patient screen, keep one JSON config (`request` + `map`) and call
+it from the button. Schema:
+`schema/autofill-clinic-config.schema.json` (package export
+`@openthaiid/web/schema/autofill-clinic-config.json`). Samples:
+`examples/clinic-patient/kyc-minimal.json` and `clinic-full.json`.
+Hospital ERP drop-in: `docs/erp-integration.md`.
 
 ```js
-import { autofillThaiID, formatStaffError, staffApprovalGuidance } from "@openthaiid/web";
+import { autofillThaiID, formatStaffError, parseAutofillClinicConfig, staffApprovalGuidance } from "@openthaiid/web";
+import clinicJson from "./openthaiid-clinic-config.json";
 
-const clinicPatientAutofill = {
-  request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
-  map: {
-    citizenId: "#patient-cid",
-    "thaiName.givenName": "#patient-given",
-    "thaiName.familyName": "#patient-family",
-    birthDate: "#patient-dob",
-    gender: "#patient-gender",
-    address: "#patient-address",
-  },
-  dateFormat: "iso",
-  genderLabels: { male: "male", female: "female" },
-  onApprovalRequired: (info) => {
-    const g = staffApprovalGuidance(info); // Thai default; pass "en" for English
-    showBanner(`${g.message} ${g.next}`);
-  },
-  onError: (err) => {
-    showBanner(`${formatStaffError(err)} (${err.code ?? "ERROR"})`);
-  },
-};
+const clinicPatientAutofill = parseAutofillClinicConfig(clinicJson);
 
 fillBtn.addEventListener("click", async () => {
-  await autofillThaiID(clinicPatientAutofill);
+  await autofillThaiID({
+    ...clinicPatientAutofill,
+    onApprovalRequired: (info) => {
+      const g = staffApprovalGuidance(info); // Thai default; pass "en" for English
+      showBanner(`${g.message} ${g.next}`);
+    },
+    onError: (err) => {
+      showBanner(`${formatStaffError(err)} (${err.code ?? "ERROR"})`);
+    },
+  });
 });
 ```
 
 - `request` — allowlist of protocol fields (not nested slots). The session
   asks only for fields that also have a mapped or `data-openthaiid` target.
 - `map` — alias of `fields` (slot → selector). Phone / HN stay off the map.
-- `onApprovalRequired` / `onError` — ERP chrome; the promise still rejects.
+  JSON configs use `map` with CSS selector strings only.
+- `onApprovalRequired` / `onError` — **code-only** ERP chrome; they must not
+  appear in the JSON file. The promise still rejects.
   Default Fill error **messages** are Thai staff guidance; `err.code` is
   unchanged. Pass `{ lang: "en" }` or `formatStaffError(err, "en")`.
+- Type export: `AutofillClinicConfig`. Runtime: `parseAutofillClinicConfig`.
 - Portrait is optional. Request `portrait` and map it to an `<img>` (data URL)
   or consume `result.fields.portrait` via `portraitDataUrl` / `portraitBlob`.
   Do not call this on page load; do not log photo bytes.
 
-Worked example: `examples/clinic-patient/`.
+Worked example: `examples/clinic-patient/` (settings panel download/upload).
 
 ## Full connect / read / status
 

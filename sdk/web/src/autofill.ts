@@ -175,9 +175,9 @@ const OPTION_KEYS = new Set<string>([
   "cardSessionId",
 ]);
 
-const NAME_PARTS = new Set<string>(["title", "givenName", "middleName", "familyName", "fullName"]);
-const DATE_PARTS = new Set<string>(["year", "month", "day"]);
-const ADDRESS_PARTS = new Set<string>([
+const NAME_PART_LIST = ["title", "givenName", "middleName", "familyName", "fullName"] as const;
+const DATE_PART_LIST = ["year", "month", "day"] as const;
+const ADDRESS_PART_LIST = [
   "houseNo",
   "villageNo",
   "alley",
@@ -186,8 +186,35 @@ const ADDRESS_PARTS = new Set<string>([
   "district",
   "province",
   "fullAddress",
-]);
-const GENDER_PARTS = new Set<string>(["code", "value"]);
+] as const;
+const GENDER_PART_LIST = ["code", "value"] as const;
+const PORTRAIT_PART_LIST = ["dataUrl", "data", "mimeType"] as const;
+
+const NAME_PARTS = new Set<string>(NAME_PART_LIST);
+const DATE_PARTS = new Set<string>(DATE_PART_LIST);
+const ADDRESS_PARTS = new Set<string>(ADDRESS_PART_LIST);
+const GENDER_PARTS = new Set<string>(GENDER_PART_LIST);
+
+function expandSlots<P extends string, Parts extends readonly string[]>(
+  prefix: P,
+  parts: Parts,
+): Array<P | `${P}.${Parts[number]}`> {
+  return [prefix, ...parts.map((part) => `${prefix}.${part}` as `${P}.${Parts[number]}`)];
+}
+
+/** Every JSON-safe autofill slot name (protocol field or nested path). */
+export const AUTOFILL_SLOTS: readonly AutofillSlot[] = [
+  "citizenId",
+  "issuer",
+  ...expandSlots("thaiName", NAME_PART_LIST),
+  ...expandSlots("englishName", NAME_PART_LIST),
+  ...expandSlots("birthDate", DATE_PART_LIST),
+  ...expandSlots("issueDate", DATE_PART_LIST),
+  ...expandSlots("expireDate", DATE_PART_LIST),
+  ...expandSlots("gender", GENDER_PART_LIST),
+  ...expandSlots("address", ADDRESS_PART_LIST),
+  ...expandSlots("portrait", PORTRAIT_PART_LIST),
+];
 
 const DEFAULT_GENDER_LABELS: GenderLabels = { male: "male", female: "female" };
 
@@ -245,7 +272,7 @@ function isKnownPath(field: Field, path: string): boolean {
     case "gender":
       return GENDER_PARTS.has(path);
     case "portrait":
-      return path === "dataUrl" || path === "data" || path === "mimeType";
+      return (PORTRAIT_PART_LIST as readonly string[]).includes(path);
     default:
       return false;
   }

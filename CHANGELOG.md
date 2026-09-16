@@ -7,13 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Thai Fill-error guidance, staff training, and a one-page Friday runbook on
-`dev` while ACR39U hardware is in transit. **Do not enable GitHub Actions.**
-Physical E1–E7 execution still waits on the reader. Packages remain
-**unsigned** (not notarized).
+ERP-friendly `autofillThaiID` JSON config (schema, samples, clinic
+import/export) on `dev` while ACR39U hardware is in transit. **Do not enable
+GitHub Actions.** Physical E1–E7 execution still waits on the reader.
+Packages remain **unsigned** (not notarized).
 
 ### Added
 
+- Clinic / ERP autofill **config package**: JSON Schema
+  `sdk/web/schema/autofill-clinic-config.schema.json` (export
+  `@openthaiid/web/schema/autofill-clinic-config.json`), TypeScript
+  `AutofillClinicConfig`, and `parseAutofillClinicConfig` /
+  `serializeAutofillClinicConfig`. Callbacks stay code-only. Samples:
+  `examples/clinic-patient/kyc-minimal.json` (3-field KYC) and
+  `clinic-full.json`. Drop-in steps (Thai + English):
+  [docs/erp-integration.md](docs/erp-integration.md).
+- Clinic example settings panel **download / upload** of that JSON (plus
+  load-sample buttons) so integrators can iterate without editing code.
 - Clinic Fill / probe errors default to **Thai** staff guidance
   (`formatStaffError`, `staffErrorGuidance`) while protocol **codes** stay
   stable (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `APPROVAL_REQUIRED` /
