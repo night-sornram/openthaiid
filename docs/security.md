@@ -127,7 +127,10 @@ within browser security rules only.
 
 The helper binds only IPv4 loopback. Any local process can still call these
 APIs (origin checks protect browsers, not malware on the PC). There is no
-CORS. Endpoints:
+CORS. Friday-morning hub: [getting-started.md](getting-started.md).
+Technician debug: [technician.md](technician.md). Software rehearsal
+without a reader: `make friday-dry-run` ([training.md](training.md)).
+Endpoints:
 
 | Path | Used by | Mutates | Browser rule |
 |---|---|---|---|

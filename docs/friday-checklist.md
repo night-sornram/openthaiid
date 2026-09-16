@@ -8,6 +8,7 @@
 ฝึกซ้อมโดยไม่มีเครื่อง: [training.md](training.md) (`make friday-dry-run` /
 `-synthetic`) — ซ้อมก่อนได้เครื่อง ไม่ใช่ผ่าน ACR39U
 ชุดเต็ม: [hardware-qualification.md](hardware-qualification.md)
+เว็บคลินิกปิดตัวช่วยไม่ได้: [security.md](security.md)
 
 ## 1. เสียบเครื่องอ่าน → พร้อม
 

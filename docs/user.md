@@ -73,7 +73,7 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 
 ## ฝึกใช้ก่อนได้เครื่องจริง
 
-ยังไม่มี ACR39U ก็ฝึกได้: เปิด `openthaiid -synthetic` แล้วใช้ตัวอย่างคลินิก
+ยังไม่มี ACR39U ก็ฝึกได้: `make friday-dry-run` แล้วเปิด `openthaiid -synthetic`
 ตาม [training.md](training.md) ครั้งแรกยังต้องกดอนุญาต
 ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต
 

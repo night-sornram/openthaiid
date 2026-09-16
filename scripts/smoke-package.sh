@@ -7,7 +7,7 @@ cd "$ROOT"
 chmod +x "$ROOT/scripts/package.sh"
 
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-VERSION="${VERSION:-0.1.0-rc.3}"
+VERSION="${VERSION:-0.1.0-rc.4}"
 
 echo "== native package =="
 VERSION="$VERSION" ./scripts/package.sh
@@ -93,7 +93,18 @@ grep -q "getting-started.md" docs/technician.md
 grep -q "getting-started.md" packaging/START-HERE.linux.txt
 grep -q "getting-started.md" packaging/START-HERE.windows.txt
 grep -q "getting-started.md" packaging/START-HERE.darwin.txt
-grep -q "0.1.0-rc.3" cmd/openthaiid/main.go
-grep -q "0.1.0-rc.3" Makefile
+grep -q "security.md" docs/getting-started.md
+grep -q "getting-started.md" docs/security.md
+grep -q "Loopback HTTP" docs/security.md
+grep -q "friday-dry-run" docs/security.md
+grep -q "security.md" docs/technician.md
+grep -q "getting-started.md" docs/hardware-qualification.md
+grep -q "friday-dry-run" docs/hardware-qualification.md
+grep -q "security.md" docs/friday-checklist.md
+grep -q "friday-dry-run" packaging/START-HERE.linux.txt
+grep -q "friday-dry-run" packaging/START-HERE.windows.txt
+grep -q "friday-dry-run" packaging/START-HERE.darwin.txt
+grep -q "0.1.0-rc.4" cmd/openthaiid/main.go
+grep -q "0.1.0-rc.4" Makefile
 
 echo "OK smoke-package"

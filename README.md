@@ -244,7 +244,7 @@ index for staff, training, Friday, ERP, and technicians).
 | [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
 | [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, service, qualify) |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
-| [docs/security.md](docs/security.md) | Threat model |
+| [docs/security.md](docs/security.md) | Threat model + loopback helper HTTP inventory |
 | [docs/protocol.md](docs/protocol.md) | Protocol v1 |
 | [docs/provenance.md](docs/provenance.md) | APDU sources and licenses |
 | [docs/compatibility.md](docs/compatibility.md) | OS/browser/reader matrix |

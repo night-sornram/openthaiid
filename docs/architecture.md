@@ -53,6 +53,8 @@ One Go process owns:
    screen. `GET /v1/helper/summary` is staff-safe lights (no personal data);
    `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`
    (browser Origin also needs CSRF). Manager refresh/reconnect are bounded.
+   Inventory: [security.md](security.md). Friday-morning hub:
+   [getting-started.md](getting-started.md).
 5. A terminal command loop for approvals and revocation (console mode).
 6. Optional tray / background mode (`openthaiid tray`) instead of the
    terminal loop.
