@@ -7,9 +7,10 @@ cd "$ROOT"
 chmod +x "$ROOT/scripts/package.sh"
 
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+VERSION="${VERSION:-0.1.0-rc.1}"
 
 echo "== native package =="
-VERSION="${VERSION:-0.1.0-rc.1}" VERSION="$VERSION" ./scripts/package.sh
+VERSION="$VERSION" ./scripts/package.sh
 ls dist/openthaiid-"$VERSION"-* >/dev/null
 
 if [ "$HOST_OS" != "darwin" ]; then
