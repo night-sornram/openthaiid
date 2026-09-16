@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/night-sornram/openthaiid/internal/audit"
 	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/card"
 	"github.com/night-sornram/openthaiid/internal/pcsc"
@@ -34,6 +35,12 @@ func TestManagerPageAndStatus(t *testing.T) {
 	}
 	if !strings.Contains(page, `id="technician"`) {
 		t.Fatal("missing technician section")
+	}
+	if !strings.Contains(page, `id="audit-events"`) {
+		t.Fatal("missing operator audit trail")
+	}
+	if !strings.Contains(page, "Operator audit trail") {
+		t.Fatal("missing audit heading")
 	}
 	if !strings.Contains(page, "OpenThaiID บนเครื่องนี้") {
 		t.Fatal("missing Thai user-mode helper light")
@@ -103,6 +110,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	}
 	if _, ok := st["lastErrors"].([]any); !ok {
 		t.Fatalf("lastErrors missing: %v", st["lastErrors"])
+	}
+	if _, ok := st["audit"].([]any); !ok {
+		t.Fatalf("audit missing: %v", st["audit"])
 	}
 }
 
@@ -183,6 +193,33 @@ func TestManagerAllowDenyAndRevoke(t *testing.T) {
 	if _, ok := tb.authMgr.GrantFor(origin, time.Now()); ok {
 		t.Fatal("deny must not create a grant")
 	}
+
+	st = managerGET(t, tb, token, "/v1/manager/status")
+	kinds := auditKinds(st)
+	if !containsKind(kinds, "approval.allow") || !containsKind(kinds, "approval.deny") || !containsKind(kinds, "approval.revoke") {
+		t.Fatalf("audit kinds %v", kinds)
+	}
+}
+
+func auditKinds(st map[string]any) []string {
+	raw, _ := st["audit"].([]any)
+	out := make([]string, 0, len(raw))
+	for _, item := range raw {
+		ev, _ := item.(map[string]any)
+		if k, _ := ev["kind"].(string); k != "" {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+func containsKind(kinds []string, want string) bool {
+	for _, k := range kinds {
+		if k == want {
+			return true
+		}
+	}
+	return false
 }
 
 func TestManagerRefreshAndSelectReader(t *testing.T) {
@@ -285,6 +322,36 @@ func TestManagerDiagnosticsLogLevelAndReconnect(t *testing.T) {
 	readers, _ := st["readers"].([]any)
 	if len(readers) != 1 {
 		t.Fatalf("readers after reconnect=%v", st["readers"])
+	}
+}
+
+func TestManagerAuditExportRedacted(t *testing.T) {
+	tb := startTestBridge(t, false)
+	tb.srv.SetRuntime("0.0.1-test", true)
+	tb.srv.recordAudit(audit.Event{Kind: audit.KindFillFailure, Code: "NO_CARD", Origin: "https://erp.clinic.example"})
+	tb.srv.recordAudit(audit.Event{Kind: audit.KindFillFailure, Code: "NO_CARD สมชาย 1234567890121", Origin: "https://evil.example"})
+	token := csrfFrom(t, getBody(t, tb, "/"))
+
+	st := managerGET(t, tb, token, "/v1/manager/status")
+	raw, _ := json.Marshal(st)
+	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
+		t.Fatalf("audit leaked personal fields: %s", raw)
+	}
+	exp := managerGET(t, tb, token, "/v1/manager/audit")
+	if exp["schema"] != "openthaiid.audit.v1" {
+		t.Fatalf("schema %v", exp["schema"])
+	}
+	pii, _ := exp["pii"].(string)
+	if !strings.Contains(pii, "never stored") {
+		t.Fatalf("pii note %v", exp["pii"])
+	}
+	body, _ := json.Marshal(exp)
+	if bytes.Contains(body, []byte("1234567890121")) || bytes.Contains(body, []byte("สมชาย")) {
+		t.Fatalf("export leaked: %s", body)
+	}
+	js := getBody(t, tb, "/manager/app.js")
+	if !strings.Contains(js, "openthaiid.audit.v1") || !strings.Contains(js, "downloadAuditJSON") {
+		t.Fatal("manager JS missing audit export")
 	}
 }
 

@@ -12,10 +12,12 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/night-sornram/openthaiid/internal/audit"
 	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/bridge"
 	"github.com/night-sornram/openthaiid/internal/config"
@@ -29,6 +31,9 @@ import (
 var version = "0.1.0-rc.1"
 
 func main() {
+	if maybeRunWindowsService() {
+		return
+	}
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "version":
@@ -51,6 +56,10 @@ func main() {
 			os.Exit(runUpdate(os.Args[2:]))
 		case "qualify":
 			os.Exit(runQualify(os.Args[2:]))
+		case "service":
+			os.Exit(runService(os.Args[2:]))
+		case "audit":
+			os.Exit(runAudit(os.Args[2:]))
 		}
 	}
 
@@ -58,8 +67,13 @@ func main() {
 }
 
 func runHelper(args []string) {
+	runHelperCtx(context.Background(), args)
+}
+
+func runHelperCtx(parent context.Context, args []string) {
 	openManager := false
 	tray := false
+	serve := false
 	if len(args) > 0 {
 		switch args[0] {
 		case "manager":
@@ -67,6 +81,9 @@ func runHelper(args []string) {
 			args = args[1:]
 		case "tray":
 			tray = true
+			args = args[1:]
+		case "serve":
+			serve = true
 			args = args[1:]
 		}
 	}
@@ -86,6 +103,7 @@ func runHelper(args []string) {
 	fs.BoolVar(&synthetic, "synthetic", false, "use synthetic PC/SC backend (no hardware)")
 	fs.BoolVar(&openManager, "open", openManager, "open the local manager in a browser")
 	fs.BoolVar(&tray, "tray", tray, "run as a background helper (tray icon on Windows/macOS)")
+	fs.BoolVar(&serve, "serve", serve, "run headless (no tray, no terminal) for a service / always-on helper")
 	_ = fs.Parse(args)
 
 	cfg := config.Default()
@@ -117,9 +135,10 @@ func runHelper(args []string) {
 
 	userDir, _ := config.UserDir()
 	inst := desktop.Instance{Dir: userDir}
+	headless := tray || serve
 
 	var logExtra io.Writer
-	if tray {
+	if headless {
 		if f, err := inst.OpenLog(); err == nil {
 			defer f.Close()
 			logExtra = f
@@ -129,7 +148,7 @@ func runHelper(args []string) {
 	levelVar := new(slog.LevelVar)
 	log := newLogger(cfg.LogLevel, levelVar, logExtra)
 
-	if tray {
+	if headless {
 		if existing, ok := lookupRunning(cfg); ok {
 			log.Info("helper already running", "page", existing.ReadyPage)
 			fmt.Println("OpenThaiID is already running on this computer.")
@@ -182,7 +201,7 @@ func runHelper(args []string) {
 	}
 	mgr := reader.NewManager(mon, rdb)
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	if err := mgr.Start(ctx); err != nil {
@@ -195,8 +214,24 @@ func runHelper(args []string) {
 	srv.SetRuntime(version, synthetic)
 	srv.SetLogLeveler(levelVar)
 	srv.SetShutdownRequest(cancel)
+	mode := "console"
+	if tray {
+		mode = "tray"
+	}
+	if serve {
+		mode = "serve"
+	}
+	srv.SetRunMode(mode)
+	if userDir != "" {
+		if trail, err := audit.Open(filepath.Join(userDir, audit.FileName()), audit.DefaultCap); err != nil {
+			log.Warn("audit log", "error", err)
+		} else {
+			srv.SetAudit(trail)
+			defer trail.Close()
+		}
+	}
 	if err := srv.Start(ctx); err != nil {
-		if tray {
+		if headless {
 			if existing, ok := lookupRunning(cfg); ok {
 				log.Info("helper already running", "page", existing.ReadyPage)
 				fmt.Println("OpenThaiID is already running on this computer.")
@@ -208,13 +243,15 @@ func runHelper(args []string) {
 		}
 		fatal("bridge", err)
 	}
-	if tray {
+	if headless {
 		if err := inst.WritePID(); err != nil {
 			log.Warn("pid file", "error", err)
 		} else {
 			defer inst.RemovePID()
 		}
-		desktop.HideConsole()
+		if tray {
+			desktop.HideConsole()
+		}
 	}
 
 	managerURL := srv.ManagerURL()
@@ -225,8 +262,9 @@ func runHelper(args []string) {
 		"instance", instanceID,
 		"backend", backendName(synthetic),
 		"tray", tray,
+		"serve", serve,
 	)
-	if !tray {
+	if !headless {
 		fmt.Printf("OpenThaiID is ready on this computer (%s).\n", srv.Addr())
 		fmt.Printf("Clinic staff: keep this window open, plug in the reader, then Fill in the ERP.\n")
 		fmt.Printf("Helper page:  %s  (Technician / developer tools are hidden there)\n", managerURL)
@@ -234,6 +272,8 @@ func runHelper(args []string) {
 		fmt.Println("The first time a clinic page asks to read the card, Allow it on the helper page.")
 		fmt.Println("Technician commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
 		fmt.Println("This is an independent open-source project and is not affiliated with or endorsed by the Department of Provincial Administration.")
+	} else if serve {
+		log.Info("headless helper running (no tray)")
 	}
 
 	if openManager {
@@ -286,6 +326,8 @@ func runHelper(args []string) {
 			log.Warn("tray", "error", err)
 			<-ctx.Done()
 		}
+	} else if serve {
+		<-ctx.Done()
 	} else {
 		go terminalLoop(ctx, cancel, authMgr, log)
 		<-ctx.Done()
@@ -442,12 +484,15 @@ func usage() {
 Usage:
   openthaiid                 Run the helper in a terminal (technicians / developers)
   openthaiid tray            Run as a background helper (tray on Windows/macOS)
+  openthaiid serve           Headless helper (no tray) for a Windows service / systemd / Task Scheduler
   openthaiid manager         Run and open the Ready page in a browser
   openthaiid status          Staff-safe helper / reader / card status (no personal data)
   openthaiid quit            Stop a running helper on this computer
   openthaiid open            Open the Ready page
   openthaiid open technician Open technician / developer tools
   openthaiid autostart       enable | disable | status   (opt-in start at login)
+  openthaiid service         install | uninstall | start | stop | status   (always-on, no tray)
+  openthaiid audit           Print the redacted operator audit trail JSON (no personal fields)
   openthaiid update          check | download | apply   (GitHub Releases; unsigned)
   openthaiid doctor          Check the card service (no personal fields)
   openthaiid qualify         Friday kit: E1–E3 + E4–E7/M1 prompts; one JSON report (no personal fields)
@@ -463,6 +508,7 @@ Flags (run / tray mode):
   -synthetic          Use a practice reader (no hardware)
   -open               Open the Ready page in a browser
   -tray               Same as the tray subcommand
+  -serve              Same as the serve subcommand
 
 Helper page:   http://127.0.0.1:17891/
                Default view is for clinic staff. Technician / developer tools

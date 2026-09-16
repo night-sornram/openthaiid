@@ -5,6 +5,8 @@ $exe = Join-Path $env:LOCALAPPDATA "OpenThaiID\openthaiid.exe"
 if (Test-Path $exe) {
     & $exe quit 2>$null
     & $exe autostart disable 2>$null
+    # User install does not remove a machine Windows service; that needs
+    # Uninstall-OpenThaiID-Service.ps1 (Administrator).
 }
 $programs = Join-Path ([Environment]::GetFolderPath("StartMenu")) "Programs\OpenThaiID.lnk"
 $desk = Join-Path ([Environment]::GetFolderPath("Desktop")) "OpenThaiID.lnk"

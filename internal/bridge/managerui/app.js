@@ -213,6 +213,10 @@ const els = {
   verbose: document.getElementById("verbose"),
   lastErrors: document.getElementById("last-errors"),
   trainingCard: document.getElementById("training-card"),
+  copyAudit: document.getElementById("copy-audit"),
+  exportAudit: document.getElementById("export-audit"),
+  auditEmpty: document.getElementById("audit-empty"),
+  auditEvents: document.getElementById("audit-events"),
 };
 
 function pill(text, kind) {
@@ -537,6 +541,35 @@ function renderLastErrors(data) {
     .join("\n");
 }
 
+function auditExportPayload(data) {
+  const events = Array.isArray(data && data.audit) ? data.audit : [];
+  return {
+    schema: "openthaiid.audit.v1",
+    pii: "omitted — citizen ID, names, address, portrait, raw APDUs are never stored",
+    count: events.length,
+    events,
+  };
+}
+
+function renderAudit(data) {
+  const events = Array.isArray(data.audit) ? data.audit.slice() : [];
+  events.reverse();
+  if (els.auditEmpty) els.auditEmpty.hidden = events.length > 0;
+  if (!els.auditEvents) return;
+  els.auditEvents.replaceChildren();
+  for (const ev of events) {
+    const li = document.createElement("li");
+    const bits = [ev.at || "", ev.kind || "", ev.code || "", ev.origin || "", ev.reader || ""]
+      .map((s) => String(s).trim())
+      .filter(Boolean);
+    if (Array.isArray(ev.fields) && ev.fields.length) {
+      bits.push("fields=" + ev.fields.join(","));
+    }
+    li.textContent = bits.join("  ");
+    els.auditEvents.append(li);
+  }
+}
+
 function diagnosticsText(data) {
   const readers = data.readers || [];
   const pending = data.pending || [];
@@ -571,6 +604,17 @@ function diagnosticsText(data) {
   if (!errs.length) lines.push("  (none)");
   for (const e of errs) {
     lines.push(`  - ${e.at} ${e.source} ${e.code} ${e.message}`);
+  }
+  lines.push("audit (redacted; codes and origins only):");
+  const audit = data.audit || [];
+  if (!audit.length) lines.push("  (none)");
+  for (const ev of audit) {
+    const extra = [];
+    if (ev.code) extra.push(ev.code);
+    if (ev.origin) extra.push(ev.origin);
+    if (ev.reader) extra.push(ev.reader);
+    if (Array.isArray(ev.fields) && ev.fields.length) extra.push("fields=" + ev.fields.join(","));
+    lines.push(`  - ${ev.at || ""} ${ev.kind || ""} ${extra.join(" ")}`.trim());
   }
   return lines.join("\n");
 }
@@ -610,6 +654,7 @@ function render(data) {
   renderPending(data);
   renderTrusted(data);
   renderLastErrors(data);
+  renderAudit(data);
 }
 
 async function load() {
@@ -707,6 +752,43 @@ async function copyDiagnostics() {
   }, 1500);
 }
 
+async function copyAuditJSON() {
+  const data = window.__lastStatus;
+  if (!data) return;
+  const text = JSON.stringify(auditExportPayload(data), null, 2);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      throw new Error("no clipboard");
+    }
+    if (els.copyAudit) els.copyAudit.textContent = "Copied";
+  } catch {
+    window.prompt("Copy audit JSON", text);
+    if (els.copyAudit) els.copyAudit.textContent = "Copy JSON";
+    return;
+  }
+  setTimeout(() => {
+    if (els.copyAudit) els.copyAudit.textContent = "Copy JSON";
+  }, 1500);
+}
+
+function downloadAuditJSON() {
+  const data = window.__lastStatus;
+  if (!data) return;
+  const text = JSON.stringify(auditExportPayload(data), null, 2);
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "openthaiid-audit.json";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 async function setVerbose(on) {
   try {
     await api("/v1/manager/log-level", {
@@ -735,6 +817,8 @@ els.refresh.addEventListener("click", () => void refresh());
 els.reconnect.addEventListener("click", () => void reconnect());
 els.revokeAll.addEventListener("click", () => void revokeAll());
 els.copyDiag.addEventListener("click", () => void copyDiagnostics());
+els.copyAudit?.addEventListener("click", () => void copyAuditJSON());
+els.exportAudit?.addEventListener("click", () => downloadAuditJSON());
 els.verbose.addEventListener("change", () => void setVerbose(els.verbose.checked));
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") void load();

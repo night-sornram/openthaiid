@@ -43,6 +43,13 @@ Writes ~/.config/autostart/openthaiid.desktop (XDG). Does not open a browser
 at login.
 
 systemd --user (optional, not enabled by default): see openthaiid.service.
+Always-on without a tray:
+
+  ./openthaiid service install
+  loginctl enable-linger $USER
+
+Kiosk system unit template: openthaiid-system.service
+Technician audit JSON: ./openthaiid audit  (or Technician tools → Copy JSON)
 
 Need pcscd, for example:
   sudo apt install pcscd libpcsclite1

@@ -22,6 +22,9 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
 - A tray / background helper so clinic PCs do not need a developer terminal
   (Windows/macOS notification area; Linux background + `.desktop`).
 - Opt-in start-at-login (`openthaiid autostart`); off by default.
+- Opt-in always-on helper without a logged-in tray (`openthaiid serve` /
+  `openthaiid service install`).
+- Redacted operator audit trail in technician tools (error codes, not PII).
 
 ## Non-goals (this candidate)
 
@@ -49,6 +52,9 @@ One Go process owns:
 5. A terminal command loop for approvals and revocation (console mode).
 6. Optional tray / background mode (`openthaiid tray`) instead of the
    terminal loop.
+7. Optional always-on headless mode (`openthaiid serve`) for a Windows
+   service, Linux systemd --user unit, or Task Scheduler — no tray.
+8. A redacted in-memory (+ JSONL) operator audit trail for technicians.
 
 ```mermaid
 flowchart LR
@@ -71,8 +77,9 @@ flowchart LR
 
 | Path | Responsibility |
 |---|---|
-| `cmd/openthaiid` | Startup, flags, tray/autostart/status/quit, wiring |
-| `internal/desktop` | Tray host, login-item files, staff-safe status text |
+| `cmd/openthaiid` | Startup, flags, tray/autostart/status/quit/serve/service/audit, wiring |
+| `internal/desktop` | Tray host, login-item files, always-on service units, staff-safe status text |
+| `internal/audit` | Redacted operator trail (codes, origins, presence; never card values) |
 | `internal/card` | Field types, profiles, APDU handling, decoding |
 | `internal/reader` | Reader inventory, card generations, read coordination |
 | `internal/pcsc` | OS PC/SC adapter and native resource ownership |

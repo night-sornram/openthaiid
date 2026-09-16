@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenThaiID local helper (loopback only)
+Documentation=https://github.com/night-sornram/openthaiid/blob/dev/docs/installation.md
+After=pcscd.service
+Requires=pcscd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/openthaiid serve
+Restart=on-failure
+RestartSec=3
+# Clinic IT: set User= to an account that can use the USB reader.
+# Loopback only. No card data is stored. Prefer the user unit + linger
+# (openthaiid service install) unless this machine is a kiosk image.
+
+[Install]
+WantedBy=multi-user.target

@@ -8,7 +8,8 @@ this repository or in CI secrets.
 
 - Windows: `Start-OpenThaiID.bat`, optional `install.ps1` (Start Menu)
 - macOS: unsigned `OpenThaiID.app` (`LSUIElement`)
-- Linux: `.desktop` + optional user systemd unit
+- Linux: `.desktop` + optional user systemd unit (`openthaiid serve`) +
+  system-unit template
 
 SmartScreen, Gatekeeper, and “unidentified developer” warnings are
 **expected** until a human with certificates signs the bits.

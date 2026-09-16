@@ -2,7 +2,10 @@
 
 ## Trust boundary
 
-OpenThaiID runs as the signed-in desktop user and talks only to `127.0.0.1`.
+OpenThaiID runs as the signed-in desktop user (tray / autostart) or, when
+clinic IT opts in, as an always-on helper (`openthaiid serve`: Windows
+service, Linux systemd --user, or a documented Task Scheduler task). It
+talks only to `127.0.0.1`.
 It is not an OS-user authenticator. Any native process on the machine can
 construct its own `Origin` header; origin checks protect websites operating
 within browser security rules only.
@@ -79,6 +82,12 @@ within browser security rules only.
   Base64 / data URLs), raw APDUs, tokens, or hashes of personal fields.
 - The helper page and technician **Copy diagnostics** omit personal card
   field values. Last errors store protocol codes and generic messages only.
+- **Operator audit trail** (technician UI, `GET /v1/manager/audit`,
+  `openthaiid audit`, user-dir `audit.jsonl`) records helper start/stop,
+  reader/card presence, approval allow/deny/revoke, and Fill failures by
+  **error code only**. It never stores citizen ID, names, address, portrait,
+  or raw APDUs. Poisoned lines are dropped and rewritten, not redacted in
+  place with leftover values.
 - `GET /v1/helper/summary` (loopback) returns helper/reader/card lights for
   tray and `openthaiid status`. It does not include origins, field tokens, or
   personal values.

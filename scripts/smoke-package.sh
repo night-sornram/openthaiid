@@ -43,5 +43,9 @@ grep -q "qualify" packaging/START-HERE.windows.txt
 grep -q "qualify" packaging/START-HERE.darwin.txt
 test -f packaging/windows/Qualify-OpenThaiID.bat
 test -f packaging/windows/Qualify-OpenThaiID.ps1
+test -f packaging/windows/Install-OpenThaiID-Service.ps1
+test -f packaging/windows/Register-OpenThaiID-Task.ps1
+grep -q "serve" packaging/linux/openthaiid.service
+grep -q "serve" packaging/linux/openthaiid-system.service
 
 echo "OK smoke-package"

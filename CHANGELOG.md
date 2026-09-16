@@ -14,7 +14,20 @@ Packages remain **unsigned** (not notarized).
 
 ### Added
 
-- Clinic / ERP autofill **config package**: JSON Schema
+- Redacted **operator audit trail** for technicians: local ring +
+  `audit.jsonl` of helper start/stop, reader/card presence, approval
+  allow/deny/revoke, and Fill failures by **error code only**. Never stores
+  citizen ID, names, address, portrait, or raw APDUs. Technician UI
+  (Copy JSON / Download JSON), `GET /v1/manager/audit`, and
+  `openthaiid audit`. See [docs/technician.md](docs/technician.md).
+- Always-on helper without a logged-in tray: `openthaiid serve` plus
+  `openthaiid service install|uninstall|start|stop|status`. Windows SCM
+  (`Install-OpenThaiID-Service.ps1`, Administrator). Linux systemd --user
+  unit + linger (`loginctl enable-linger`); system-unit template
+  `openthaiid-system.service`. Task Scheduler fallback
+  `Register-OpenThaiID-Task.ps1`. Docs: [installation.md](docs/installation.md).
+- Friday checklist pointer to the audit JSON as a ticket attachment
+  ([docs/friday-checklist.md](docs/friday-checklist.md)).
   `sdk/web/schema/autofill-clinic-config.schema.json` (export
   `@openthaiid/web/schema/autofill-clinic-config.json`), TypeScript
   `AutofillClinicConfig`, and `parseAutofillClinicConfig` /

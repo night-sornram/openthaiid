@@ -229,6 +229,34 @@ func TestRevocationCallback(t *testing.T) {
 	}
 }
 
+func TestDecisionCallback(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)
+	var gotOrigin Origin
+	var gotAllow bool
+	var n int
+	m.OnDecision = func(o Origin, fields []card.Field, allow bool) {
+		gotOrigin = o
+		gotAllow = allow
+		n++
+	}
+	origin, _ := NormalizeOrigin("https://a.example")
+	p, _ := m.RequestApproval(origin, []card.Field{card.FieldCitizenID}, "c1", now)
+	if _, err := m.Resolve(p.ID, true, now); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 || gotOrigin != origin || !gotAllow {
+		t.Fatalf("allow callback n=%d origin=%s allow=%v", n, gotOrigin, gotAllow)
+	}
+	p2, _ := m.RequestApproval(origin, []card.Field{card.FieldThaiName}, "c2", now.Add(time.Second))
+	if _, err := m.Resolve(p2.ID, false, now.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 || gotAllow {
+		t.Fatalf("deny callback n=%d allow=%v", n, gotAllow)
+	}
+}
+
 func TestRevokeOriginNormalizesCase(t *testing.T) {
 	now := time.Now()
 	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)

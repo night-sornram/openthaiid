@@ -71,12 +71,16 @@ case "$OS" in
     cp packaging/windows/uninstall.ps1 "$STAGE/"
     cp packaging/windows/Qualify-OpenThaiID.bat "$STAGE/"
     cp packaging/windows/Qualify-OpenThaiID.ps1 "$STAGE/"
+    cp packaging/windows/Install-OpenThaiID-Service.ps1 "$STAGE/"
+    cp packaging/windows/Uninstall-OpenThaiID-Service.ps1 "$STAGE/"
+    cp packaging/windows/Register-OpenThaiID-Task.ps1 "$STAGE/"
     ;;
   linux)
     cp packaging/linux/start-openthaiid.sh "$STAGE/"
     cp packaging/linux/install-linux.sh "$STAGE/"
     cp packaging/linux/openthaiid.desktop "$STAGE/"
     cp packaging/linux/openthaiid.service "$STAGE/"
+    cp packaging/linux/openthaiid-system.service "$STAGE/"
     chmod +x "$STAGE/start-openthaiid.sh" "$STAGE/install-linux.sh" "$STAGE/$CLINIC_BIN"
     ;;
   darwin)
@@ -141,6 +145,9 @@ if [ "$OS" = "$HOST_OS" ] && [ "$ARCH" = "$HOST_ARCH" ] && [ "$OS" != "windows" 
   fi
   help="$("$VERIFY/$CLINIC_BIN" help)"
   echo "$help" | grep -q "openthaiid tray" || { echo "ERROR: help missing tray" >&2; exit 1; }
+  echo "$help" | grep -q "openthaiid serve" || { echo "ERROR: help missing serve" >&2; exit 1; }
+  echo "$help" | grep -q "openthaiid service" || { echo "ERROR: help missing service" >&2; exit 1; }
+  echo "$help" | grep -q "openthaiid audit" || { echo "ERROR: help missing audit" >&2; exit 1; }
   test -f "$VERIFY/START-HERE.txt" || { echo "ERROR: missing START-HERE.txt" >&2; exit 1; }
   grep -q "qualify" "$VERIFY/START-HERE.txt" || { echo "ERROR: START-HERE missing qualify" >&2; exit 1; }
   if [ "$OS" = "darwin" ]; then
