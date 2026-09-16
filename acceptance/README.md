@@ -73,6 +73,8 @@ this localhost HTTPS automation. See `docs/acceptance.md`.
 | `OPENTHAIID_APPROVAL_POLICY` | `allow` | `allow` / `deny` / `unanswered` |
 | `OPENTHAIID_REPORT_DIR` | `./reports` | Allowlisted JSON report |
 | `OPENTHAIID_LOG_DIR` | `./logs` | Harness diagnostics |
+| `OPENTHAIID_HARNESS_TIMEOUT_MS` | `120000` | Hard process deadline (Windows ConPTY/keep-alive must not hang CI) |
+| `OPENTHAIID_SCENARIO_TIMEOUT_MS` | `45000` | Per-scenario cap |
 
 Certificates are generated in the OS temp directory and never served.
 Only the acceptance page and `sdk/web/dist/index.js` are served.

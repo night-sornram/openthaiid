@@ -170,6 +170,7 @@ jobs:
           - os: windows-2025
             browser: msedge
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     defaults:
       run:
         shell: bash
@@ -207,6 +208,7 @@ jobs:
         working-directory: acceptance
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Run acceptance (allow)
+        timeout-minutes: 5
         working-directory: acceptance
         env:
           OPENTHAIID_PORT: "17899"
@@ -217,6 +219,7 @@ jobs:
           OPENTHAIID_LOG_DIR: logs
         run: npm test
       - name: Run acceptance (deny)
+        timeout-minutes: 5
         working-directory: acceptance
         env:
           OPENTHAIID_PORT: "17900"
@@ -227,6 +230,7 @@ jobs:
           OPENTHAIID_LOG_DIR: logs-deny
         run: npm test
       - name: Run acceptance (unanswered)
+        timeout-minutes: 5
         working-directory: acceptance
         env:
           OPENTHAIID_PORT: "17901"

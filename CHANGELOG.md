@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inventory or card events until `session.open` succeeds
 - Playwright bridge process restart (H9): personal data is cleared, reconnect
   does not auto-read, a fresh read works against the new process
+- Acceptance harness hard deadline (`process.exit` after teardown): Windows
+  Chrome/Edge no longer hang on `https.close` keep-alive / ConPTY handles
 - Eight concurrent async operations per connection (`RATE_LIMITED` on excess)
 - Event-queue overflow closes clients with WebSocket 1013 and requires a
   fresh snapshot after reconnect
@@ -67,6 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an otherwise unexpired token
 - Terminal `revoke <origin>` canonicalizes the origin (mixed-case hosts match
   the handshake grant)
+- Windows acceptance: `https.Server.close()` waited forever for Chromium
+  keep-alive sockets; teardown now drops connections and `process.exit`s
 - Approvals are bound to their originating connection and cancelled on disconnect
 - Trust revocation delivers `authorization.revoked` and closes affected clients
 - Duplicate / non-increasing request IDs are rejected

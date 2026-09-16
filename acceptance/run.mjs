@@ -34,6 +34,9 @@ const BROWSER_CHANNEL = process.env.OPENTHAIID_BROWSER || "chrome";
 const REPORT_DIR = process.env.OPENTHAIID_REPORT_DIR || join(__dirname, "reports");
 const LOG_DIR = process.env.OPENTHAIID_LOG_DIR || join(__dirname, "logs");
 const POLICY = process.env.OPENTHAIID_APPROVAL_POLICY || "allow";
+const HARNESS_TIMEOUT_MS = Number(process.env.OPENTHAIID_HARNESS_TIMEOUT_MS || 120000);
+const SCENARIO_TIMEOUT_MS = Number(process.env.OPENTHAIID_SCENARIO_TIMEOUT_MS || 45000);
+const PTY_EOL = process.platform === "win32" ? "\r\n" : "\r";
 
 const CERT_DIR = join(tmpdir(), `openthaiid-acceptance-${process.pid}`);
 const KEY_PATH = join(CERT_DIR, "localhost-key.pem");
@@ -75,9 +78,17 @@ function record(name, ok, error) {
   log(ok ? "PASS" : "FAIL", name, error || "");
 }
 
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function scenario(name, fn) {
   try {
-    await fn();
+    await withTimeout(fn(), SCENARIO_TIMEOUT_MS, `scenario timed out after ${SCENARIO_TIMEOUT_MS}ms`);
     record(name, true);
   } catch (err) {
     record(name, false, err && err.message ? err.message : err);
@@ -136,6 +147,7 @@ function startHTTPS() {
     }
     res.writeHead(200, {
       "Content-Type": MIME[extname(file)] || "application/octet-stream",
+      "Connection": "close",
       "Content-Security-Policy":
         "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'",
     });
@@ -143,6 +155,8 @@ function startHTTPS() {
   });
   return new Promise((resolvePromise, reject) => {
     server.once("error", reject);
+    server.keepAliveTimeout = 1;
+    server.headersTimeout = 5000;
     server.listen(PORT_HTTPS, "127.0.0.1", () => resolvePromise(server));
   });
 }
@@ -168,6 +182,20 @@ function ensureNodePtyHelper() {
     } catch {
       // ignore
     }
+  }
+}
+
+function killBridgeProcess(term) {
+  const pid = term && term.pid;
+  if (process.platform === "win32" && pid) {
+    // ConPTY term.kill() can leave the Go child (or the Node event loop) stuck.
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+    return;
+  }
+  try {
+    term.kill();
+  } catch {
+    // ignore
   }
 }
 
@@ -200,10 +228,10 @@ function startBridge(policy) {
       seen.add(id);
       if (policy === "allow") {
         log(`terminal policy=allow approval ${id}`);
-        term.write(`allow ${id}\r`);
+        term.write(`allow ${id}${PTY_EOL}`);
       } else if (policy === "deny") {
         log(`terminal policy=deny approval ${id}`);
-        term.write(`deny ${id}\r`);
+        term.write(`deny ${id}${PTY_EOL}`);
       } else {
         log(`terminal policy=unanswered approval ${id}`);
       }
@@ -227,7 +255,7 @@ function startBridge(policy) {
       stopping = true;
       if (exited) return;
       try {
-        term.write("quit\r");
+        term.write(`quit${PTY_EOL}`);
       } catch {
         // ignore
       }
@@ -236,10 +264,10 @@ function startBridge(policy) {
         await sleep(50);
       }
       if (!exited) {
-        try {
-          term.kill();
-        } catch {
-          // ignore
+        killBridgeProcess(term);
+        const killDeadline = Date.now() + 2000;
+        while (!exited && Date.now() < killDeadline) {
+          await sleep(50);
         }
       }
     },
@@ -536,6 +564,29 @@ function writeReports(commit, browserVersion) {
   );
 }
 
+async function closeHTTPS(server) {
+  if (!server) return;
+  try {
+    if (typeof server.closeAllConnections === "function") {
+      server.closeAllConnections();
+    }
+  } catch {
+    // ignore
+  }
+  await Promise.race([
+    new Promise((resolve) => {
+      server.close(() => resolve());
+    }),
+    sleep(2000),
+  ]);
+}
+
+function forceExit(code) {
+  // node-pty/ConPTY can keep the event loop alive on Windows after the child
+  // exits; always terminate the harness process once work is done.
+  process.exit(code);
+}
+
 async function main() {
   ensureNodePtyHelper();
   ensureCert();
@@ -548,6 +599,7 @@ async function main() {
   log("browser channel:", BROWSER_CHANNEL);
   log("approval policy:", POLICY);
   log("commit:", commit);
+  log("harness timeout ms:", HARNESS_TIMEOUT_MS);
 
   const https = await startHTTPS();
   const httpsBase = `https://127.0.0.1:${PORT_HTTPS}`;
@@ -557,14 +609,25 @@ async function main() {
   let bridge = null;
   let browser = null;
   let browserVersion = BROWSER_CHANNEL;
+  let exitCode = 0;
+
+  const killSwitch = setTimeout(() => {
+    log("FAIL harness exceeded", HARNESS_TIMEOUT_MS, "ms; forcing exit");
+    try {
+      writeReports(commit, browserVersion);
+    } catch {
+      // ignore
+    }
+    forceExit(1);
+  }, HARNESS_TIMEOUT_MS);
 
   try {
     bridge = startBridge(POLICY);
     let unexpectedExit = null;
     const watchExit = (b) => {
-      b.term.onExit(({ exitCode, signal }) => {
-        if (!b.stopping && exitCode !== 0 && exitCode !== null) {
-          unexpectedExit = `bridge exited unexpectedly code=${exitCode} signal=${signal}`;
+      b.term.onExit(({ exitCode: code, signal }) => {
+        if (!b.stopping && code !== 0 && code !== null && code !== undefined) {
+          unexpectedExit = `bridge exited unexpectedly code=${code} signal=${signal}`;
           log(unexpectedExit);
         }
       });
@@ -624,33 +687,45 @@ async function main() {
     }
     if (unexpectedExit) {
       log("FAIL", unexpectedExit);
-      process.exitCode = 1;
+      exitCode = 1;
     }
-    if (failed.length > 0) process.exitCode = 1;
+    if (failed.length > 0) exitCode = 1;
   } catch (err) {
     console.error(err);
-    process.exitCode = 1;
+    exitCode = 1;
+    try {
+      writeReports(commit, browserVersion);
+    } catch {
+      // ignore
+    }
   } finally {
+    clearTimeout(killSwitch);
     try {
-      if (browser) await browser.close();
+      if (browser) await withTimeout(browser.close(), 10000, "browser.close timed out");
     } catch {
       // ignore
     }
     try {
-      if (bridge) await bridge.stop();
+      if (bridge) await withTimeout(bridge.stop(), 8000, "bridge.stop timed out");
     } catch {
-      // ignore
+      try {
+        if (bridge && bridge.term) killBridgeProcess(bridge.term);
+      } catch {
+        // ignore
+      }
     }
-    await new Promise((r) => https.close(r));
+    await closeHTTPS(https);
     try {
       rmSync(CERT_DIR, { recursive: true, force: true });
     } catch {
       // ignore
     }
   }
+  log("exiting", exitCode);
+  forceExit(exitCode);
 }
 
 main().catch((err) => {
   console.error(err);
-  process.exit(1);
+  forceExit(1);
 });
