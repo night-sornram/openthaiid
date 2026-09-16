@@ -77,6 +77,10 @@ Selectors work too: `await autofillThaiID({ citizenId: "#cid", thaiName: "#name"
 Call it from a user gesture. Origin + field approval still happens in the
 bridge terminal. See `sdk/web/README.md` and `examples/vanilla/autofill.html`.
 
+Clinic / ERP screens should pass a **settings object** (`request` allowlist +
+`map` of slots to selectors) from the Create Patient click — same helper, no
+SDK fork. Copy-paste: `examples/clinic-patient/`.
+
 The `ThaiID` class is unchanged when you need connect / read / status yourself:
 
 ```ts
@@ -127,7 +131,8 @@ cd sdk/web && npm install && npm test && npm run build
 cd sdk/react && npm install && npm test && npm run build
 ```
 
-Open `examples/vanilla/autofill.html` for the form helper, or
+Open `examples/clinic-patient/` for a New patient form with configurable
+fields, `examples/vanilla/autofill.html` for the generic form helper, or
 `examples/vanilla/index.html` for Connect / Read / Disconnect
 (serve from HTTPS for real browser tests; localhost HTTP is development-only).
 Copy-paste React usage is in `examples/react/README.md` and `sdk/react/README.md`.

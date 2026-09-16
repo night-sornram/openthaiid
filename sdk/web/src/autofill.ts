@@ -91,9 +91,23 @@ export type AutofillThaiIDOptions = AutofillFormatOptions &
   Pick<ThaiIDOptions, "endpoint" | "connectTimeoutMs" | "renewLeadMs"> & {
     /**
      * Slot → CSS selector, element, or list. Combined with any top-level
-     * slot keys on this object (`citizenId: "#id"`).
+     * slot keys on this object (`citizenId: "#id"`). Prefer `map` in new
+     * ERP config objects; this name stays for compatibility.
      */
     fields?: AutofillFieldMap;
+    /**
+     * Alias of `fields`. Slot → selector / element for this screen.
+     * Clinics typically keep one `map` and vary `request`.
+     */
+    map?: AutofillFieldMap;
+    /**
+     * Allowlist of protocol fields to request from the card (subset of
+     * `SUPPORTED_FIELDS`). Nested slots belong in `map`, not here.
+     * The session asks only for the intersection of this list and mapped
+     * or discovered slots (least privilege). Omit to request every mapped
+     * slot's field.
+     */
+    request?: Field[];
     /** Query / attribute scan root. Default: `document`. */
     root?: ParentNode;
     /** Attribute used when discovering targets. Default: `data-openthaiid`. */
@@ -113,6 +127,10 @@ export type AutofillThaiIDOptions = AutofillFormatOptions &
     }) => void;
     onConnectionChanged?: (state: ConnectionState) => void;
     /**
+     * Optional ERP chrome hook. The promise still rejects after this runs.
+     */
+    onError?: (err: unknown) => void;
+    /**
      * Disconnect after fill. Default `true` when this helper constructed the
      * client, `false` when `client` was passed in.
      */
@@ -124,6 +142,8 @@ export type AutofillThaiIDOptions = AutofillFormatOptions &
 
 const OPTION_KEYS = new Set<string>([
   "fields",
+  "map",
+  "request",
   "root",
   "attribute",
   "discover",
@@ -133,6 +153,7 @@ const OPTION_KEYS = new Set<string>([
   "renewLeadMs",
   "onApprovalRequired",
   "onConnectionChanged",
+  "onError",
   "disconnect",
   "dateFormat",
   "dateLocale",
@@ -368,12 +389,49 @@ export function discoverAutofillTargets(
   return [...grouped.entries()].map(([slot, elements]) => ({ slot, elements }));
 }
 
+/**
+ * Validate `request` as protocol field names (not nested slots).
+ * Returns `null` when the caller omitted the allowlist.
+ */
+export function normalizeAutofillRequest(request: readonly string[] | undefined): Field[] | null {
+  if (request == null) return null;
+  if (request.length === 0) {
+    throw new ThaiIDError("INVALID_REQUEST", "request must list at least one field");
+  }
+  const seen = new Set<Field>();
+  const out: Field[] = [];
+  for (const raw of request) {
+    const name = typeof raw === "string" ? raw.trim() : "";
+    if (!name || name.includes(".") || !SUPPORTED_FIELDS.includes(name as Field)) {
+      throw new ThaiIDError(
+        "UNSUPPORTED_FIELD",
+        `request must be protocol fields (not slots); unsupported: ${String(raw)}`,
+      );
+    }
+    const field = name as Field;
+    if (seen.has(field)) continue;
+    seen.add(field);
+    out.push(field);
+  }
+  return out;
+}
+
+export function filterTargetsByRequest(
+  targets: AutofillTargetList,
+  request: readonly Field[] | null,
+): AutofillTargetList {
+  if (request == null) return targets;
+  const allowed = new Set<Field>(request);
+  return targets.filter((t) => allowed.has(parseSlot(t.slot).field));
+}
+
 export function collectAutofillTargets(options: AutofillThaiIDOptions = {}): AutofillTargetList {
   if (typeof document === "undefined") {
     throw new ThaiIDError("CONNECTION_FAILED", "autofillThaiID() requires a browser environment");
   }
   const root = options.root ?? document;
   const grouped = new Map<string, Element[]>();
+  const request = normalizeAutofillRequest(options.request);
 
   const addMap = (map: AutofillFieldMap | undefined) => {
     if (!map) return;
@@ -384,6 +442,7 @@ export function collectAutofillTargets(options: AutofillThaiIDOptions = {}): Aut
   };
 
   addMap(options.fields);
+  addMap(options.map);
 
   for (const [key, value] of Object.entries(options)) {
     if (OPTION_KEYS.has(key)) continue;
@@ -399,10 +458,11 @@ export function collectAutofillTargets(options: AutofillThaiIDOptions = {}): Aut
     }
   }
 
-  return [...grouped.entries()].map(([slot, elements]) => ({
+  const collected = [...grouped.entries()].map(([slot, elements]) => ({
     slot,
     elements: uniqueElements(elements),
   }));
+  return filterTargetsByRequest(collected, request);
 }
 
 function uniqueElements(elements: Element[]): Element[] {
@@ -484,57 +544,62 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
     throw new ThaiIDError("CONNECTION_FAILED", "autofillThaiID() requires a browser environment");
   }
 
-  const targets = collectAutofillTargets(options);
-  if (targets.length === 0) {
-    throw new ThaiIDError(
-      "INVALID_REQUEST",
-      `no autofill targets (pass fields or add ${options.attribute ?? AUTOFILL_ATTRIBUTE} attributes)`,
-    );
-  }
+  try {
+    const targets = collectAutofillTargets(options);
+    if (targets.length === 0) {
+      const hint = options.request
+        ? "no autofill targets after applying request allowlist (map a slot for those fields, or widen request)"
+        : `no autofill targets (pass map/fields or add ${options.attribute ?? AUTOFILL_ATTRIBUTE} attributes)`;
+      throw new ThaiIDError("INVALID_REQUEST", hint);
+    }
 
-  const requested = slotsToFields(targets.map((t) => t.slot));
-  const ownsClient = !options.client;
-  const client =
-    options.client ??
-    new ThaiID({
-      fields: requested,
-      endpoint: options.endpoint,
-      connectTimeoutMs: options.connectTimeoutMs,
-      renewLeadMs: options.renewLeadMs,
-      autoReconnect: false,
-    });
+    const requested = slotsToFields(targets.map((t) => t.slot));
+    const ownsClient = !options.client;
+    const client =
+      options.client ??
+      new ThaiID({
+        fields: requested,
+        endpoint: options.endpoint,
+        connectTimeoutMs: options.connectTimeoutMs,
+        renewLeadMs: options.renewLeadMs,
+        autoReconnect: false,
+      });
 
-  if (!ownsClient) {
-    for (const f of requested) {
-      if (!client.fields.includes(f)) {
-        throw new ThaiIDError("FIELD_NOT_ALLOWED", `field ${f} is not in the approved set`);
+    if (!ownsClient) {
+      for (const f of requested) {
+        if (!client.fields.includes(f)) {
+          throw new ThaiIDError("FIELD_NOT_ALLOWED", `field ${f} is not in the approved set`);
+        }
       }
     }
-  }
 
-  const offs: Array<() => void> = [];
-  if (options.onApprovalRequired) {
-    offs.push(client.on("approvalRequired", options.onApprovalRequired));
-  }
-  if (options.onConnectionChanged) {
-    offs.push(client.on("connectionChanged", options.onConnectionChanged));
-  }
-
-  const shouldDisconnect = options.disconnect ?? ownsClient;
-  try {
-    await client.connect({ signal: options.signal });
-    const result = await client.read({
-      fields: requested,
-      readerId: options.readerId,
-      cardSessionId: options.cardSessionId,
-      signal: options.signal,
-    });
-    const applied = applyAutofillValues(targets, result.fields, options);
-    return { ...applied, result };
-  } finally {
-    for (const off of offs) off();
-    if (shouldDisconnect) {
-      await client.disconnect();
+    const offs: Array<() => void> = [];
+    if (options.onApprovalRequired) {
+      offs.push(client.on("approvalRequired", options.onApprovalRequired));
     }
+    if (options.onConnectionChanged) {
+      offs.push(client.on("connectionChanged", options.onConnectionChanged));
+    }
+
+    const shouldDisconnect = options.disconnect ?? ownsClient;
+    try {
+      await client.connect({ signal: options.signal });
+      const result = await client.read({
+        fields: requested,
+        readerId: options.readerId,
+        cardSessionId: options.cardSessionId,
+        signal: options.signal,
+      });
+      const applied = applyAutofillValues(targets, result.fields, options);
+      return { ...applied, result };
+    } finally {
+      for (const off of offs) off();
+      if (shouldDisconnect) {
+        await client.disconnect();
+      }
+    }
+  } catch (err) {
+    options.onError?.(err);
+    throw err;
   }
 }

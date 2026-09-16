@@ -102,3 +102,37 @@ The hook disconnects that client when the component unmounts.
 
 Default field grant remains `citizenId`, `thaiName`, `birthDate`. Portrait is
 not implemented.
+
+## Form autofill (same config as `@openthaiid/web`)
+
+Clinic ERP screens should keep a settings object and call it from a button —
+do not connect on render:
+
+```tsx
+import { autofillThaiID } from "@openthaiid/web";
+// or: import { autofillThaiID, useThaiIDAutofill } from "@openthaiid/react";
+
+const clinicPatientAutofill = {
+  request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
+  map: {
+    citizenId: "#patient-cid",
+    "thaiName.givenName": "#patient-given",
+    "thaiName.familyName": "#patient-family",
+    birthDate: "#patient-dob",
+    gender: "#patient-gender",
+    address: "#patient-address",
+  },
+  onApprovalRequired: ({ comparisonCode }) => {
+    setBanner(`Approve in the terminal, code ${comparisonCode}`);
+  },
+};
+
+<button type="button" onClick={() => void autofillThaiID(clinicPatientAutofill)}>
+  Fill from Thai ID
+</button>
+```
+
+`useThaiIDAutofill(config)` is a thin wrapper around that same object if you
+want `filling` / `approvalRequired` / `error` state. It does not read until
+`autofill()` runs from a click. Copy-paste clinic example:
+`examples/clinic-patient/`.

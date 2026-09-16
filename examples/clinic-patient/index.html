@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenThaiID — clinic create patient</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        --border: #8886;
+        --muted: color-mix(in srgb, CanvasText 68%, Canvas);
+      }
+      body {
+        margin: 0;
+        line-height: 1.45;
+      }
+      header.app {
+        border-bottom: 1px solid var(--border);
+        padding: 0.85rem 1.25rem;
+      }
+      header.app h1 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 600;
+      }
+      header.app p {
+        margin: 0.2rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.9fr);
+        gap: 1.25rem;
+        padding: 1.25rem;
+        align-items: start;
+      }
+      @media (max-width: 860px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      section {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1rem 1.1rem 1.15rem;
+      }
+      h2 {
+        margin: 0 0 0.75rem;
+        font-size: 1.02rem;
+        font-weight: 600;
+      }
+      form {
+        display: grid;
+        gap: 0.7rem;
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.7rem;
+      }
+      label {
+        display: grid;
+        gap: 0.22rem;
+        font-size: 0.9rem;
+      }
+      input,
+      textarea,
+      select,
+      button {
+        font: inherit;
+      }
+      input,
+      textarea,
+      select {
+        padding: 0.4rem 0.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: transparent;
+      }
+      textarea {
+        min-height: 4.2rem;
+        resize: vertical;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.9rem 0 0.2rem;
+      }
+      button {
+        padding: 0.5rem 0.9rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #1a56db;
+        border-color: #1a56db;
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .banner {
+        display: none;
+        margin: 0 1.25rem;
+        padding: 0.65rem 0.85rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 0.92rem;
+      }
+      .banner.show {
+        display: block;
+      }
+      .banner.approval {
+        background: color-mix(in srgb, #c9a227 18%, Canvas);
+      }
+      .banner.error {
+        background: color-mix(in srgb, #c0392b 16%, Canvas);
+      }
+      .banner.ok {
+        background: color-mix(in srgb, #1a7f4c 14%, Canvas);
+      }
+      fieldset {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.55rem 0.7rem 0.7rem;
+        margin: 0 0 0.75rem;
+      }
+      legend {
+        font-size: 0.85rem;
+        padding: 0 0.3rem;
+      }
+      .checks {
+        display: grid;
+        gap: 0.3rem;
+      }
+      .checks label {
+        display: flex;
+        gap: 0.45rem;
+        align-items: center;
+        font-size: 0.88rem;
+      }
+      pre {
+        margin: 0;
+        padding: 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        overflow: auto;
+        font-size: 0.75rem;
+        max-height: 18rem;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.88em;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+        margin: 0 0 0.75rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.28rem 0.2rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      a {
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app">
+      <h1>Clinic ERP — New patient</h1>
+      <p>
+        Demo of OpenThaiID autofill with a developer <code>config</code> object.
+        Not affiliated with the Department of Provincial Administration.
+      </p>
+    </header>
+    <div id="banner" class="banner" role="status"></div>
+    <div class="layout">
+      <section>
+        <h2>Create patient</h2>
+        <p class="hint">
+          Click <strong>Fill from Thai ID</strong>. The local bridge still
+          requires terminal origin + field approval. Phone and HN are not on
+          the card and stay blank.
+        </p>
+        <div class="actions">
+          <button id="fill" class="primary" type="button">Fill from Thai ID</button>
+          <button id="reset" type="button">Clear</button>
+        </div>
+        <form id="patient-form" autocomplete="off">
+          <label>
+            Hospital number (HN)
+            <input id="patient-hn" name="hn" placeholder="Assigned by clinic" />
+            <span class="hint">Manual — not an OpenThaiID field</span>
+          </label>
+          <label>
+            Citizen ID
+            <input id="patient-cid" name="citizenId" inputmode="numeric" />
+          </label>
+          <div class="pair">
+            <label>
+              Given name
+              <input id="patient-given" name="givenName" />
+            </label>
+            <label>
+              Family name
+              <input id="patient-family" name="familyName" />
+            </label>
+          </div>
+          <label>
+            English name
+            <input id="patient-english" name="englishName" />
+            <span class="hint">Off by default; enable it in settings to request</span>
+          </label>
+          <div class="pair">
+            <label>
+              Date of birth
+              <input id="patient-dob" name="birthDate" type="date" />
+            </label>
+            <label>
+              Gender
+              <select id="patient-gender" name="gender">
+                <option value="">—</option>
+                <option value="male">male</option>
+                <option value="female">female</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Address
+            <textarea id="patient-address" name="address"></textarea>
+          </label>
+          <label>
+            Phone
+            <input id="patient-phone" name="phone" inputmode="tel" />
+            <span class="hint">Manual — not printed on the Thai ID chip</span>
+          </label>
+        </form>
+      </section>
+      <section>
+        <h2>Developer settings</h2>
+        <p class="hint">
+          This panel is the clinic integration API: which fields to request,
+          how they map to this form, and format tweaks. It is not a silent
+          background read.
+        </p>
+        <fieldset>
+          <legend>request (allowlist)</legend>
+          <div id="request-fields" class="checks"></div>
+        </fieldset>
+        <fieldset>
+          <legend>format</legend>
+          <label>
+            Gender labels
+            <select id="gender-labels">
+              <option value="en" selected>male / female</option>
+              <option value="th">ชาย / หญิง</option>
+            </select>
+          </label>
+          <p class="hint">Dates stay ISO (<code>YYYY-MM-DD</code>) for <code>input[type=date]</code>.</p>
+        </fieldset>
+        <p class="hint">map (slot → selector)</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Slot</th>
+              <th>Selector</th>
+            </tr>
+          </thead>
+          <tbody id="map-rows"></tbody>
+        </table>
+        <p class="hint">Object passed to <code>autofillThaiID(config)</code></p>
+        <pre id="config-preview"></pre>
+        <p class="hint">
+          Vanilla KYC demo: <a href="../vanilla/autofill.html">autofill.html</a>.
+          Serve from the repo root. Localhost HTTP is development-only.
+        </p>
+      </section>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
