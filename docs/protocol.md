@@ -6,8 +6,10 @@
 - Subprotocol: `openthaiid.v1`
 - Health: `GET /healthz` — liveness only. No readers, grants, or card state.
 - Local Manager: `GET /` — HTML device UI. JSON under `/v1/manager/*`
-  (CSRF header + manager origin; no CORS). Status includes reader names and
-  card present/absent only — never personal field values.
+  (CSRF header + manager origin; no CORS; refresh/reconnect rate-limited).
+  Status includes reader names and card present/absent only — never personal
+  field values. Helper lights: `GET /v1/helper/summary`. Quit:
+  `POST /v1/helper/shutdown` (foreign Origin rejected).
 - Frame limit: 64 KiB text-only. Compression disabled.
 - Port is explicit configuration. No port scanning or silent fallback.
 

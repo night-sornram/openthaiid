@@ -12,6 +12,14 @@ Open technician tools on the PC: `http://127.0.0.1:17891/#technician`
 **Detailed logs** only while you are debugging. Copy diagnostics never
 includes citizen ID, names, dates, or address values.
 
+The helper listens only on `127.0.0.1` (never the LAN). What is on that
+port: Ready HTML (`/`), liveness (`/healthz`), staff lights
+(`GET /v1/helper/summary`, no personal fields), quit
+(`POST /v1/helper/shutdown`, websites cannot call it), technician JSON
+under `/v1/manager/*` (CSRF + this PC’s origin; refresh/reconnect are
+rate-limited), and the WebSocket (`/v1/ws`) for the ERP after Allow.
+Details: [security.md](security.md).
+
 ERP pages can pass `mountThaiIDStatus(el, { mode: "advanced" })` for the
 same technician details in-page. Approval security is unchanged: the ERP
 cannot allow itself. Reader selection also stays on this PC (Ready page or

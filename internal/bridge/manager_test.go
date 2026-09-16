@@ -137,9 +137,7 @@ func TestManagerPageAndStatus(t *testing.T) {
 		t.Fatalf("version=%v", st["version"])
 	}
 	raw, _ := json.Marshal(st)
-	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
-		t.Fatalf("status leaked personal fields: %s", raw)
-	}
+	assertNoForbiddenJSON(t, raw)
 	readers, _ := st["readers"].([]any)
 	if len(readers) != 1 {
 		t.Fatalf("readers=%v", st["readers"])
@@ -366,9 +364,7 @@ func TestManagerDiagnosticsLogLevelAndReconnect(t *testing.T) {
 
 	st := managerGET(t, tb, token, "/v1/manager/status")
 	raw, _ := json.Marshal(st)
-	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
-		t.Fatalf("diagnostics leaked personal fields: %s", raw)
-	}
+	assertNoForbiddenJSON(t, raw)
 	errs, _ := st["lastErrors"].([]any)
 	if len(errs) != 1 {
 		t.Fatalf("lastErrors=%v", st["lastErrors"])
@@ -428,9 +424,7 @@ func TestManagerReconnectRecoversPCSCUnavailable(t *testing.T) {
 		t.Fatalf("reconnect code=%v", out["code"])
 	}
 	raw, _ := json.Marshal(out)
-	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
-		t.Fatalf("reconnect leaked personal fields: %s", raw)
-	}
+	assertNoForbiddenJSON(t, raw)
 
 	tb.mon.SetServiceDown(false)
 	out = managerPOST(t, tb, token, "/v1/manager/reconnect", nil)
@@ -472,9 +466,7 @@ func TestManagerAuditExportRedacted(t *testing.T) {
 
 	st := managerGET(t, tb, token, "/v1/manager/status")
 	raw, _ := json.Marshal(st)
-	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
-		t.Fatalf("audit leaked personal fields: %s", raw)
-	}
+	assertNoForbiddenJSON(t, raw)
 	exp := managerGET(t, tb, token, "/v1/manager/audit")
 	if exp["schema"] != "openthaiid.audit.v1" {
 		t.Fatalf("schema %v", exp["schema"])
@@ -484,9 +476,7 @@ func TestManagerAuditExportRedacted(t *testing.T) {
 		t.Fatalf("pii note %v", exp["pii"])
 	}
 	body, _ := json.Marshal(exp)
-	if bytes.Contains(body, []byte("1234567890121")) || bytes.Contains(body, []byte("สมชาย")) {
-		t.Fatalf("export leaked: %s", body)
-	}
+	assertNoForbiddenJSON(t, body)
 	js := getBody(t, tb, "/manager/app.js")
 	if !strings.Contains(js, "openthaiid.audit.v1") || !strings.Contains(js, "downloadAuditJSON") {
 		t.Fatal("manager JS missing audit export")

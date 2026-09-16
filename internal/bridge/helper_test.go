@@ -33,7 +33,8 @@ func TestHelperSummaryNoPII(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, n := range []string{"1234567890121", "สมชาย", "Somchai", "citizenId"} {
+	assertNoForbiddenJSON(t, raw)
+	for _, n := range []string{"citizenId", "thaiName"} {
 		if bytes.Contains(raw, []byte(n)) {
 			t.Fatalf("summary leaked %q: %s", n, raw)
 		}

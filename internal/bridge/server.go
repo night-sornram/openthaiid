@@ -60,6 +60,11 @@ type Server struct {
 
 	audit   *audit.Log
 	runMode string
+
+	// deviceGate bounds PC/SC refresh/reconnect from the manager page.
+	deviceMu    sync.Mutex
+	deviceBusy  bool
+	deviceStamp []time.Time
 }
 
 type clientConn struct {

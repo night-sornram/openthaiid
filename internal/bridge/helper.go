@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"strings"
 
@@ -13,6 +14,10 @@ func (s *Server) handleHelperSummary(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !s.helperLoopbackAllowed(r) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
 	s.writeJSON(w, http.StatusOK, s.HelperSummary())
 }
 
@@ -21,10 +26,19 @@ func (s *Server) handleHelperShutdown(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	origin := strings.TrimSpace(r.Header.Get("Origin"))
-	if origin != "" && !s.isManagerOrigin(origin) {
+	if !s.helperLoopbackAllowed(r) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
+	}
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin != "" {
+		// Browser request: CSRF so a same-origin-looking form cannot stop
+		// the helper. openthaiid quit sends no Origin and still works.
+		got := r.Header.Get(managerTokenHeader)
+		if subtle.ConstantTimeCompare([]byte(got), []byte(s.managerToken)) != 1 {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
 	}
 	s.writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 	s.mu.Lock()
@@ -36,7 +50,8 @@ func (s *Server) handleHelperShutdown(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetShutdownRequest is invoked by POST /v1/helper/shutdown (loopback).
-// Browser origins other than the helper page are rejected.
+// Browser origins other than the helper page are rejected. A browser
+// Origin also requires the manager CSRF header.
 func (s *Server) SetShutdownRequest(fn func()) {
 	s.mu.Lock()
 	s.onShutdownRequest = fn
