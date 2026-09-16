@@ -48,6 +48,11 @@ func startTestBridge(t *testing.T, autoAllow bool) *testBridge {
 
 func startTestBridgeSeed(t *testing.T, autoAllow bool, seed func(mon, rdb *pcsc.SyntheticBackend)) *testBridge {
 	t.Helper()
+	return startTestBridgeOpts(t, autoAllow, seed, nil)
+}
+
+func startTestBridgeOpts(t *testing.T, autoAllow bool, seed func(mon, rdb *pcsc.SyntheticBackend), mutate func(*config.Config)) *testBridge {
+	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +63,9 @@ func startTestBridgeSeed(t *testing.T, autoAllow bool, seed func(mon, rdb *pcsc.
 	cfg := config.Default()
 	fmt.Sscanf(portStr, "%d", &cfg.Port)
 	cfg.ApprovalTimeout = 3 * time.Second
+	if mutate != nil {
+		mutate(&cfg)
+	}
 	if err := cfg.Validate(); err != nil {
 		t.Fatal(err)
 	}

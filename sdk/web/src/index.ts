@@ -8,7 +8,7 @@
  * still requires an operator Allow for this origin.
  */
 
-import { pageBlocksInsecureLoopbackWs } from "./browser.js";
+import { loopbackTlsFailureCode, resolveHelperEndpoint } from "./endpoint.js";
 
 export type Field =
   | "citizenId"
@@ -109,6 +109,7 @@ export type ThaiIDErrorCode =
   | "BRIDGE_UNAVAILABLE"
   | "CONNECTION_FAILED"
   | "HTTPS_WS_BLOCKED"
+  | "TLS_UNTRUSTED"
   | "PROTOCOL_MISMATCH"
   | "APPROVAL_REQUIRED"
   | "APPROVAL_DENIED"
@@ -184,8 +185,17 @@ export type ThaiIDEvents = {
 type Handler<T> = (payload: T) => void;
 
 export type ThaiIDOptions = {
-  /** Default: ws://127.0.0.1:17891/v1/ws */
+  /** Default: ws://127.0.0.1:17891/v1/ws. Explicit URL always wins. */
   endpoint?: string;
+  /**
+   * Prefer `wss://127.0.0.1:17892/v1/ws` on https pages (technician-managed
+   * loopback TLS). Default false; Firefox/Safari https still auto-select WSS.
+   */
+  preferLoopbackTls?: boolean;
+  /** True when a previous probe advertised helper TLS. */
+  helperTls?: boolean;
+  /** Advertised WSS URL from the helper. */
+  wssUrl?: string;
   /** Default: citizenId, thaiName, birthDate (least privilege). Extra fields, including portrait, must be requested explicitly. */
   fields?: Field[];
   /** Connect timeout ms (default 30000; approval wait included). */
@@ -196,7 +206,6 @@ export type ThaiIDOptions = {
   autoReconnect?: boolean;
 };
 
-const DEFAULT_ENDPOINT = "ws://127.0.0.1:17891/v1/ws";
 const SUBPROTOCOL = "openthaiid.v1";
 
 const RECONNECT_BASE_MS = 1000;
@@ -216,10 +225,14 @@ type PendingWaiter = {
  */
 export class ThaiID {
   readonly fields: Field[];
-  readonly endpoint: string;
   readonly #connectTimeoutMs: number;
   readonly #renewLeadMs: number;
   readonly #autoReconnect: boolean;
+  readonly #preferLoopbackTls: boolean;
+  readonly #helperTls: boolean;
+  readonly #wssUrl?: string;
+  readonly #explicitEndpoint: boolean;
+  #endpoint: string;
 
   #state: ConnectionState = "disconnected";
   #status: BridgeStatus = {
@@ -245,7 +258,17 @@ export class ThaiID {
   #gotSnapshot = false;
 
   constructor(options: ThaiIDOptions = {}) {
-    this.endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
+    this.#preferLoopbackTls = Boolean(options.preferLoopbackTls);
+    this.#helperTls = Boolean(options.helperTls);
+    this.#wssUrl = options.wssUrl?.trim() || undefined;
+    const explicit = options.endpoint?.trim();
+    this.#explicitEndpoint = Boolean(explicit);
+    this.#endpoint = resolveHelperEndpoint({
+      endpoint: explicit,
+      preferLoopbackTls: this.#preferLoopbackTls,
+      helperTls: this.#helperTls,
+      wssUrl: this.#wssUrl,
+    });
     this.#connectTimeoutMs = options.connectTimeoutMs ?? 30_000;
     this.#renewLeadMs = options.renewLeadMs ?? 30_000;
     this.#autoReconnect = options.autoReconnect ?? true;
@@ -256,6 +279,15 @@ export class ThaiID {
       }
     }
     this.fields = [...fields];
+  }
+
+  get endpoint(): string {
+    if (this.#explicitEndpoint) return this.#endpoint;
+    return resolveHelperEndpoint({
+      preferLoopbackTls: this.#preferLoopbackTls,
+      helperTls: this.#helperTls,
+      wssUrl: this.#wssUrl,
+    });
   }
 
   state(): ConnectionState {
@@ -572,7 +604,8 @@ export class ThaiID {
     this.#setState("connecting");
     let ws: WebSocket | null = null;
     try {
-      const socket = new WebSocket(this.endpoint, [SUBPROTOCOL]);
+      this.#endpoint = this.endpoint;
+      const socket = new WebSocket(this.#endpoint, [SUBPROTOCOL]);
       ws = socket;
       this.#ws = socket;
 
@@ -613,12 +646,20 @@ export class ThaiID {
         !(err instanceof ThaiIDError) ||
         err.code === "BRIDGE_UNAVAILABLE" ||
         err.code === "CONNECTION_FAILED";
-      if (openFailed && pageBlocksInsecureLoopbackWs(this.endpoint)) {
-        throw new ThaiIDError(
-          "HTTPS_WS_BLOCKED",
-          "HTTPS page cannot reach the loopback helper in this browser",
-          false,
-        );
+      if (openFailed) {
+        const tlsCode = loopbackTlsFailureCode(this.#endpoint, {
+          preferLoopbackTls: this.#preferLoopbackTls,
+          explicitEndpoint: this.#explicitEndpoint,
+        });
+        if (tlsCode) {
+          throw new ThaiIDError(
+            tlsCode,
+            tlsCode === "TLS_UNTRUSTED"
+              ? "local helper certificate is not trusted"
+              : "HTTPS page cannot reach the loopback helper in this browser",
+            false,
+          );
+        }
       }
       if (err instanceof ThaiIDError) throw err;
       throw new ThaiIDError("CONNECTION_FAILED", "connection failed", true);
@@ -924,6 +965,16 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
     );
   });
 }
+
+export {
+  DEFAULT_ENDPOINT,
+  DEFAULT_TLS_ENDPOINT,
+  DEFAULT_TLS_PORT,
+  isLoopbackWss,
+  loopbackTlsFailureCode,
+  resolveHelperEndpoint,
+  type ResolveHelperEndpointOptions,
+} from "./endpoint.js";
 
 export {
   firefoxLike,

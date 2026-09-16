@@ -16,13 +16,14 @@
 | ฝึกก่อนได้เครื่องจริง (`make friday-dry-run` / `openthaiid -synthetic`) | [training.md](training.md) |
 | เช้าวันศุกร์มี ACR39U (พร้อม → qualify → กรอกข้อมูล → ส่งวินิจฉัย) | [friday-checklist.md](friday-checklist.md) |
 | แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) |
-| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) · ตรวจเวอร์ชัน: `openthaiid update check` |
+| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) · HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md) · ตรวจเวอร์ชัน: `openthaiid update check` |
 
 หน้า พร้อม ของตัวช่วย: `http://127.0.0.1:17891/`
 ไฟสามดวงมีคำว่า **ปกติ / รอ / ยังไม่พร้อม** ไม่ใช้สีอย่างเดียว
 ปุ่ม **ใช้เครื่องนี้** · **ทดสอบการเชื่อมต่อ** · สลับภาษา ไทย / English กดง่ายขึ้น
-Firefox / Safari ใช้หน้า พร้อม ได้; กรอกข้อมูลจากหน้าคลินิก **HTTPS** ไม่ได้
-(`HTTPS_WS_BLOCKED`) — ใช้ Chrome/Edge หรือหน้าคลินิก http
+Firefox / Safari ใช้หน้า พร้อม ได้; กรอกข้อมูลจากหน้าคลินิก **HTTPS** ใช้ได้เมื่อ
+ช่างเทคนิคเปิด HTTPS ของตัวช่วย ([loopback-tls.md](loopback-tls.md)) —
+มิฉะนั้น `HTTPS_WS_BLOCKED` ใช้ Chrome/Edge หรือหน้าคลินิก http
 ([compatibility.md](compatibility.md))
 
 ## ถ้ายังไม่มี ACR39U
@@ -73,13 +74,15 @@ No GitHub Actions in this round (minutes exhausted). No Laser-id / NHSO.
 | Practice before the reader arrives | [training.md](training.md) (`make friday-dry-run`) |
 | Friday with an ACR39U | [friday-checklist.md](friday-checklist.md) |
 | Clinic IT / ERP | [erp-integration.md](erp-integration.md) |
-| Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) · version check: `openthaiid update check` |
+| Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) · helper TLS: [loopback-tls.md](loopback-tls.md) · version check: `openthaiid update check` |
 
 Ready page: `http://127.0.0.1:17891/`. The three lights include **OK /
 Waiting / Not ready** text (not color alone). **Use this reader**, **Test
 connection**, and the ไทย / English toggle are large tap targets.
-Firefox/Safari: Ready works; Fill from an **https://** ERP is blocked
-(`HTTPS_WS_BLOCKED`). Use Chrome/Edge or an http ERP.
+Firefox/Safari: Ready works; Fill from an **https://** ERP needs optional
+helper TLS ([loopback-tls.md](loopback-tls.md)) or returns `HTTPS_WS_BLOCKED`.
+Use Chrome/Edge, an http ERP, or a trusted local cert. Do not disable
+browser security.
 
 Without hardware: `make friday-dry-run` then [training.md](training.md)
 (ซ้อมก่อนได้เครื่อง). With ACR39U: follow

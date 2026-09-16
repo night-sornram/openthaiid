@@ -91,11 +91,13 @@ map. JSON Schema + samples + import/export:
 |---|---|---|---|
 | Ready page (`http://127.0.0.1:17891/`) | yes | yes | yes |
 | Fill from an **http** clinic page | yes | yes | yes |
-| Fill from an **https** clinic page | yes (may ask for local network) | **no** — mixed content | **no** — mixed content |
+| Fill from an **https** clinic page | yes (may ask for local network) | yes with local helper TLS; else `HTTPS_WS_BLOCKED` | yes with local helper TLS; else `HTTPS_WS_BLOCKED` |
 
-Firefox/Safari + HTTPS does **not** mean the helper is down. The page shows
-`HTTPS_WS_BLOCKED` and tells staff to use Chrome/Edge or an http ERP. Do not
-disable mixed-content checks. Details: [compatibility.md](compatibility.md).
+Firefox/Safari + HTTPS does **not** mean the helper is down. Without
+optional loopback TLS the page shows `HTTPS_WS_BLOCKED` (use Chrome/Edge,
+an http ERP, or [loopback-tls.md](loopback-tls.md)). An untrusted local
+cert is `TLS_UNTRUSTED`. Do not disable mixed-content checks. Details:
+[compatibility.md](compatibility.md).
 
 React:
 

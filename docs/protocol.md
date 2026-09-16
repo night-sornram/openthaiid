@@ -3,8 +3,11 @@
 ## Transport
 
 - Default endpoint: `ws://127.0.0.1:17891/v1/ws`
+- Optional TLS endpoint: `wss://127.0.0.1:17892/v1/ws` (technician-managed
+  local cert; same protocol). Ready stays on HTTP.
 - Subprotocol: `openthaiid.v1`
 - Health: `GET /healthz` — liveness only. No readers, grants, or card state.
+  When loopback TLS is on, JSON includes `"tls": true` and `wssUrl`.
 - Local Manager: `GET /` — HTML device UI. JSON under `/v1/manager/*`
   (CSRF header + manager origin; no CORS; refresh/reconnect rate-limited).
   Status includes reader names and card present/absent only — never personal

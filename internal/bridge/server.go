@@ -4,6 +4,7 @@ package bridge
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -39,6 +40,8 @@ type Server struct {
 	conns    int
 	httpSrv  *http.Server
 	listener net.Listener
+	tlsSrv   *http.Server
+	tlsLn    net.Listener
 
 	clientsMu sync.Mutex
 	clients   map[string]*clientConn
@@ -183,6 +186,14 @@ func (s *Server) Start(ctx context.Context) error {
 	if err := s.cfg.Validate(); err != nil {
 		return err
 	}
+	certFile, keyFile := "", ""
+	if s.cfg.TLSEnabled() {
+		certFile = s.cfg.ResolvedTLSCertFile()
+		keyFile = s.cfg.ResolvedTLSKeyFile()
+		if _, err := tls.LoadX509KeyPair(certFile, keyFile); err != nil {
+			return fmt.Errorf("tls certificate: %w", err)
+		}
+	}
 	ln, err := net.Listen("tcp", s.cfg.Addr())
 	if err != nil {
 		return card.NewError(card.ErrConnectionFailed, "listen failed")
@@ -210,15 +221,37 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /v1/manager/reconnect", s.handleManagerReconnect)
 	mux.HandleFunc("POST /v1/manager/update/check", s.handleManagerUpdateCheck)
 	mux.HandleFunc("GET /v1/manager/audit", s.handleManagerAudit)
+	handler := s.securityMiddleware(mux)
 	s.httpSrv = &http.Server{
-		Handler:           s.securityMiddleware(mux),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
+	}
+	if s.cfg.TLSEnabled() {
+		tlsLn, err := net.Listen("tcp", s.cfg.TLSAddr())
+		if err != nil {
+			_ = ln.Close()
+			return fmt.Errorf("tls listen: %w", err)
+		}
+		s.tlsLn = tlsLn
+		s.tlsSrv = &http.Server{
+			Handler:           handler,
+			ReadHeaderTimeout: 5 * time.Second,
+			TLSConfig:         &tls.Config{MinVersion: tls.VersionTLS12},
+		}
 	}
 	go func() {
 		if err := s.httpSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			s.log.Error("bridge serve failed", "error", err)
 		}
 	}()
+	if s.tlsSrv != nil && s.tlsLn != nil {
+		go func() {
+			if err := s.tlsSrv.ServeTLS(s.tlsLn, certFile, keyFile); err != nil && err != http.ErrServerClosed {
+				s.log.Error("bridge tls serve failed", "error", err)
+			}
+		}()
+		s.log.Info("loopback tls enabled", "addr", s.tlsLn.Addr().String())
+	}
 	go s.forwardReaderEvents(ctx)
 	s.recordAudit(audit.Event{Kind: audit.KindHelperStart, Mode: s.runMode})
 	return nil
@@ -230,6 +263,17 @@ func (s *Server) Addr() string {
 		return s.listener.Addr().String()
 	}
 	return s.cfg.Addr()
+}
+
+// TLSAddr returns the bound HTTPS/WSS address once listening, or empty.
+func (s *Server) TLSAddr() string {
+	if s.tlsLn != nil {
+		return s.tlsLn.Addr().String()
+	}
+	if s.cfg.TLSEnabled() {
+		return s.cfg.TLSAddr()
+	}
+	return ""
 }
 
 // Shutdown stops the HTTP server and closes upgraded WebSockets.
@@ -244,6 +288,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	for _, c := range clients {
 		c.closeWS(websocket.StatusGoingAway, "shutdown")
 	}
+	if s.tlsSrv != nil {
+		_ = s.tlsSrv.Shutdown(ctx)
+	}
 	if s.httpSrv == nil {
 		return nil
 	}
@@ -256,13 +303,26 @@ func (s *Server) securityMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		want := s.cfg.Addr()
-		if !auth.ValidHostAuthority(r.Host, want) && !auth.ValidHostAuthority(r.Host, "localhost:"+portOnly(want)) {
+		if !s.hostAllowed(r.Host) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) hostAllowed(host string) bool {
+	want := s.cfg.Addr()
+	if auth.ValidHostAuthority(host, want) || auth.ValidHostAuthority(host, "localhost:"+portOnly(want)) {
+		return true
+	}
+	if s.cfg.TLSEnabled() {
+		tlsWant := s.cfg.TLSAddr()
+		if auth.ValidHostAuthority(host, tlsWant) || auth.ValidHostAuthority(host, "localhost:"+portOnly(tlsWant)) {
+			return true
+		}
+	}
+	return false
 }
 
 func portOnly(addr string) string {
@@ -279,7 +339,12 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	body := map[string]any{"status": "ok", "tls": s.cfg.TLSEnabled()}
+	if s.cfg.TLSEnabled() {
+		body["wssUrl"] = s.cfg.WSSURL()
+		body["httpsUrl"] = s.cfg.HTTPSURL()
+	}
+	_ = json.NewEncoder(w).Encode(body)
 }
 
 func (s *Server) eligibleAllowList() []auth.Origin {

@@ -1,18 +1,20 @@
 # Not done
 
-Last updated after **Firefox/Safari clinic Fill/Ready** (pre-hardware) plus
-the update-check prerelease/404 fix. Physical ACR39U execution (including
-Friday E4–E6 on hardware) is still blocked. Published **v0.1.0-rc.4** is
-on GitHub; this tree stays on that helper version.
+Last updated after **optional loopback helper TLS** (pre-hardware) so https ERP
+Fill can use `wss://127.0.0.1` on Firefox/Safari without weakening mixed-content
+checks. Physical ACR39U execution (including Friday E4–E6 on hardware) is still
+blocked. Published **v0.1.0-rc.4** is on GitHub; this tree stays on that helper
+version.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
 portrait (synthetic), the qualification *kit*, unsigned macOS packaging
 instructions, reconnect/test-connection staff UX, multi-reader select,
 card-removed / unplug clinic UX, sleep/wake + PC/SC recovery mapping,
-operator GitHub Releases **check**, and honest Firefox/Safari HTTPS Fill
-errors are implemented. This file lists everything that is **not** complete
-for a **hardware-qualified** release.
+operator GitHub Releases **check**, honest Firefox/Safari HTTPS Fill
+errors, and optional technician-managed loopback HTTPS/WSS are implemented.
+This file lists everything that is **not** complete for a **hardware-qualified**
+release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,
@@ -37,6 +39,7 @@ disabled (included minutes exhausted). Run `make test`,
 | M1 | Headed manual check from a public HTTPS origin (local-network permission) | Operator HTTPS origin. Kit section in `docs/hardware-qualification.md` |
 | P2–P6, P10 | `ebfe/scard` binding audit items (layouts, WinSCard load, cgo stress) | Cross-build + review |
 | Safari | Real Safari UI (not Playwright WebKit) | macOS + Safari |
+| Loopback TLS headed | Firefox/Safari **https** ERP Fill with a **locally trusted** helper cert (`wss://127.0.0.1:17892`) | Clinic PC + mkcert (or imported self-signed). Software listener + SDK selection are in this tree. |
 
 **Order:** macOS + ACR39U first, then Windows/Linux. Untested configurations stay unverified.
 

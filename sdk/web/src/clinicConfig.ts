@@ -43,6 +43,7 @@ const SERIALIZABLE_KEYS = new Set([
   "genderLabels",
   "discover",
   "endpoint",
+  "preferLoopbackTls",
   "connectTimeoutMs",
   "renewLeadMs",
   "disconnect",
@@ -71,6 +72,8 @@ export type AutofillClinicConfig = {
   genderLabels?: GenderLabels;
   discover?: boolean;
   endpoint?: string;
+  /** Prefer wss://127.0.0.1 when this https ERP talks to a TLS-enabled helper. */
+  preferLoopbackTls?: boolean;
   connectTimeoutMs?: number;
   renewLeadMs?: number;
   disconnect?: boolean;
@@ -252,6 +255,10 @@ export function parseAutofillClinicConfig(input: unknown): AutofillClinicConfig 
   if (value.endpoint !== undefined) {
     config.endpoint = parseOptionalString(value.endpoint, "endpoint");
   }
+  if (value.preferLoopbackTls !== undefined) {
+    if (typeof value.preferLoopbackTls !== "boolean") fail("preferLoopbackTls must be a boolean");
+    config.preferLoopbackTls = value.preferLoopbackTls;
+  }
   if (value.connectTimeoutMs !== undefined) {
     config.connectTimeoutMs = parseTimeout(value.connectTimeoutMs, "connectTimeoutMs");
   }
@@ -319,6 +326,9 @@ export function serializeAutofillClinicConfig(
   if (typeof options.endpoint === "string" && options.endpoint.trim()) {
     config.endpoint = options.endpoint.trim();
   }
+  if (typeof options.preferLoopbackTls === "boolean") {
+    config.preferLoopbackTls = options.preferLoopbackTls;
+  }
   if (typeof options.connectTimeoutMs === "number") {
     config.connectTimeoutMs = parseTimeout(options.connectTimeoutMs, "connectTimeoutMs");
   }
@@ -352,6 +362,7 @@ export function clinicConfigToAutofillOptions(config: AutofillClinicConfig): Aut
   if (config.genderLabels) options.genderLabels = config.genderLabels;
   if (typeof config.discover === "boolean") options.discover = config.discover;
   if (config.endpoint) options.endpoint = config.endpoint;
+  if (typeof config.preferLoopbackTls === "boolean") options.preferLoopbackTls = config.preferLoopbackTls;
   if (config.connectTimeoutMs != null) options.connectTimeoutMs = config.connectTimeoutMs;
   if (config.renewLeadMs != null) options.renewLeadMs = config.renewLeadMs;
   if (typeof config.disconnect === "boolean") options.disconnect = config.disconnect;

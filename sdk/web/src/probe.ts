@@ -3,12 +3,13 @@
  * separate OpenThaiID install. Does not read personal card fields.
  */
 
-import { pageBlocksInsecureLoopbackWs, replaceElementChildren } from "./browser.js";
+import { loopbackTlsFailureCode, resolveHelperEndpoint, DEFAULT_ENDPOINT } from "./endpoint.js";
+import { replaceElementChildren } from "./browser.js";
 import { ThaiIDError, type ReaderView } from "./index.js";
 import { formatStaffError, staffCopy, staffLang, type StaffLang } from "./staffCopy.js";
 import { localizeThaiIDError } from "./staffError.js";
 
-export const DEFAULT_ENDPOINT = "ws://127.0.0.1:17891/v1/ws";
+export { DEFAULT_ENDPOINT } from "./endpoint.js";
 const SUBPROTOCOL = "openthaiid.v1";
 
 export type ProbeBackend = {
@@ -33,11 +34,16 @@ export type ProbeResult = {
   readers?: ProbeReader[];
   managerUrl?: string;
   wsUrl?: string;
+  wssUrl?: string;
+  tls?: boolean;
   error?: ThaiIDError;
 };
 
 export type ProbeThaiIDOptions = {
   endpoint?: string;
+  preferLoopbackTls?: boolean;
+  helperTls?: boolean;
+  wssUrl?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
   /** Staff language for `error.message`. Default `"th"`. Codes stay unchanged. */
@@ -126,9 +132,13 @@ function probeUnreachable(
   lang: StaffLang,
   code: ThaiIDError["code"] = "BRIDGE_UNAVAILABLE",
   retryable = true,
+  tlsOpts: { preferLoopbackTls?: boolean; explicitEndpoint?: boolean } = {},
 ): ProbeResult {
-  if (code !== "CANCELLED" && pageBlocksInsecureLoopbackWs(endpoint)) {
-    return { reachable: false, error: probeError("HTTPS_WS_BLOCKED", lang, false) };
+  if (code !== "CANCELLED") {
+    const tlsCode = loopbackTlsFailureCode(endpoint, tlsOpts);
+    if (tlsCode) {
+      return { reachable: false, error: probeError(tlsCode, lang, false) };
+    }
   }
   return { reachable: false, error: probeError(code, lang, retryable) };
 }
@@ -155,7 +165,16 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
     };
   }
 
-  const endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
+  const endpoint = resolveHelperEndpoint({
+    endpoint: options.endpoint,
+    preferLoopbackTls: options.preferLoopbackTls,
+    helperTls: options.helperTls,
+    wssUrl: options.wssUrl,
+  });
+  const tlsOpts = {
+    preferLoopbackTls: options.preferLoopbackTls,
+    explicitEndpoint: Boolean(options.endpoint?.trim()),
+  };
   const timeoutMs = options.timeoutMs ?? 8000;
 
   return new Promise<ProbeResult>((resolve) => {
@@ -189,24 +208,24 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
     }
 
     const timer = setTimeout(() => {
-      finish(probeUnreachable(endpoint, lang, "BRIDGE_UNAVAILABLE", true));
+      finish(probeUnreachable(endpoint, lang, "BRIDGE_UNAVAILABLE", true, tlsOpts));
     }, timeoutMs);
 
     try {
       ws = new WebSocket(endpoint, [SUBPROTOCOL]);
     } catch {
-      finish(probeUnreachable(endpoint, lang, "CONNECTION_FAILED", true));
+      finish(probeUnreachable(endpoint, lang, "CONNECTION_FAILED", true, tlsOpts));
       return;
     }
 
     ws.onerror = () => {
-      finish(probeUnreachable(endpoint, lang, "BRIDGE_UNAVAILABLE", true));
+      finish(probeUnreachable(endpoint, lang, "BRIDGE_UNAVAILABLE", true, tlsOpts));
     };
     ws.onopen = () => {
       try {
         ws?.send(JSON.stringify({ v: 1, id: 1, type: "bridge.probe" }));
       } catch {
-        finish(probeUnreachable(endpoint, lang, "CONNECTION_FAILED", true));
+        finish(probeUnreachable(endpoint, lang, "CONNECTION_FAILED", true, tlsOpts));
       }
     };
     ws.onmessage = (ev) => {
@@ -244,6 +263,8 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
             readers,
             managerUrl: typeof r.managerUrl === "string" ? r.managerUrl : managerUrlFromEndpoint(endpoint),
             wsUrl: typeof r.wsUrl === "string" ? r.wsUrl : endpoint,
+            wssUrl: typeof r.wssUrl === "string" ? r.wssUrl : undefined,
+            tls: Boolean(r.tls),
           },
           lang,
         ),
@@ -267,13 +288,26 @@ export function summarizeProbe(probe: ProbeResult, lang?: StaffLang | string | n
   if (!probe.reachable) {
     const cancelled = probe.error?.code === "CANCELLED";
     const httpsBlocked = probe.error?.code === "HTTPS_WS_BLOCKED";
+    const tlsUntrusted = probe.error?.code === "TLS_UNTRUSTED";
     return {
       ready: false,
       headline: cancelled ? c.cancelled : c.notReady,
-      helper: cancelled ? c.cancelled + (c.lang === "th" ? "" : ".") : httpsBlocked ? c.httpsWsBlocked : c.helperOff,
+      helper: cancelled
+        ? c.cancelled + (c.lang === "th" ? "" : ".")
+        : httpsBlocked
+          ? c.httpsWsBlocked
+          : tlsUntrusted
+            ? c.tlsUntrusted
+            : c.helperOff,
       reader: c.readerUnknown,
       card: c.cardUnknown,
-      next: cancelled ? "" : httpsBlocked ? c.httpsWsBlockedNext : c.startHelper,
+      next: cancelled
+        ? ""
+        : httpsBlocked
+          ? c.httpsWsBlockedNext
+          : tlsUntrusted
+            ? c.tlsUntrustedNext
+            : c.startHelper,
     };
   }
   const readers = probe.readers ?? [];
@@ -399,6 +433,9 @@ export function formatTestConnection(probe: ProbeResult, lang?: StaffLang | stri
     if (probe.error?.code === "HTTPS_WS_BLOCKED") {
       return `${c.httpsWsBlocked} ${c.httpsWsBlockedNext}`.trim();
     }
+    if (probe.error?.code === "TLS_UNTRUSTED") {
+      return `${c.tlsUntrusted} ${c.tlsUntrustedNext}`.trim();
+    }
     return c.testFail;
   }
   const status = probe.backend?.status;
@@ -450,6 +487,9 @@ export async function waitForThaiID(options: WaitForThaiIDOptions = {}): Promise
     }
     const probe = await probeThaiID({
       endpoint: options.endpoint,
+      preferLoopbackTls: options.preferLoopbackTls,
+      helperTls: options.helperTls,
+      wssUrl: options.wssUrl,
       signal: options.signal,
       lang: options.lang,
       timeoutMs: Math.max(50, Math.min(probeTimeoutMs, remaining)),
@@ -458,7 +498,8 @@ export async function waitForThaiID(options: WaitForThaiIDOptions = {}): Promise
     if (
       probe.reachable ||
       probe.error?.code === "CANCELLED" ||
-      probe.error?.code === "HTTPS_WS_BLOCKED"
+      probe.error?.code === "HTTPS_WS_BLOCKED" ||
+      probe.error?.code === "TLS_UNTRUSTED"
     ) {
       return probe;
     }
@@ -516,6 +557,9 @@ export function watchThaiID(
     const probeTimeout = options.timeoutMs ?? (lastReachable || !sawOnline ? 8_000 : 2_000);
     const probe = await probeThaiID({
       endpoint: options.endpoint,
+      preferLoopbackTls: options.preferLoopbackTls,
+      helperTls: options.helperTls,
+      wssUrl: options.wssUrl,
       lang: options.lang,
       timeoutMs: probeTimeout,
       signal: abort.signal,
@@ -771,6 +815,9 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
     if (lastUpdate) render(lastUpdate);
     const probe = await probeThaiID({
       endpoint: options.endpoint,
+      preferLoopbackTls: options.preferLoopbackTls,
+      helperTls: options.helperTls,
+      wssUrl: options.wssUrl,
       lang: options.lang,
       timeoutMs: options.timeoutMs ?? 8_000,
     });

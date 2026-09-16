@@ -58,8 +58,10 @@ fillBtn.addEventListener("click", async () => {
 7. **ครั้งแรกของต้นทางนั้น** ให้พนักงานกดอนุญาตบนหน้า พร้อม (`http://127.0.0.1:17891/`)
 8. **รูปถ่าย** เป็น opt-in — อย่าใส่ `portrait` ใน `request` จนกว่าหน้าจอต้องการ และห้าม `console.log` ไบต์รูป
 
-Firefox / Safari กรอกข้อมูลจากหน้าคลินิก **HTTPS** ไม่ได้ (`HTTPS_WS_BLOCKED`)
-ใช้ Chrome/Edge หรือหน้า http หน้า พร้อม ที่ `http://127.0.0.1:17891/` ใช้ได้
+Firefox / Safari กรอกข้อมูลจากหน้าคลินิก **HTTPS** ได้เมื่อช่างเทคนิคเปิด
+HTTPS ของตัวช่วยบนเครื่องนั้น ([loopback-tls.md](loopback-tls.md)) —
+มิฉะนั้นได้ `HTTPS_WS_BLOCKED` ใช้ Chrome/Edge หรือหน้า http
+หน้า พร้อม ที่ `http://127.0.0.1:17891/` ใช้ได้
 [compatibility.md](compatibility.md)
 
 `request` เป็นรายการอนุญาตของฟิลด์โปรโตคอล (ไม่ใช่สล็อตซ้อนอย่าง `thaiName.givenName`)
@@ -105,9 +107,11 @@ itself. Do not store personal field values in the config file.
 8. Keep `portrait` out of `request` unless the screen needs the photo.
    Do not log photo bytes.
 
-Firefox/Safari Fill from an **https://** ERP is blocked (`HTTPS_WS_BLOCKED`).
-Use Chrome/Edge or an http page. Ready at `http://127.0.0.1:17891/` still
-works. [compatibility.md](compatibility.md).
+Firefox/Safari Fill from an **https://** ERP uses optional helper TLS
+([loopback-tls.md](loopback-tls.md)) or returns `HTTPS_WS_BLOCKED` /
+`TLS_UNTRUSTED`. Use Chrome/Edge, an http page, or a trusted local cert.
+Ready at `http://127.0.0.1:17891/` still works.
+[compatibility.md](compatibility.md).
 
 TypeScript: `AutofillClinicConfig` in `@openthaiid/web`.
 

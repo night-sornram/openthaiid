@@ -190,6 +190,8 @@ Cross-compilation notes:
 ```
 
 Default WebSocket endpoint: `ws://127.0.0.1:17891/v1/ws`
+Optional WSS (https ERP on Firefox/Safari): `wss://127.0.0.1:17892/v1/ws`
+— [loopback-tls.md](loopback-tls.md). Never commit the private key.
 
 Local helper page (device status, Allow/Deny; technician tools hidden):
 `http://127.0.0.1:17891/`

@@ -995,7 +995,9 @@ function diagnosticsText(data) {
     `practiceReader: ${data.synthetic ? "yes" : "no"}`,
     `cardService: ${(data.backend && data.backend.name) || ""} ${(data.backend && data.backend.status) || ""}`,
     `listen: ${data.listenAddr || ""}`,
+    `tls: ${data.tls ? "on" : "off"}`,
     `ws: ${data.wsUrl || ""}`,
+    `wss: ${data.wssUrl || ""}`,
     `instance: ${data.instanceId || ""}`,
     `logLevel: ${data.logLevel || ""}`,
     `erpConnections: ${data.connections ?? 0}`,
@@ -1052,7 +1054,8 @@ function render(data) {
   const st = (data.backend && data.backend.status) || "unavailable";
   els.pcsc.append(pill(pcscLabel(st, data.synthetic), pcscKind(st)));
   setText(els.listen, data.listenAddr || "");
-  setText(els.ws, data.wsUrl || "");
+  const wsLine = data.wssUrl ? `${data.wsUrl || ""} · ${data.wssUrl}` : data.wsUrl || "";
+  setText(els.ws, wsLine);
   els.verbose.checked = data.logLevel === "debug";
 
   if (data.synthetic) {

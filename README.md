@@ -75,6 +75,8 @@ the multi-reader picker; default `-synthetic` stays the single-reader auto
 path. Practice the picker with `OPENTHAIID_SYNTHETIC_READERS=2`.
 
 Local helper (hardware): `ws://127.0.0.1:17891/v1/ws`
+Optional HTTPS ERP path (Firefox/Safari): `wss://127.0.0.1:17892/v1/ws`
+(technician-managed local cert — [docs/loopback-tls.md](docs/loopback-tls.md))
 Optional helper page: `http://127.0.0.1:17891/` — default view is Thai
 Ready lights (พร้อม) for clinic staff. English toggle on that page.
 Technician / developer tools stay English (`#technician`).
@@ -191,6 +193,7 @@ Copy-paste React usage is in `examples/react/README.md` and `sdk/react/README.md
 ```text
 Browser (HTTPS ERP page)
   └─ WebSocket ws://127.0.0.1:17891/v1/ws
+       or wss://127.0.0.1:17892/v1/ws (optional technician-managed TLS)
        └─ OpenThaiID on the clinic PC (Go)
             ├─ Tray / background helper (optional; default for clinic packages)
             ├─ Helper page http://127.0.0.1:17891/ (staff view + hidden technician tools)
@@ -218,6 +221,8 @@ Browser (HTTPS ERP page)
 ## Security
 
 - Listens only on `127.0.0.1`; rejects non-loopback peers and Host rebinding.
+  Optional HTTPS/WSS on port 17892 uses a technician-managed local cert
+  (never a key from this repository).
 - Validates browser `Origin` (HTTPS always; HTTP loopback for development).
 - Operator approval per origin + exact field set (Manager or terminal); trust is memory-only.
 - Local Manager is loopback HTML; mutating APIs require a CSRF token and the manager origin. No CORS. Refresh/reconnect are rate-limited.
@@ -243,6 +248,7 @@ index for staff, training, Friday, ERP, and technicians).
 | [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives (`make friday-dry-run`) |
 | [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
 | [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, service, qualify) |
+| [docs/loopback-tls.md](docs/loopback-tls.md) | Optional local HTTPS/WSS for Firefox/Safari https ERP |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
 | [docs/security.md](docs/security.md) | Threat model + loopback helper HTTP inventory |
 | [docs/protocol.md](docs/protocol.md) | Protocol v1 |

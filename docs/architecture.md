@@ -37,8 +37,9 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
 - Persistent trust across bridge restarts.
 - A hosted multi-tenant OpenThaiID backend.
 
-Portrait JPEG, unsigned GitHub Releases version check, and Firefox/WebKit
-harness support are in this candidate.
+Portrait JPEG, unsigned GitHub Releases version check, Firefox/WebKit
+harness support, and optional technician-managed loopback TLS are in this
+candidate.
 
 ## Process model
 
@@ -51,7 +52,9 @@ One Go process owns:
    WebSocket (`/v1/ws`, subprotocol `openthaiid.v1`). The default HTML view
    is clinic-staff status; technician controls are toggled, not the home
    screen. `GET /v1/helper/summary` is staff-safe lights (no personal data);
-   `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`
+   `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`.
+   Optional second listener: HTTPS/WSS on `127.0.0.1:17892` when a technician
+   supplies a local cert (Firefox/Safari https ERP).
    (browser Origin also needs CSRF). Manager refresh/reconnect are bounded.
    Inventory: [security.md](security.md). Friday-morning hub:
    [getting-started.md](getting-started.md).

@@ -79,6 +79,17 @@ describe("parseAutofillClinicConfig", () => {
     expect(cfg.genderLabels).toEqual({ male: "ชาย", female: "หญิง" });
   });
 
+  it("parses preferLoopbackTls for https ERP pages", () => {
+    const cfg = parseAutofillClinicConfig({
+      request: ["citizenId"],
+      map: { citizenId: "#cid" },
+      preferLoopbackTls: true,
+    });
+    expect(cfg.preferLoopbackTls).toBe(true);
+    expect(clinicConfigToAutofillOptions(cfg).preferLoopbackTls).toBe(true);
+    expect(serializeAutofillClinicConfig(cfg).preferLoopbackTls).toBe(true);
+  });
+
   it("parses a JSON string", () => {
     const cfg = parseAutofillClinicConfig(JSON.stringify(kycMinimal));
     expect(cfg.request).toEqual(["citizenId", "thaiName", "birthDate"]);
