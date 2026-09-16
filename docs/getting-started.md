@@ -16,7 +16,7 @@
 | ฝึกก่อนได้เครื่องจริง (`make friday-dry-run` / `openthaiid -synthetic`) | [training.md](training.md) |
 | เช้าวันศุกร์มี ACR39U (พร้อม → qualify → กรอกข้อมูล → ส่งวินิจฉัย) | [friday-checklist.md](friday-checklist.md) |
 | แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) |
-| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) |
+| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) |
 
 หน้า พร้อม ของตัวช่วย: `http://127.0.0.1:17891/`
 ไฟสามดวงมีคำว่า **ปกติ / รอ / ยังไม่พร้อม** ไม่ใช้สีอย่างเดียว
@@ -48,6 +48,7 @@
 
 ติดตั้งแพ็กเกจคลินิก: [installation.md](installation.md) (`START-HERE.txt`)
 ชุดทดสอบฮาร์ดแวร์เต็ม: [hardware-qualification.md](hardware-qualification.md)
+เว็บคลินิกปิดตัวช่วยไม่ได้ — ตาราง HTTP บน `127.0.0.1`: [security.md](security.md)
 
 ---
 
@@ -66,7 +67,7 @@ No GitHub Actions in this round (minutes exhausted). No Laser-id / NHSO.
 | Practice before the reader arrives | [training.md](training.md) (`make friday-dry-run`) |
 | Friday with an ACR39U | [friday-checklist.md](friday-checklist.md) |
 | Clinic IT / ERP | [erp-integration.md](erp-integration.md) |
-| Technician when Fill fails | [technician.md](technician.md) |
+| Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) |
 
 Ready page: `http://127.0.0.1:17891/`. The three lights include **OK /
 Waiting / Not ready** text (not color alone). **Use this reader**, **Test
@@ -75,4 +76,5 @@ connection**, and the ไทย / English toggle are large tap targets.
 Without hardware: `make friday-dry-run` then [training.md](training.md)
 (ซ้อมก่อนได้เครื่อง). With ACR39U: follow
 [friday-checklist.md](friday-checklist.md). Package install:
-[installation.md](installation.md).
+[installation.md](installation.md). A clinic website cannot stop the
+helper — loopback HTTP inventory: [security.md](security.md).

@@ -1,11 +1,11 @@
 # Not done
 
-Last updated after the **loopback helper HTTP hardening** pass on `dev`
-(post Friday dry-run / v0.1.0-rc.3). Manager/helper Origin, CSRF,
-cross-site fetch, reconnect/refresh bounds, and PII JSON tests are in
-this tree. Physical ACR39U execution (including Friday E4–E6 on hardware)
-is still blocked. This tree remains **tag-ready** for `v0.1.0-rc.3` after
-review of that RC; this pass is Unreleased polish.
+Last updated after **v0.1.0-rc.4 prep**: Friday-morning getting-started hub
++ Ready a11y, synthetic `make friday-dry-run`, and loopback helper HTTP
+hardening (Origin / CSRF / cross-site fetch / reconnect bounds / PII JSON
+tests). Physical ACR39U execution (including Friday E4–E6 on hardware)
+is still blocked. This tree is **tag-ready** for `v0.1.0-rc.4` after
+review.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -65,7 +65,7 @@ Auto-update against GitHub Releases is implemented for **unsigned** assets.
 | Item | Notes |
 |---|---|
 | Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
-| Published GitHub Release / `v0.1.0-rc.3` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. |
+| Published GitHub Release / `v0.1.0-rc.4` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. |
 | Darwin clinic archive on GitHub | Produce with `make package-macos` **on a Mac**. Linux builders cannot cross-compile `ebfe/scard` + Cocoa. Unsigned / not notarized. |
 
 ---
@@ -84,46 +84,46 @@ Auto-update against GitHub Releases is implemented for **unsigned** assets.
 4. Complete the headed public-HTTPS local-network permission check (M1).
 5. Finish the binding audit checklist in `docs/dependency-audit.md` /
    `docs/acceptance.md` (P2–P6, P10).
-6. Human/coordinator: tag `v0.1.0-rc.3` from `dev` after review. Do **not**
+6. Human/coordinator: tag `v0.1.0-rc.4` from `dev` after review. Do **not**
    enable GitHub Actions until minutes are available. Exact commands after
    this PR is merged:
 
 ```bash
 git checkout dev && git pull origin dev
-git tag -a v0.1.0-rc.3 -m "OpenThaiID v0.1.0-rc.3"
-git push origin v0.1.0-rc.3
+git tag -a v0.1.0-rc.4 -m "OpenThaiID v0.1.0-rc.4"
+git push origin v0.1.0-rc.4
 
 # Linux + Windows archives (Linux builder). Darwin must be on a Mac.
-VERSION=0.1.0-rc.3 OS=linux ARCH=amd64 ./scripts/package.sh
-VERSION=0.1.0-rc.3 OS=windows ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.4 OS=linux ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.4 OS=windows ARCH=amd64 ./scripts/package.sh
 # On a Mac only:
-#   VERSION=0.1.0-rc.3 make package-macos
+#   VERSION=0.1.0-rc.4 make package-macos
 
 # Checksums of the archives (package.sh already writes SHA256SUMS *inside*
 # each archive for the binary):
 (
   cd dist
-  sha256sum openthaiid-0.1.0-rc.3-linux-amd64.tar.gz \
-    openthaiid-0.1.0-rc.3-windows-amd64.zip \
+  sha256sum openthaiid-0.1.0-rc.4-linux-amd64.tar.gz \
+    openthaiid-0.1.0-rc.4-windows-amd64.zip \
     > SHA256SUMS
 )
 # append the darwin archive SHA when produced on a Mac
 
-# Release notes: the [0.1.0-rc.3] section only (not the whole CHANGELOG).
-sed -n '/^## \[0.1.0-rc.3\]/,/^## \[0.1.0-rc.2\]/{ /^## \[0.1.0-rc.2\]/d; p; }' \
-  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.3-notes.md
+# Release notes: the [0.1.0-rc.4] section only (not the whole CHANGELOG).
+sed -n '/^## \[0.1.0-rc.4\]/,/^## \[0.1.0-rc.3\]/{ /^## \[0.1.0-rc.3\]/d; p; }' \
+  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.4-notes.md
 
-gh release create v0.1.0-rc.3 \
+gh release create v0.1.0-rc.4 \
   --repo night-sornram/openthaiid \
   --prerelease \
   --target dev \
-  --title "v0.1.0-rc.3" \
-  --notes-file /tmp/openthaiid-0.1.0-rc.3-notes.md \
-  dist/openthaiid-0.1.0-rc.3-linux-amd64.tar.gz \
-  dist/openthaiid-0.1.0-rc.3-windows-amd64.zip \
+  --title "v0.1.0-rc.4" \
+  --notes-file /tmp/openthaiid-0.1.0-rc.4-notes.md \
+  dist/openthaiid-0.1.0-rc.4-linux-amd64.tar.gz \
+  dist/openthaiid-0.1.0-rc.4-windows-amd64.zip \
   dist/SHA256SUMS
-# add dist/openthaiid-0.1.0-rc.3-darwin-<arch>.tar.gz when available
+# add dist/openthaiid-0.1.0-rc.4-darwin-<arch>.tar.gz when available
 ```
 
 Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.3]`.
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.4]`.

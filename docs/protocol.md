@@ -10,6 +10,7 @@
   Status includes reader names and card present/absent only — never personal
   field values. Helper lights: `GET /v1/helper/summary`. Quit:
   `POST /v1/helper/shutdown` (foreign Origin rejected).
+  Inventory: [security.md](security.md).
 - Frame limit: 64 KiB text-only. Compression disabled.
 - Port is explicit configuration. No port scanning or silent fallback.
 

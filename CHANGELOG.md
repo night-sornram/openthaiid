@@ -10,19 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
-### Security
+## [0.1.0-rc.4] — software release candidate (unreleased tag)
 
-- Loopback helper/manager HTTP: foreign `Origin` and `Sec-Fetch-Site:
-  cross-site` cannot read summary or mutate shutdown, reader select,
-  reconnect, audit export, or other `/v1/manager/*` APIs. Browser shutdown
-  also requires the CSRF header (`openthaiid quit` still sends no Origin).
-  Refresh/reconnect are bounded (one in flight, four per two seconds).
-  Last-error JSON drops forbidden payloads. Go tests cover Origin/CSRF/PII.
-  Note in [docs/security.md](docs/security.md) and
-  [docs/technician.md](docs/technician.md).
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.4` only after
+human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
+in this candidate.
+
+Summarizes merges since `[0.1.0-rc.3]`: getting-started hub + Ready a11y
+(#24), Friday synthetic dry-run (#25), helper HTTP hardening (#26). Earlier
+clinic-day reconnect / multi-reader / card-removed / sleep-wake waves stay
+in `[0.1.0-rc.3]` (not repeated here).
 
 ### Added
 
+- Thai-first Friday-morning hub: [getting-started.md](docs/getting-started.md)
+  indexes clinic staff, training, Friday checklist, ERP drop-in, and
+  technician guides in one place.
+- Ready page accessibility for clinic staff: **ใช้เครื่องนี้**,
+  **ทดสอบการเชื่อมต่อ**, and the ไทย / English toggle are at least 44px tap
+  targets; `:focus-visible` rings; the three lights include **ปกติ / รอ /
+  ยังไม่พร้อม** text (not color alone).
 - Friday-morning **ซ้อมก่อนได้เครื่อง** rehearsal: `make friday-dry-run`
   (`scripts/friday-dry-run.sh`, Windows `scripts/friday-dry-run.ps1`) builds
   the helper if needed, runs qualify-smoke, starts `-synthetic` (optional
@@ -32,13 +40,31 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   [getting-started.md](docs/getting-started.md) and
   [friday-checklist.md](docs/friday-checklist.md). Never prints citizen ID,
   names, address, or photo bytes. Not an ACR39U hardware pass.
-- Thai-first Friday-morning hub: [getting-started.md](docs/getting-started.md)
-  indexes clinic staff, training, Friday checklist, ERP drop-in, and
-  technician guides in one place.
-- Ready page accessibility for clinic staff: **ใช้เครื่องนี้**,
-  **ทดสอบการเชื่อมต่อ**, and the ไทย / English toggle are at least 44px tap
-  targets; `:focus-visible` rings; the three lights include **ปกติ / รอ /
-  ยังไม่พร้อม** text (not color alone).
+
+### Changed
+
+- Helper version string defaults to `0.1.0-rc.4`.
+- Getting-started, training, Friday checklist, hardware-qualification,
+  technician, and security docs cross-link the hub, `make friday-dry-run`,
+  and the loopback helper HTTP inventory.
+
+### Security
+
+- Loopback helper/manager HTTP: foreign `Origin` and `Sec-Fetch-Site:
+  cross-site` cannot read summary or mutate shutdown, reader select,
+  reconnect, audit export, or other `/v1/manager/*` APIs. Browser shutdown
+  also requires the CSRF header (`openthaiid quit` still sends no Origin).
+  Refresh/reconnect are bounded (one in flight, four per two seconds).
+  Last-error JSON drops forbidden payloads. Go tests cover Origin/CSRF/PII.
+  Inventory in [docs/security.md](docs/security.md); technician notes in
+  [docs/technician.md](docs/technician.md).
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.3] — software release candidate (unreleased tag)
 

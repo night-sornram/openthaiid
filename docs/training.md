@@ -90,5 +90,7 @@ values in tickets — diagnostics, `openthaiid audit` JSON, and error
 **codes** only.
 Pass `{ lang: "en" }` / `?lang=en` for English staff banners.
 When the ACR39U arrives, restart the helper without `-synthetic`.
+Friday-morning index: [getting-started.md](getting-started.md).
 Friday one-page (multi-reader, E4–E6): [friday-checklist.md](friday-checklist.md).
 Technicians: [technician.md](technician.md).
+Loopback HTTP inventory: [security.md](security.md).

@@ -29,7 +29,7 @@ func TestRunSyntheticSmokeE1E2E3(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	rep, err := Run(ctx, Hardware{Monitor: mon, Read: rdb}, Options{
-		Version:      "0.1.0-rc.3-test",
+		Version:      "0.1.0-rc.4-test",
 		Synthetic:    true,
 		E2Count:      3,
 		E3Count:      2,
@@ -126,7 +126,7 @@ func TestOperatorAnswersRecordedWithoutPII(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	rep, err := Run(ctx, Hardware{Monitor: mon, Read: rdb}, Options{
-		Version:      "0.1.0-rc.3-test",
+		Version:      "0.1.0-rc.4-test",
 		Synthetic:    false,
 		E2Count:      1,
 		E3Count:      1,

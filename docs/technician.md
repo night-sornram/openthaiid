@@ -18,7 +18,8 @@ port: Ready HTML (`/`), liveness (`/healthz`), staff lights
 (`POST /v1/helper/shutdown`, websites cannot call it), technician JSON
 under `/v1/manager/*` (CSRF + this PC’s origin; refresh/reconnect are
 rate-limited), and the WebSocket (`/v1/ws`) for the ERP after Allow.
-Details: [security.md](security.md).
+Loopback HTTP inventory: [security.md](security.md) (foreign `Origin`
+cannot read summary or shut the helper down).
 
 ERP pages can pass `mountThaiIDStatus(el, { mode: "advanced" })` for the
 same technician details in-page. Approval security is unchanged: the ERP
