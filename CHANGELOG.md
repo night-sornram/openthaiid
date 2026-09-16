@@ -12,6 +12,15 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
 ### Added
 
+- Friday-morning **ซ้อมก่อนได้เครื่อง** rehearsal: `make friday-dry-run`
+  (`scripts/friday-dry-run.sh`, Windows `scripts/friday-dry-run.ps1`) builds
+  the helper if needed, runs qualify-smoke, starts `-synthetic` (optional
+  two practice readers), curls Ready / `GET /v1/helper/summary` and the
+  Test connection path (`GET /v1/manager/status` + `bridge.probe`), and
+  prints a Thai/English pass summary pointing at
+  [getting-started.md](docs/getting-started.md) and
+  [friday-checklist.md](docs/friday-checklist.md). Never prints citizen ID,
+  names, address, or photo bytes. Not an ACR39U hardware pass.
 - Thai-first Friday-morning hub: [getting-started.md](docs/getting-started.md)
   indexes clinic staff, training, Friday checklist, ERP drop-in, and
   technician guides in one place.

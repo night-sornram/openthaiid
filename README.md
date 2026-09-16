@@ -26,7 +26,8 @@ Clinic staff: start at [docs/getting-started.md](docs/getting-started.md)
 (Thai-first Friday-morning index). Then [docs/user.md](docs/user.md)
 (Ready lights with **ปกติ / รอ / ยังไม่พร้อม** text; tray / Start menu, not a
 developer terminal; multi-reader **ใช้เครื่องนี้**; card-removed / sleep-wake
-recovery). Practice without a reader: [docs/training.md](docs/training.md).
+recovery). Practice without a reader: [docs/training.md](docs/training.md)
+(`make friday-dry-run`, then `openthaiid -synthetic`).
 Friday with ACR39U: [docs/friday-checklist.md](docs/friday-checklist.md).
 Technicians: [docs/technician.md](docs/technician.md).
 Clinic IT packaging: [docs/installation.md](docs/installation.md).
@@ -43,6 +44,8 @@ make build
 
 # Friday qualification kit (no personal fields; synthetic smoke or real reader)
 ./dist/openthaiid qualify -synthetic -e2-count 3 -e3-count 2 -report dist/openthaiid-qualify.json
+# Rehearse Friday morning without a reader (ซ้อมก่อนได้เครื่อง):
+make friday-dry-run
 # With ACR39U + card inserted:
 ./scripts/hardware-qualify.sh
 ./scripts/hardware-qualify.sh --operator   # E3 / E4–E7 / M1 prompts; pass|fail|skip only
@@ -237,7 +240,7 @@ index for staff, training, Friday, ERP, and technicians).
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
 | [docs/erp-integration.md](docs/erp-integration.md) | Drop-in JSON config + schema for an existing hospital/clinic ERP |
 | [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill; multi-reader and recovery tables |
-| [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives |
+| [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives (`make friday-dry-run`) |
 | [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
 | [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, service, qualify) |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
@@ -257,6 +260,7 @@ index for staff, training, Friday, ERP, and technicians).
 make test          # Go unit + integration (synthetic hardware)
 make smoke-helper  # Linux tray/background + package-free status/quit/autostart
 make qualify-smoke # synthetic E1–E3 kit (no personal fields in the report)
+make friday-dry-run # synthetic Friday-morning rehearsal (Ready + qualify-smoke + probe)
 make smoke-package # native archive + darwin cross-compile refusal on Linux
 make package       # clinic archive (START-HERE + OS launch files)
 make package-macos # Darwin archive; Mac host only; unsigned / not notarized

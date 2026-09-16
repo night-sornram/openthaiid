@@ -13,7 +13,7 @@
 | ใคร | เปิดเอกสารนี้ |
 |---|---|
 | เจ้าหน้าที่คลินิก (ทุกวัน — เปิดตัวช่วย เสียบเครื่องอ่าน กดกรอกข้อมูล) | [user.md](user.md) |
-| ฝึกก่อนได้เครื่องจริง (`openthaiid -synthetic`) | [training.md](training.md) |
+| ฝึกก่อนได้เครื่องจริง (`make friday-dry-run` / `openthaiid -synthetic`) | [training.md](training.md) |
 | เช้าวันศุกร์มี ACR39U (พร้อม → qualify → กรอกข้อมูล → ส่งวินิจฉัย) | [friday-checklist.md](friday-checklist.md) |
 | แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) |
 | ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) |
@@ -24,7 +24,16 @@
 
 ## ถ้ายังไม่มี ACR39U
 
-1. เปิดตัวช่วยฝึกซ้อม — [training.md](training.md)
+1. **ซ้อมก่อนได้เครื่อง** — คำสั่งเดียว ซ้อมเส้นทางซอฟต์แวร์เช้าวันศุกร์บนบัตรจำลอง:
+
+   ```bash
+   make friday-dry-run
+   # ซ้อมเลือกเครื่องอ่าน (สองเครื่องจำลอง):
+   ./scripts/friday-dry-run.sh --two-readers
+   # Windows: powershell -ExecutionPolicy Bypass -File scripts/friday-dry-run.ps1
+   ```
+
+   ไม่ต้องมี ACR39U และ**ไม่ใช่**ผ่านฮาร์ดแวร์ ถ้าผ่าน ให้เปิด [training.md](training.md)
 2. เจ้าหน้าที่ฝึกกดกรอกข้อมูลตาม [user.md](user.md)
 3. แผนก IT ผูกหน้า ERP ตาม [erp-integration.md](erp-integration.md)
 4. เช้าวันศุกร์ที่มีเครื่องจริง ใช้หนึ่งหน้า [friday-checklist.md](friday-checklist.md)
@@ -54,7 +63,7 @@ No GitHub Actions in this round (minutes exhausted). No Laser-id / NHSO.
 | Who | Open |
 |---|---|
 | Clinic staff (every day) | [user.md](user.md) |
-| Practice before the reader arrives | [training.md](training.md) |
+| Practice before the reader arrives | [training.md](training.md) (`make friday-dry-run`) |
 | Friday with an ACR39U | [friday-checklist.md](friday-checklist.md) |
 | Clinic IT / ERP | [erp-integration.md](erp-integration.md) |
 | Technician when Fill fails | [technician.md](technician.md) |
@@ -63,6 +72,7 @@ Ready page: `http://127.0.0.1:17891/`. The three lights include **OK /
 Waiting / Not ready** text (not color alone). **Use this reader**, **Test
 connection**, and the ไทย / English toggle are large tap targets.
 
-Without hardware: [training.md](training.md). With ACR39U: follow
+Without hardware: `make friday-dry-run` then [training.md](training.md)
+(ซ้อมก่อนได้เครื่อง). With ACR39U: follow
 [friday-checklist.md](friday-checklist.md). Package install:
 [installation.md](installation.md).

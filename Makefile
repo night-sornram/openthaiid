@@ -1,4 +1,4 @@
-.PHONY: build test race vet fmt doctor sdk sdk-test tidy package package-macos clean check acceptance test-repeat smoke-helper qualify-smoke smoke-package
+.PHONY: build test race vet fmt doctor sdk sdk-test tidy package package-macos clean check acceptance test-repeat smoke-helper qualify-smoke smoke-package friday-dry-run
 
 VERSION ?= 0.1.0-rc.3
 
@@ -59,6 +59,11 @@ smoke-helper: build
 qualify-smoke: build
 	chmod +x scripts/smoke-qualify.sh scripts/hardware-qualify.sh
 	./scripts/smoke-qualify.sh
+
+# Synthetic Friday-morning rehearsal (no ACR39U). Not a hardware pass.
+friday-dry-run: build
+	chmod +x scripts/friday-dry-run.sh scripts/smoke-qualify.sh scripts/hardware-qualify.sh
+	./scripts/friday-dry-run.sh $(ARGS)
 
 smoke-package:
 	chmod +x scripts/package.sh scripts/smoke-package.sh

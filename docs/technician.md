@@ -50,6 +50,7 @@ The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
 ./openthaiid              # terminal helper
 ./openthaiid serve        # headless (Windows service / systemd)
 ./openthaiid -synthetic   # practice reader (no hardware)
+make friday-dry-run       # ซ้อมก่อนได้เครื่อง (qualify-smoke + Ready + probe)
 ./openthaiid doctor       # card service only; never reads personal fields
 ./openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
 ./openthaiid audit        # redacted operator trail JSON
