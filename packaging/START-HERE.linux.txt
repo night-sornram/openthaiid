@@ -65,7 +65,9 @@ Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).
 
 Technicians: ./openthaiid in a terminal. See docs/getting-started.md,
-docs/technician.md, docs/security.md (loopback HTTP inventory).
+docs/technician.md, docs/security.md (loopback HTTP inventory),
+docs/compatibility.md (Firefox/Safari https Fill), and
+docs/loopback-tls.md (optional helper HTTPS/WSS).
 Staff recovery (two readers, card pulled, sleep/wake): docs/user.md and
 docs/friday-checklist.md.
 From a source checkout: make friday-dry-run (ซ้อมก่อนได้เครื่อง).

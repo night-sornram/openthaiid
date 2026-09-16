@@ -1,5 +1,9 @@
 # Compatibility
 
+Friday-morning index: [getting-started.md](getting-started.md).
+Optional helper TLS for https Firefox/Safari Fill:
+[loopback-tls.md](loopback-tls.md).
+
 ## Release OS targets (initial)
 
 | OS | Version | Arch | Notes |

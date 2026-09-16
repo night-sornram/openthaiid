@@ -10,21 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
+## [0.1.0-rc.5] — software release candidate (unreleased tag)
+
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.5` only after
+human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
+in this candidate.
+
+Summarizes merges since `[0.1.0-rc.4]`: operator GitHub Releases version
+check (#28), Firefox/Safari clinic Fill honesty (#29), optional loopback
+helper TLS (#30). Earlier getting-started hub / Ready a11y / friday-dry-run
+/ helper HTTP hardening stay in `[0.1.0-rc.4]` (not repeated here).
+
 ### Added
 
-- Optional loopback **HTTPS + WSS** on `127.0.0.1:17892` (technician-managed
-  cert + key; never a shared private key). Plain HTTP/WS on 17891 stays the
-  default for Ready and http ERP. `@openthaiid/web` prefers
-  `wss://127.0.0.1` on https Firefox/Safari pages and when
-  `preferLoopbackTls` / helper TLS advertisement is set. Untrusted certs
-  surface as `TLS_UNTRUSTED`. Docs: [docs/loopback-tls.md](docs/loopback-tls.md).
-- Firefox / Safari clinic Fill/Ready honesty: `@openthaiid/web` reports
-  `HTTPS_WS_BLOCKED` when an **https://** ERP cannot open `ws://127.0.0.1`
-  (Firefox/Safari mixed content) and helper TLS is not trusted/enabled.
-  Ready (`http://127.0.0.1:17891/`) still works. No bundled TLS private key
-  and no “turn off mixed content” staff copy.
-  Ready page clipboard falls back to `execCommand` / prompt; `replaceChildren`
-  is guarded. Matrix: [docs/compatibility.md](docs/compatibility.md).
 - Operator-initiated GitHub Releases **version check** (no auto-download or
   install): Ready page **ตรวจเวอร์ชัน**, technician **Check GitHub Releases**,
   tray **ตรวจเวอร์ชัน**, and `openthaiid update check`. Compares the running
@@ -33,16 +32,47 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   Offline and GitHub rate limits fail soft — Ready / Fill never wait on
   GitHub. `POST /v1/manager/update/check` is CSRF + manager origin, not
   called on page load or `GET /v1/helper/summary`.
+- Firefox / Safari clinic Fill/Ready honesty: `@openthaiid/web` reports
+  `HTTPS_WS_BLOCKED` when an **https://** ERP cannot open `ws://127.0.0.1`
+  (Firefox/Safari mixed content) and helper TLS is not trusted/enabled.
+  Ready (`http://127.0.0.1:17891/`) still works. No bundled TLS private key
+  and no “turn off mixed content” staff copy.
+  Ready page clipboard falls back to `execCommand` / prompt; `replaceChildren`
+  is guarded. Matrix: [docs/compatibility.md](docs/compatibility.md).
+- Optional loopback **HTTPS + WSS** on `127.0.0.1:17892` (technician-managed
+  cert + key; never a shared private key). Plain HTTP/WS on 17891 stays the
+  default for Ready and http ERP. `@openthaiid/web` prefers
+  `wss://127.0.0.1` on https Firefox/Safari pages and when
+  `preferLoopbackTls` / helper TLS advertisement is set. Untrusted certs
+  surface as `TLS_UNTRUSTED`. Docs: [docs/loopback-tls.md](docs/loopback-tls.md).
 
 ### Changed
 
+- Helper version string defaults to `0.1.0-rc.5`.
+- Getting-started, compatibility, loopback-tls, Friday checklist, training,
+  START-HERE, architecture, protocol, and security docs cross-link the
+  Friday hub, Firefox/Safari Fill matrix, and optional helper TLS.
 - `openthaiid update check` lists `/releases` (not `/releases/latest`) so
-  prereleases `v0.1.0-rc.1`–`rc.4` count unless `--stable`. GitHub HTTP 404
+  prereleases `v0.1.0-rc.1`–`rc.5` count unless `--stable`. GitHub HTTP 404
   (private repo, unauthenticated) is **unavailable**, not “no releases”.
   Optional `OPENTHAIID_GITHUB_TOKEN` / `GITHUB_TOKEN` on the helper.
 - Check copy is Thai for staff (and English fallback). It does not tell
   clinics to `update apply`. Existing `update download` / `update apply --yes`
   stay technician CLI only.
+
+### Security
+
+- Version check is operator-initiated only (Ready button, tray, technician
+  tools, CLI). It never runs on Ready load or Fill. No card fields are sent
+  to GitHub. Optional helper TLS never ships a private key; certs stay on
+  the clinic PC ([docs/loopback-tls.md](docs/loopback-tls.md)).
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.4] — software release candidate (unreleased tag)
 

@@ -140,6 +140,8 @@ APIs (origin checks protect browsers, not malware on the PC). There is no
 CORS. Friday-morning hub: [getting-started.md](getting-started.md).
 Technician debug: [technician.md](technician.md). Software rehearsal
 without a reader: `make friday-dry-run` ([training.md](training.md)).
+Firefox/Safari https Fill: [compatibility.md](compatibility.md). Optional
+helper TLS: [loopback-tls.md](loopback-tls.md).
 Endpoints:
 
 | Path | Used by | Mutates | Browser rule |

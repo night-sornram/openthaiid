@@ -9,6 +9,8 @@
 `-synthetic`) — ซ้อมก่อนได้เครื่อง ไม่ใช่ผ่าน ACR39U
 ชุดเต็ม: [hardware-qualification.md](hardware-qualification.md)
 เว็บคลินิกปิดตัวช่วยไม่ได้: [security.md](security.md)
+Firefox / Safari กรอกจากหน้าคลินิก **HTTPS**: [compatibility.md](compatibility.md)
+· HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md)
 
 ## 1. เสียบเครื่องอ่าน → พร้อม
 
@@ -60,9 +62,13 @@
 
 ถ้า Fill ไม่ขึ้น: ใช้ข้อความไทยบนหน้าคลินิก (รหัสคงที่ เช่น
 `BRIDGE_UNAVAILABLE` `NO_READER` `NO_CARD` `CARD_REMOVED` `READER_REMOVED`
-`PCSC_UNAVAILABLE` `APPROVAL_DENIED` `FIELD_NOT_ALLOWED`)
+`PCSC_UNAVAILABLE` `HTTPS_WS_BLOCKED` `TLS_UNTRUSTED` `APPROVAL_DENIED`
+`FIELD_NOT_ALLOWED`)
 แล้วเปิด Technician tools สำหรับ **Operator audit trail** (รหัสเท่านั้น)
 ดู [technician.md](technician.md)
+Firefox / Safari บนหน้าคลินิก **https://**: [compatibility.md](compatibility.md)
+หรือเปิด HTTPS ของตัวช่วยครั้งเดียวต่อเครื่อง ([loopback-tls.md](loopback-tls.md))
+— หน้า พร้อม ที่ `http://127.0.0.1:17891/` ยังใช้ได้
 
 ถอดบัตรหรือถอดเครื่องอ่านระหว่างกรอก:
 

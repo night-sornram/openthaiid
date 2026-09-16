@@ -13,7 +13,10 @@
   Status includes reader names and card present/absent only — never personal
   field values. Helper lights: `GET /v1/helper/summary`. Quit:
   `POST /v1/helper/shutdown` (foreign Origin rejected).
-  Inventory: [security.md](security.md).
+  Inventory: [security.md](security.md). Optional HTTPS/WSS:
+  [loopback-tls.md](loopback-tls.md). Firefox/Safari matrix:
+  [compatibility.md](compatibility.md). Friday-morning hub:
+  [getting-started.md](getting-started.md).
 - Frame limit: 64 KiB text-only. Compression disabled.
 - Port is explicit configuration. No port scanning or silent fallback.
 

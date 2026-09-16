@@ -7,7 +7,7 @@ cd "$ROOT"
 chmod +x "$ROOT/scripts/package.sh"
 
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-VERSION="${VERSION:-0.1.0-rc.4}"
+VERSION="${VERSION:-0.1.0-rc.5}"
 
 echo "== native package =="
 VERSION="$VERSION" ./scripts/package.sh
@@ -104,7 +104,27 @@ grep -q "security.md" docs/friday-checklist.md
 grep -q "friday-dry-run" packaging/START-HERE.linux.txt
 grep -q "friday-dry-run" packaging/START-HERE.windows.txt
 grep -q "friday-dry-run" packaging/START-HERE.darwin.txt
-grep -q "0.1.0-rc.4" cmd/openthaiid/main.go
-grep -q "0.1.0-rc.4" Makefile
+grep -q "loopback-tls.md" docs/getting-started.md
+grep -q "compatibility.md" docs/getting-started.md
+grep -q "getting-started.md" docs/loopback-tls.md
+grep -q "getting-started.md" docs/compatibility.md
+grep -q "loopback-tls.md" docs/compatibility.md
+grep -q "loopback-tls.md" docs/hardware-qualification.md
+grep -q "loopback-tls.md" docs/friday-checklist.md
+grep -q "compatibility.md" docs/friday-checklist.md
+grep -q "loopback-tls.md" docs/training.md
+grep -q "compatibility.md" docs/training.md
+grep -q "loopback-tls.md" docs/security.md
+grep -q "compatibility.md" docs/security.md
+grep -q "loopback-tls.md" docs/protocol.md
+grep -q "loopback-tls.md" docs/architecture.md
+grep -q "loopback-tls.md" packaging/START-HERE.linux.txt
+grep -q "loopback-tls.md" packaging/START-HERE.windows.txt
+grep -q "loopback-tls.md" packaging/START-HERE.darwin.txt
+grep -q "compatibility.md" packaging/START-HERE.linux.txt
+grep -q "compatibility.md" packaging/START-HERE.windows.txt
+grep -q "compatibility.md" packaging/START-HERE.darwin.txt
+grep -q "0.1.0-rc.5" cmd/openthaiid/main.go
+grep -q "0.1.0-rc.5" Makefile
 
 echo "OK smoke-package"

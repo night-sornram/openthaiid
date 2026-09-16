@@ -247,7 +247,7 @@ index for staff, training, Friday, ERP, and technicians).
 | [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill; multi-reader and recovery tables |
 | [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives (`make friday-dry-run`) |
 | [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
-| [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, service, qualify) |
+| [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, Firefox/Safari HTTPS, service, qualify) |
 | [docs/loopback-tls.md](docs/loopback-tls.md) | Optional local HTTPS/WSS for Firefox/Safari https ERP |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
 | [docs/security.md](docs/security.md) | Threat model + loopback helper HTTP inventory |

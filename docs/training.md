@@ -94,3 +94,5 @@ Friday-morning index: [getting-started.md](getting-started.md).
 Friday one-page (multi-reader, E4–E6): [friday-checklist.md](friday-checklist.md).
 Technicians: [technician.md](technician.md).
 Loopback HTTP inventory: [security.md](security.md).
+Firefox/Safari https Fill: [compatibility.md](compatibility.md) · optional
+helper TLS: [loopback-tls.md](loopback-tls.md).
