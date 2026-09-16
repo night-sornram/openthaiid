@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/night-sornram/openthaiid/internal/audit"
 	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/card"
 )
@@ -52,6 +53,7 @@ type managerStatus struct {
 	Trusted       []managerGrant     `json:"trusted"`
 	TrustDuration string             `json:"trustDuration"`
 	LastErrors    []managerLastError `json:"lastErrors"`
+	Audit         []audit.Event      `json:"audit"`
 }
 
 // managerLastError is an operational failure for technicians. Messages never
@@ -428,6 +430,7 @@ func (s *Server) managerStatus() managerStatus {
 		Trusted:       outTrust,
 		TrustDuration: s.cfg.TrustDuration.String(),
 		LastErrors:    s.copyLastErrors(),
+		Audit:         s.copyAudit(),
 	}
 }
 
@@ -460,6 +463,47 @@ func (s *Server) copyLastErrors() []managerLastError {
 	out := make([]managerLastError, len(s.lastErrs))
 	copy(out, s.lastErrs)
 	return out
+}
+
+func (s *Server) copyAudit() []audit.Event {
+	if s.audit == nil {
+		return []audit.Event{}
+	}
+	return s.audit.Snapshot()
+}
+
+func (s *Server) recordAudit(ev audit.Event) {
+	if s.audit == nil {
+		return
+	}
+	s.audit.Record(ev)
+}
+
+func (s *Server) handleManagerAudit(w http.ResponseWriter, r *http.Request) {
+	if !s.requireManagerAPI(w, r) {
+		return
+	}
+	s.writeJSON(w, http.StatusOK, s.auditExport())
+}
+
+func (s *Server) auditExport() audit.Export {
+	if s.audit == nil {
+		return audit.Export{Schema: audit.Schema, PII: "omitted — citizen ID, names, address, portrait, raw APDUs are never stored", Events: []audit.Event{}}
+	}
+	return s.audit.ExportJSON()
+}
+
+// SetAudit replaces the operator trail. Tests may pass a memory-only log.
+func (s *Server) SetAudit(l *audit.Log) {
+	if l == nil {
+		return
+	}
+	s.audit = l
+}
+
+// SetRunMode records console|tray|serve on helper.start / helper.stop.
+func (s *Server) SetRunMode(mode string) {
+	s.runMode = mode
 }
 
 // SetLogLeveler attaches the process-wide slog level so Technician verbose

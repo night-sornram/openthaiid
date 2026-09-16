@@ -33,6 +33,8 @@
 
 ถ้า Fill ไม่ขึ้น: ใช้ข้อความไทยบนหน้าคลินิก (รหัสคงที่ เช่น
 `BRIDGE_UNAVAILABLE` `NO_READER` `NO_CARD` `APPROVAL_DENIED` `FIELD_NOT_ALLOWED`)
+แล้วเปิด Technician tools สำหรับ **Operator audit trail** (รหัสเท่านั้น)
+ดู [technician.md](technician.md)
 
 ## 4. ส่งให้ jarvis (วินิจฉัยเท่านั้น)
 
@@ -40,6 +42,8 @@
 
 - **Copy diagnostics** จากหน้า Technician tools (เวอร์ชัน, OS, บริการอ่านบัตร,
   ชื่อเครื่องอ่าน, presence, รหัสผิดพลาด)
+- **Operator audit trail** JSON จากหน้า Technician (Copy JSON / Download JSON)
+  หรือ `openthaiid audit` — รหัสผิดพลาดและ origin เท่านั้น ไม่มีข้อมูลบนบัตร
 - ไฟล์ `openthaiid-qualify.json` ที่คำสั่งเขียน
 - OS / เบราว์เซอร์ / เวอร์ชันตัวช่วย / รหัสเช่น `NO_CARD` `CARD_REMOVED`
 

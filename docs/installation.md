@@ -23,12 +23,38 @@ checks **Start at login** in the tray. Login must not pop a browser tab
 Shortcuts that staff click should use `openthaiid tray -open` so the Ready
 page appears once.
 
+Start at login is enough when someone signs in to the clinic PC. For a
+kiosk or shared PC that must keep the helper up **without a logged-in
+tray**, clinic IT can opt into the always-on path below.
+
+### Always-on (no logged-in tray)
+
+This is **opt-in** and separate from Start Menu / XDG autostart. The process
+is `openthaiid serve`: loopback helper, no notification-area icon. Staff still
+use `http://127.0.0.1:17891/` after they sign in. Approvals are unchanged.
+
+| OS | Maintainable path | Fallback |
+|---|---|---|
+| **Windows** | Administrator: `openthaiid service install` or `Install-OpenThaiID-Service.ps1` (SCM, Automatic, LocalSystem). | `Register-OpenThaiID-Task.ps1` (At logon) or `-AtStartup` (admin). Documented Task Scheduler wrapper; prefer the SCM service. |
+| **Linux** | `openthaiid service install` writes a systemd **--user** unit and tries `enable --now`. Survive logout: `loginctl enable-linger $USER`. | Package file `openthaiid-system.service` for `/etc/systemd/system/` on kiosk images (`User=` must be able to use the reader). |
+| **macOS** | `openthaiid service install` writes a LaunchDaemon plist (`KeepAlive`). Needs root to load. | Login-item tray (`openthaiid autostart enable`) if a signed-in session is enough. |
+
+Do not enable a service by default. Unsigned packages still trigger
+SmartScreen / Gatekeeper.
+
+Windows Smart Card service and Linux `pcscd` stay as they are. Session 0 /
+a user unit talks to the OS PC/SC daemon; there is still no tray in that
+mode. Technician **Operator audit trail** works the same.
+
 ```bash
 openthaiid tray            # background helper
 openthaiid tray -open      # same, and open the Ready page
+openthaiid serve           # headless (no tray) for a service / always-on helper
 openthaiid status          # helper / reader / card (no personal data)
 openthaiid quit
 openthaiid autostart enable|disable|status
+openthaiid service install|uninstall|start|stop|status
+openthaiid audit           # redacted operator trail JSON
 ```
 
 Loopback and Allow/Deny are unchanged. See [user.md](user.md) and
@@ -41,6 +67,11 @@ Loopback and Allow/Deny are unchanged. See [user.md](user.md) and
 - Optional: `powershell -ExecutionPolicy Bypass -File install.ps1`
   copies to `%LOCALAPPDATA%\OpenThaiID` and adds a Start Menu shortcut.
   `-DesktopShortcut` and `-Autostart` are extra. `uninstall.ps1` reverses that.
+- Always-on without a tray (Administrator):
+  `powershell -ExecutionPolicy Bypass -File Install-OpenThaiID-Service.ps1`
+  (`openthaiid service install`). Remove with
+  `Uninstall-OpenThaiID-Service.ps1`. Task Scheduler fallback:
+  `Register-OpenThaiID-Task.ps1` (see always-on table above).
 - SmartScreen may warn on an unsigned exe. That is expected. Signing
   checklist: [signing.md](signing.md). Auto-update: `openthaiid update check`.
 
@@ -55,7 +86,10 @@ sudo systemctl enable --now pcscd
 `install-linux.sh` copies the binary to `~/.local/bin` and writes an
 application menu entry. Optional `openthaiid.service` is a systemd --user
 unit; **do not enable it by default**. Prefer XDG autostart via
-`openthaiid autostart enable`.
+`openthaiid autostart enable` when a signed-in session is enough. For
+always-on without a tray: `openthaiid service install` then
+`loginctl enable-linger $USER`. A system-unit template is
+`openthaiid-system.service`.
 
 ### macOS (clinic)
 

@@ -43,6 +43,8 @@ EOF
 echo "Installed $BIN_DIR/openthaiid"
 echo "Application menu: OpenThaiID"
 echo "Start at login is off. Opt in with: $BIN_DIR/openthaiid autostart enable"
+echo "Always-on without a tray: $BIN_DIR/openthaiid service install"
+echo "  (systemd --user; survive logout with: loginctl enable-linger \$USER)"
 echo "The helper listens only on 127.0.0.1."
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
   echo "Note: add $BIN_DIR to PATH if the command is not found."

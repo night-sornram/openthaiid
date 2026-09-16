@@ -1,16 +1,23 @@
 [Unit]
 Description=OpenThaiID local helper (loopback only)
-Documentation=file://%h/.local/share/doc/openthaiid/docs/user.md
+Documentation=https://github.com/night-sornram/openthaiid/blob/dev/docs/installation.md
+After=pcscd.service
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/openthaiid tray
+ExecStart=%h/.local/bin/openthaiid serve
 Restart=on-failure
 RestartSec=3
 
-# Opt-in: do not enable this unit unless clinic IT chooses it.
+# Always-on helper without a tray. Listens only on 127.0.0.1.
+# No card data is stored.
+# Opt-in (not enabled by default):
+#   openthaiid service install
 #   systemctl --user enable --now openthaiid.service
-# Prefer: openthaiid autostart enable  (XDG autostart, works without systemd).
+# Survive logout:
+#   loginctl enable-linger $USER
+# Prefer XDG autostart (tray/login) when a signed-in session is enough:
+#   openthaiid autostart enable
 
 [Install]
 WantedBy=default.target

@@ -39,6 +39,12 @@ or:  ./openthaiid autostart enable
 This writes ~/Library/LaunchAgents/org.openthaiid.helper.plist
 (RunAtLoad, KeepAlive off). Not signed / not notarized. See docs/signing.md.
 
+Always-on without a menu-bar session (clinic IT, needs root):
+  ./openthaiid service install
+  sudo launchctl load /Library/LaunchDaemons/org.openthaiid.helper.plist
+Headless binary: ./openthaiid serve
+Technician audit JSON: ./openthaiid audit
+
 `./openthaiid update check` looks at GitHub Releases (no card data).
 
 Technicians

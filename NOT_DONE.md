@@ -1,9 +1,10 @@
 # Not done
 
-Last updated after the ERP autofill config package (schema, samples,
-`docs/erp-integration.md`, clinic JSON import/export). Thai Fill-error
-guidance, staff training, and the Friday runbook remain on `dev`. Physical
-ACR39U execution is still blocked on hardware.
+Last updated after the operator audit trail and always-on helper
+(`openthaiid serve` / Windows service / Linux systemd + linger). ERP
+autofill config, Thai Fill-error guidance, staff training, and the Friday
+runbook remain on `dev`. Physical ACR39U execution is still blocked on
+hardware.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional

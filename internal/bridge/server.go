@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/night-sornram/openthaiid/internal/audit"
 	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/card"
 	"github.com/night-sornram/openthaiid/internal/config"
@@ -56,6 +57,9 @@ type Server struct {
 	lastErrs  []managerLastError
 
 	onShutdownRequest func()
+
+	audit   *audit.Log
+	runMode string
 }
 
 type clientConn struct {
@@ -134,9 +138,24 @@ func New(cfg config.Config, log *slog.Logger, authMgr *auth.Manager, readers *re
 		opSem:        make(chan struct{}, n),
 		managerToken: newManagerToken(),
 		logLevel:     new(slog.LevelVar),
+		audit:        audit.New(audit.DefaultCap),
 	}
 	s.logLevel.Set(slog.LevelInfo)
-	authMgr.OnRevoke = s.handleAuthRevoked
+	authMgr.OnRevoke = func(origin auth.Origin, tokens []string) {
+		s.recordAudit(audit.Event{Kind: audit.KindApprovalRevoke, Origin: string(origin)})
+		s.handleAuthRevoked(origin, tokens)
+	}
+	authMgr.OnDecision = func(origin auth.Origin, fields []card.Field, allow bool) {
+		kind := audit.KindApprovalDeny
+		if allow {
+			kind = audit.KindApprovalAllow
+		}
+		s.recordAudit(audit.Event{
+			Kind:   kind,
+			Origin: string(origin),
+			Fields: fieldsToStrings(fields),
+		})
+	}
 	return s
 }
 
@@ -173,6 +192,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /v1/manager/trust/revoke-all", s.handleManagerRevokeAll)
 	mux.HandleFunc("POST /v1/manager/log-level", s.handleManagerLogLevel)
 	mux.HandleFunc("POST /v1/manager/reconnect", s.handleManagerReconnect)
+	mux.HandleFunc("GET /v1/manager/audit", s.handleManagerAudit)
 	s.httpSrv = &http.Server{
 		Handler:           s.securityMiddleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
@@ -183,6 +203,7 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 	go s.forwardReaderEvents(ctx)
+	s.recordAudit(audit.Event{Kind: audit.KindHelperStart, Mode: s.runMode})
 	return nil
 }
 
@@ -196,6 +217,7 @@ func (s *Server) Addr() string {
 
 // Shutdown stops the HTTP server and closes upgraded WebSockets.
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.recordAudit(audit.Event{Kind: audit.KindHelperStop, Mode: s.runMode})
 	s.clientsMu.Lock()
 	clients := make([]*clientConn, 0, len(s.clients))
 	for _, c := range s.clients {
@@ -555,12 +577,12 @@ func (s *Server) opBridgeProbe(ctx context.Context, cc *clientConn, req protocol
 func (s *Server) opCardRead(ctx context.Context, cc *clientConn, req protocol.Request) {
 	sess, err := s.requireAuth(cc, req)
 	if err != nil {
-		s.writeError(cc, req.ID, card.AsError(err))
+		s.writeFillError(cc, req.ID, card.AsError(err))
 		return
 	}
 	var p protocol.CardReadPayload
 	if err := json.Unmarshal(req.Payload, &p); err != nil {
-		s.writeError(cc, req.ID, card.NewError(card.ErrInvalidRequest, "bad payload"))
+		s.writeFillError(cc, req.ID, card.NewError(card.ErrInvalidRequest, "bad payload"))
 		return
 	}
 	fields := p.Fields
@@ -569,18 +591,18 @@ func (s *Server) opCardRead(ctx context.Context, cc *clientConn, req protocol.Re
 	}
 	fields, err = card.NormalizeFields(fields)
 	if err != nil {
-		s.writeError(cc, req.ID, card.AsError(err))
+		s.writeFillError(cc, req.ID, card.AsError(err))
 		return
 	}
 	if !card.Subset(fields, sess.Fields) {
-		s.writeError(cc, req.ID, card.NewError(card.ErrFieldNotAllowed, "field not in grant"))
+		s.writeFillError(cc, req.ID, card.NewError(card.ErrFieldNotAllowed, "field not in grant"))
 		return
 	}
 
 	select {
 	case s.opSem <- struct{}{}:
 	case <-ctx.Done():
-		s.writeError(cc, req.ID, card.NewError(card.ErrCancelled, "read cancelled").WithRequestID(req.ID))
+		s.writeFillError(cc, req.ID, card.NewError(card.ErrCancelled, "read cancelled").WithRequestID(req.ID))
 		return
 	}
 	defer func() { <-s.opSem }()
@@ -603,12 +625,12 @@ func (s *Server) opCardRead(ctx context.Context, cc *clientConn, req protocol.Re
 		Execute:       s.engine.Execute,
 	})
 	if err != nil {
-		s.writeError(cc, req.ID, card.AsError(err).WithRequestID(req.ID))
+		s.writeFillError(cc, req.ID, card.AsError(err).WithRequestID(req.ID))
 		return
 	}
 
 	if _, err := s.auth.Session(cc.getToken(), cc.origin, time.Now()); err != nil {
-		s.writeError(cc, req.ID, card.NewError(card.ErrAuthExpired, "authorization revoked").WithRequestID(req.ID))
+		s.writeFillError(cc, req.ID, card.NewError(card.ErrAuthExpired, "authorization revoked").WithRequestID(req.ID))
 		return
 	}
 	s.writeResult(cc, req.ID, res)
@@ -691,6 +713,7 @@ func (s *Server) forwardReaderEvents(ctx context.Context) {
 		}
 		s.readerSubMu.Unlock()
 	}()
+	s.auditCurrentReaders()
 	overflowTick := time.NewTicker(200 * time.Millisecond)
 	defer overflowTick.Stop()
 	for {
@@ -723,6 +746,7 @@ func (s *Server) forwardReaderEvents(ctx context.Context) {
 			default:
 				continue
 			}
+			s.recordReaderAudit(ev)
 			s.broadcastEvent(t, payload)
 		}
 	}
@@ -731,6 +755,40 @@ func (s *Server) forwardReaderEvents(ctx context.Context) {
 // handleEventOverflow closes authenticated clients with WS 1013 and renews
 // the internal reader-event subscription. Clients must reconnect and request
 // a fresh status snapshot.
+func (s *Server) recordReaderAudit(ev reader.ChangeEvent) {
+	name := ev.Name
+	if name == "" {
+		name = ev.ReaderID
+	}
+	switch ev.Kind {
+	case "reader.connected":
+		s.recordAudit(audit.Event{Kind: audit.KindReaderConnected, Reader: name})
+	case "reader.disconnected":
+		s.recordAudit(audit.Event{Kind: audit.KindReaderDisconnected, Reader: name})
+	case "card.inserted":
+		s.recordAudit(audit.Event{Kind: audit.KindCardPresent, Reader: name, Presence: "present"})
+	case "card.removed":
+		s.recordAudit(audit.Event{Kind: audit.KindCardAbsent, Reader: name, Presence: "absent"})
+	}
+}
+
+func (s *Server) auditCurrentReaders() {
+	snap := s.readers.Snapshot()
+	for _, r := range snap.Readers {
+		name := r.Name
+		if name == "" {
+			name = r.ID
+		}
+		s.recordAudit(audit.Event{Kind: audit.KindReaderConnected, Reader: name})
+		switch string(r.Presence) {
+		case "present":
+			s.recordAudit(audit.Event{Kind: audit.KindCardPresent, Reader: name, Presence: "present"})
+		case "unsupported":
+			s.recordAudit(audit.Event{Kind: audit.KindCardUnsupported, Reader: name, Presence: "unsupported"})
+		}
+	}
+}
+
 func (s *Server) handleEventOverflow(ch *chan reader.ChangeEvent) {
 	s.closeClientsEventOverflow()
 	old := *ch
@@ -851,10 +909,30 @@ func (s *Server) writeResult(cc *clientConn, id int64, result any) {
 }
 
 func (s *Server) writeError(cc *clientConn, id int64, e *card.Error) {
+	s.writeErrorKind(cc, id, e, false)
+}
+
+func (s *Server) writeFillError(cc *clientConn, id int64, e *card.Error) {
+	s.writeErrorKind(cc, id, e, true)
+}
+
+func (s *Server) writeErrorKind(cc *clientConn, id int64, e *card.Error, fill bool) {
 	if e == nil {
 		e = card.NewError(card.ErrConnectionFailed, "unknown error")
 	}
 	s.recordError("websocket", string(e.Code), e.Message)
+	if fill {
+		switch e.Code {
+		case card.ErrCancelled, card.ErrApprovalRequired:
+			// Not a Fill failure to paste into a ticket.
+		default:
+			s.recordAudit(audit.Event{
+				Kind:   audit.KindFillFailure,
+				Code:   string(e.Code),
+				Origin: string(cc.origin),
+			})
+		}
+	}
 	body, err := json.Marshal(protocol.Response{
 		V:     protocol.Major,
 		ID:    id,

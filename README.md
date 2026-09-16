@@ -28,6 +28,7 @@ Start menu, not a developer terminal). Practice without a reader:
 [docs/friday-checklist.md](docs/friday-checklist.md).
 Technicians: [docs/technician.md](docs/technician.md).
 Clinic IT packaging: [docs/installation.md](docs/installation.md).
+Always-on without a tray: `openthaiid service install`.
 
 ## Quick start
 
@@ -50,6 +51,10 @@ make build
 
 # Clinic background helper (tray on Windows/macOS; background on Linux)
 ./dist/openthaiid tray -open
+
+# Always-on headless helper (Windows service / systemd / Task Scheduler)
+./dist/openthaiid serve
+./dist/openthaiid service status
 
 # Run and open the local helper page (clinic-staff view; technician tools hidden)
 ./dist/openthaiid manager

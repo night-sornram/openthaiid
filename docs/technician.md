@@ -87,9 +87,30 @@ needs Allow. For a real card, restart without `-synthetic`.
 
 **Copy diagnostics** gathers version, OS, card-service state, listener,
 WebSocket URL, log level, reader presence (not card contents), pending and
-approved origins (field *names* only), and last operational errors.
+approved origins (field *names* only), last operational errors, and the
+redacted **operator audit trail**.
 
 Paste that text into a ticket. Do not paste form field values.
+
+## Operator audit trail
+
+Technician tools show a local ring of recent events (also a JSONL file under
+the user config dir, `audit.jsonl`). **Copy JSON** / **Download JSON** export
+the same payload as `openthaiid audit`.
+
+Recorded:
+
+- helper start / stop (mode: console, tray, or serve)
+- reader connected / disconnected (device name, not card contents)
+- card present / absent
+- approval allow / deny / revoke (website origin + field *tokens* only)
+- Fill failures by **error code only** (`NO_CARD`, `CARD_REMOVED`, …)
+
+Never stored: citizen ID, names, address, portrait / photo bytes, raw APDUs,
+or Fill error *messages*. Forbidden payloads are dropped rather than written.
+
+Use this JSON with Copy diagnostics on Friday tickets. See
+[friday-checklist.md](friday-checklist.md).
 
 ## Verbose logging
 
@@ -108,6 +129,10 @@ import { autofillThaiID, mountThaiIDStatus, probeThaiID } from "@openthaiid/web"
 mountThaiIDStatus(statusEl); // user copy; { mode: "advanced" } for techs
 await autofillThaiID(config); // from a click
 ```
+
+Always-on without a logged-in tray (clinic IT): `openthaiid service install`
+(Windows SCM or Linux systemd --user + linger). See
+[installation.md](installation.md).
 
 See [clinic.md](clinic.md), [erp-integration.md](erp-integration.md),
 [user.md](user.md), [training.md](training.md),

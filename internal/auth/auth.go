@@ -75,8 +75,12 @@ type Manager struct {
 	NonInteractive bool
 
 	// OnRevoke is invoked (outside the manager lock) with the origin and
-	// tokens that were just revoked.
+	// tokens that were just revoked. Tokens may be empty when only a grant
+	// existed.
 	OnRevoke func(origin Origin, tokens []string)
+
+	// OnDecision is invoked (outside the manager lock) after Allow or Deny.
+	OnDecision func(origin Origin, fields []card.Field, allow bool)
 }
 
 // NewManager constructs an authorization manager.
@@ -195,9 +199,9 @@ func (m *Manager) Pending(now time.Time) []*PendingRequest {
 // Resolve applies an operator decision.
 func (m *Manager) Resolve(id int64, allow bool, now time.Time) (*PendingRequest, error) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	p, ok := m.pending[id]
 	if !ok {
+		m.mu.Unlock()
 		return nil, card.NewError(card.ErrInvalidRequest, "unknown approval request")
 	}
 	if now.After(p.ExpiresAt) {
@@ -207,6 +211,7 @@ func (m *Manager) Resolve(id int64, allow bool, now time.Time) (*PendingRequest,
 			p.allowed = false
 			close(p.done)
 		}
+		m.mu.Unlock()
 		return nil, card.NewError(card.ErrApprovalTimeout, "approval expired")
 	}
 	p.decided = true
@@ -222,6 +227,12 @@ func (m *Manager) Resolve(id int64, allow bool, now time.Time) (*PendingRequest,
 		}
 	} else {
 		m.denialCooldownUntil = now.Add(5 * time.Second)
+	}
+	origin := p.Origin
+	fields := append([]card.Field(nil), p.Fields...)
+	m.mu.Unlock()
+	if m.OnDecision != nil {
+		m.OnDecision(origin, fields, allow)
 	}
 	return p, nil
 }
@@ -360,7 +371,7 @@ func (m *Manager) RevokeOrigin(origin Origin) int {
 		}
 	}
 	m.mu.Unlock()
-	if m.OnRevoke != nil && len(tokens) > 0 {
+	if m.OnRevoke != nil {
 		m.OnRevoke(origin, tokens)
 	}
 	return len(tokens)
@@ -385,14 +396,17 @@ func (m *Manager) RevokeAll() {
 		}
 	}
 	m.pending = map[int64]*PendingRequest{}
+	for o := range m.grants {
+		if _, ok := byOrigin[o]; !ok {
+			byOrigin[o] = nil
+		}
+	}
 	m.grants = map[Origin]*Grant{}
 	m.sessions = map[string]*Session{}
 	m.mu.Unlock()
 	if m.OnRevoke != nil {
 		for o, toks := range byOrigin {
-			if len(toks) > 0 {
-				m.OnRevoke(o, toks)
-			}
+			m.OnRevoke(o, toks)
 		}
 	}
 }

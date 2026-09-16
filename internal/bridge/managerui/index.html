@@ -171,6 +171,24 @@
           </label>
           <pre id="last-errors" class="diag"></pre>
         </section>
+
+        <section class="card" aria-labelledby="audit-heading">
+          <div class="card-head">
+            <h3 id="audit-heading">Operator audit trail</h3>
+            <div class="actions">
+              <button type="button" id="copy-audit" class="btn">Copy JSON</button>
+              <button type="button" id="export-audit" class="btn">Download JSON</button>
+            </div>
+          </div>
+          <p class="help">
+            Recent helper start/stop, reader and card presence, Allow / Don’t
+            allow / Revoke, and Fill failures by <strong>error code only</strong>.
+            Citizen ID, names, address, portrait, and raw APDUs are never stored.
+            Paste this JSON into a ticket with Copy diagnostics.
+          </p>
+          <p id="audit-empty" class="muted">No operator events yet.</p>
+          <ul id="audit-events" class="audit-list"></ul>
+        </section>
       </section>
     </main>
 
