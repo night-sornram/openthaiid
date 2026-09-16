@@ -36,8 +36,8 @@ export function ThaiIDPanel() {
     disconnect,
   } = useThaiID({
     fields: ["citizenId", "thaiName", "birthDate"],
-    // Extra textual fields each need a new grant on the PC:
-    // "englishName", "gender", "issuer", "issueDate", "expireDate", "address"
+    // Extra fields each need a new grant on the PC:
+    // "englishName", "gender", "issuer", "issueDate", "expireDate", "address", "portrait"
   });
 
   return (

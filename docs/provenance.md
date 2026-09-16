@@ -43,7 +43,7 @@ sequences is documented in:
 
 | Profile ID | Fields | Source URL | Immutable revision | Source license | Attribution | Concerns | Status |
 |---|---|---|---|---|---|---|---|
-| `thai-citizen-mvp` | `citizenId`, `thaiName`, `englishName`, `birthDate`, `gender`, `issuer`, `issueDate`, `expireDate`, `address` | https://github.com/dotnetthailand/ThaiNationalIDCard/blob/main/APDU.md | [`4d803243715254cc93efe9040d8b1ecd85f520aa`](https://github.com/dotnetthailand/ThaiNationalIDCard/blob/4d803243715254cc93efe9040d8b1ecd85f520aa/APDU.md) | Community command table; treat as requiring independent implementation | Credit community lineage (chakphanu / Manoi / dotnetthailand) in docs | Not an official government spec; layout may vary by card generation; gender encoding and address component order are community hypotheses (see open concerns); real-card validation still required | **Implemented independently.** SELECT `00 A4 04 00 08 A0 00 00 00 54 48 00 01`. READ BINARY form `CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len`. Offsets: CID `0x0004`/13; Thai full name `0x0011`/100; English full name `0x0075`/100; birth `0x00D9`/8; gender `0x00E1`/1; issuer `0x00F6`/100; issue `0x0167`/8; expire `0x016F`/8; address `0x1579`/100. Dates are Buddhist Era on card, Gregorian after parse. **Portrait blocks are not implemented. Release still requires physical ACR39U acceptance.** |
+| `thai-citizen-mvp` | `citizenId`, `thaiName`, `englishName`, `birthDate`, `gender`, `issuer`, `issueDate`, `expireDate`, `address`, `portrait` | https://github.com/dotnetthailand/ThaiNationalIDCard/blob/main/APDU.md | [`4d803243715254cc93efe9040d8b1ecd85f520aa`](https://github.com/dotnetthailand/ThaiNationalIDCard/blob/4d803243715254cc93efe9040d8b1ecd85f520aa/APDU.md) | Community command table; treat as requiring independent implementation | Credit community lineage (chakphanu / Manoi / dotnetthailand) in docs | Not an official government spec; layout may vary by card generation; gender encoding and address component order are community hypotheses (see open concerns); JPEG assembly (SOI/EOI trim) is a community hypothesis; real-card validation still required | **Implemented independently.** SELECT `00 A4 04 00 08 A0 00 00 00 54 48 00 01`. READ BINARY form `CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len`. Offsets: CID `0x0004`/13; Thai full name `0x0011`/100; English full name `0x0075`/100; birth `0x00D9`/8; gender `0x00E1`/1; issuer `0x00F6`/100; issue `0x0167`/8; expire `0x016F`/8; **portrait 20×255-byte parts from `0x017B` (Photo_Part1/20 … Photo_Part20/20, last `0x1468`)**; address `0x1579`/100. Dates are Buddhist Era on card, Gregorian after parse. Portrait is optional (not in the default grant). **Release still requires physical ACR39U acceptance.** |
 
 ### Command facts used by `thai-citizen-mvp`
 
@@ -61,6 +61,8 @@ Independently reconstructed from the cited table (not copied from source code):
 | READ issue date | `80 B0 01 67 02 00 08` | `YYYYMMDD` Buddhist Era |
 | READ expire date | `80 B0 01 6F 02 00 08` | `YYYYMMDD` Buddhist Era |
 | READ address | `80 B0 15 79 02 00 64` | 100-byte TIS-620 block; **hypothesis:** `#` between house/village/alley/street/subdistrict/district/province |
+| READ photo part 1/20 | `80 B0 01 7B 02 00 FF` | 255 bytes at `0x017B` |
+| READ photo part N/20 | `80 B0` + `0x017B+(N-1)*0xFF` | 255 bytes; part 20 is `80 B0 14 68 02 00 FF` |
 | GET RESPONSE | `00 C0 00 00 <Le>` | Used after `61xx` |
 
 Open concerns retained for qualification:
@@ -73,7 +75,18 @@ Open concerns retained for qualification:
 6. Address 7-part `#` component order is hypothesized from the same delimiter convention as names. Prefixes such as `จังหวัด` are preserved, not stripped. Confirm on real cards.
 7. English name `#` layout is assumed identical to the Thai name block; confirm on real cards.
 8. Lifetime expire sentinels (for example `99999999`) are unverified; no special-case mapping is implemented.
-9. Portrait / photo 20-part blocks, laser-id, and NHSO profiles are out of this profile.
+9. Portrait JPEG assembly: concatenate 20×255 bytes, keep `FFD8`…`FFD9`, treat trailing bytes as padding. Confirm on real cards.
+
+### Laser-id / NHSO / other DFs — not implemented
+
+The cited APDU.md revision used for `thai-citizen-mvp` **does not** list laser-id or NHSO. Independent community implementations encode those as **source constants**, not as a published command table with an immutable reviewed revision in this project’s ledger:
+
+| Claim | Where it appears | Why it is blocked here |
+|---|---|---|
+| NHSO DF AID `A0 00 00 00 54 48 00 83` and field READ BINARY offsets | `somprasongd/go-thai-smartcard` `pkg/apdu/nhso.go` (Go source); also referenced by `phakhawatchu/libthai-idcard` README | Not in the cited APDU.md table. Copying offsets from another implementation would violate independent-reconstruction. Layout/AID may vary by card generation. No license-reviewed command table with a pinned revision was adopted. |
+| Laser-engraved serial | Same community libraries (`laser.go` / `show_laser_data`) | Not in APDU.md. Offsets and SELECT DF disagree across readers; treating any one gist as fact would be invention. |
+
+Status: **document-only.** Do not ship `laserId` or NHSO fields until a citable table (URL + immutable revision + license note) is reviewed the same way as APDU.md `4d803243715254cc93efe9040d8b1ecd85f520aa`.
 
 Before merging real-card reading for a profile:
 

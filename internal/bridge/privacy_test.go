@@ -5,6 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+
+	"github.com/night-sornram/openthaiid/internal/card"
 )
 
 // Sentinel values that must never appear in structured logs.
@@ -18,6 +20,8 @@ func TestLogsNeverContainFieldSentinels(t *testing.T) {
 		"25600115",
 		"cs_secret",
 		"tok_abcdef",
+		card.FictionalPortraitSentinel,
+		"/9j/", // JPEG base64 prefix must not appear in operational logs
 	}
 	var buf bytes.Buffer
 	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))

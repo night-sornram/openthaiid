@@ -13,6 +13,7 @@ const (
 	FieldIssueDate   Field = "issueDate"
 	FieldExpireDate  Field = "expireDate"
 	FieldAddress     Field = "address"
+	FieldPortrait    Field = "portrait"
 )
 
 // GenderValue is the normalized gender after mapping the card's 1-byte code.
@@ -28,9 +29,9 @@ var DefaultFields = []Field{FieldCitizenID, FieldThaiName, FieldBirthDate}
 // MVPFields is the original three-field set. Prefer DefaultFields.
 var MVPFields = []Field{FieldCitizenID, FieldThaiName, FieldBirthDate}
 
-// SupportedFields is every textual field this profile can return.
-// Order follows the cited APDU table (dotnetthailand APDU.md). Portrait is excluded.
-var SupportedFields = []Field{
+// TextualFields is every textual field this profile can return.
+// Order follows the cited APDU table (dotnetthailand APDU.md).
+var TextualFields = []Field{
 	FieldCitizenID,
 	FieldThaiName,
 	FieldEnglishName,
@@ -42,11 +43,27 @@ var SupportedFields = []Field{
 	FieldAddress,
 }
 
-// Supported reports whether f is in the textual-field allowlist.
+// SupportedFields is every field this profile can return, including the
+// optional portrait. Default grant stays DefaultFields (no photo).
+var SupportedFields = []Field{
+	FieldCitizenID,
+	FieldThaiName,
+	FieldEnglishName,
+	FieldBirthDate,
+	FieldGender,
+	FieldIssuer,
+	FieldIssueDate,
+	FieldExpireDate,
+	FieldAddress,
+	FieldPortrait,
+}
+
+// Supported reports whether f is in the profile allowlist.
 func Supported(f Field) bool {
 	switch f {
 	case FieldCitizenID, FieldThaiName, FieldEnglishName, FieldBirthDate,
-		FieldGender, FieldIssuer, FieldIssueDate, FieldExpireDate, FieldAddress:
+		FieldGender, FieldIssuer, FieldIssueDate, FieldExpireDate, FieldAddress,
+		FieldPortrait:
 		return true
 	default:
 		return false
@@ -145,6 +162,7 @@ type FieldValues struct {
 	IssueDate   *CardDate    `json:"issueDate,omitempty"`
 	ExpireDate  *CardDate    `json:"expireDate,omitempty"`
 	Address     *ThaiAddress `json:"address,omitempty"`
+	Portrait    *Portrait    `json:"portrait,omitempty"`
 
 	requested []Field
 }
@@ -184,6 +202,8 @@ func (f FieldValues) MarshalJSON() ([]byte, error) {
 			m["expireDate"] = f.ExpireDate
 		case FieldAddress:
 			m["address"] = f.Address
+		case FieldPortrait:
+			m["portrait"] = f.Portrait
 		}
 	}
 	return jsonMarshal(m)

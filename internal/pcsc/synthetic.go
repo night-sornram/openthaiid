@@ -423,6 +423,18 @@ func seedDemoCard(st *SyntheticState) {
 	st.SetScriptResponse(issueCmd, append(append([]byte(nil), issue...), 0x90, 0x00))
 	st.SetScriptResponse(expireCmd, append(append([]byte(nil), expire...), 0x90, 0x00))
 	st.SetScriptResponse(addrCmd, append(padBlock(addr, 100), 0x90, 0x00))
+	seedFictionalPortrait(st)
+}
+
+func seedFictionalPortrait(st *SyntheticState) {
+	region := card.PadPortraitRegion(card.FictionalPortraitJPEG())
+	const part = 0xFF
+	const base = 0x017B
+	for i := 0; i < 20; i++ {
+		off := base + i*part
+		cmd := string([]byte{0x80, 0xB0, byte(off >> 8), byte(off & 0xFF), 0x02, 0x00, 0xFF})
+		st.SetScriptResponse(cmd, append(append([]byte(nil), region[i*part:(i+1)*part]...), 0x90, 0x00))
+	}
 }
 
 func padBlock(b []byte, n int) []byte {

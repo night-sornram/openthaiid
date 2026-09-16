@@ -17,7 +17,8 @@
         "issuer",
         "issueDate",
         "expireDate",
-        "address"
+        "address",
+        "portrait"
       ],
       "apduForm": "CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len",
       "commands": {
@@ -30,7 +31,9 @@
         "issuer": "80B000F6020064",
         "issueDate": "80B00167020008",
         "expireDate": "80B0016F020008",
-        "address": "80B01579020064"
+        "address": "80B01579020064",
+        "portraitPart1": "80B0017B0200FF",
+        "portraitPart20": "80B014680200FF"
       },
       "offsets": {
         "citizenId": "0x0004",
@@ -41,9 +44,10 @@
         "issuer": "0x00F6",
         "issueDate": "0x0167",
         "expireDate": "0x016F",
-        "address": "0x1579"
+        "address": "0x1579",
+        "portrait": "0x017B"
       },
-      "note": "Thai and English names are 100-byte '#'-delimited blocks (title/given/middle/family). Birth, issue, and expire years are Buddhist Era on card and Gregorian after parse. Gender is a 1-byte community convention (1=male, 2=female). Address is a 100-byte '#'-delimited block (house/village/alley/street/subdistrict/district/province). Portrait blocks are out of scope. Gender encoding and address component order are hypotheses pending physical-card confirmation."
+      "note": "Thai and English names are 100-byte '#'-delimited blocks (title/given/middle/family). Birth, issue, and expire years are Buddhist Era on card and Gregorian after parse. Gender is a 1-byte community convention (1=male, 2=female). Address is a 100-byte '#'-delimited block (house/village/alley/street/subdistrict/district/province). Portrait is 20 × 255-byte JPEG parts from 0x017B (Photo_Part1/20 … Photo_Part20/20). Gender encoding, address component order, and JPEG SOI/EOI trim are hypotheses pending physical-card confirmation. The synthetic JPEG is a generated 16×16 checkerboard with COM marker FICTIONAL-OPENTHAIID-PORTRAIT — never captured from a real card."
     }
   },
   "fixtures": [

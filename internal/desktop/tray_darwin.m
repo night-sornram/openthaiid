@@ -11,6 +11,8 @@ extern int openthaiidTrayAutostartOn(void);
 - (void)technician:(id)sender;
 - (void)status:(id)sender;
 - (void)autostart:(id)sender;
+- (void)update:(id)sender;
+- (void)releases:(id)sender;
 - (void)quit:(id)sender;
 @end
 
@@ -39,7 +41,10 @@ extern int openthaiidTrayAutostartOn(void);
                                                     action:@selector(autostart:)
                                              keyEquivalent:@""];
   autoItem.target = self;
-  [menu addItem:autoItem];
+	[menu addItem:autoItem];
+  [menu addItem:[NSMenuItem separatorItem]];
+  [[menu addItemWithTitle:@"Check for updates" action:@selector(update:) keyEquivalent:@""] setTarget:self];
+  [[menu addItemWithTitle:@"Open GitHub Releases" action:@selector(releases:) keyEquivalent:@""] setTarget:self];
   [menu addItem:[NSMenuItem separatorItem]];
   [[menu addItemWithTitle:@"Quit" action:@selector(quit:) keyEquivalent:@"q"] setTarget:self];
   self.item.menu = menu;
@@ -59,6 +64,14 @@ extern int openthaiidTrayAutostartOn(void);
 - (void)autostart:(id)sender {
   (void)sender;
   openthaiidTrayAction(4);
+}
+- (void)update:(id)sender {
+  (void)sender;
+  openthaiidTrayAction(6);
+}
+- (void)releases:(id)sender {
+  (void)sender;
+  openthaiidTrayAction(7);
 }
 - (void)quit:(id)sender {
   (void)sender;

@@ -69,11 +69,14 @@ within browser security rules only.
 
 ## Privacy and logging
 
-- No telemetry or outbound network calls.
+- No telemetry. The helper does not phone home during card reads.
+- Operator-initiated `openthaiid update check|download|apply` (and the tray
+  “Check for updates” item) query GitHub Releases and may download an
+  **unsigned** asset. No origin, grant, token, or card field is sent.
 - No card-data files, databases, result caches, or diagnostic uploads.
 - Logs carry only error codes, durations, counts, and random request ids.
-- Never log citizen IDs, names, addresses, dates, portraits, raw APDUs, tokens,
-  or hashes of personal fields.
+- Never log citizen IDs, names, addresses, dates, portraits (including
+  Base64 / data URLs), raw APDUs, tokens, or hashes of personal fields.
 - The helper page and technician **Copy diagnostics** omit personal card
   field values. Last errors store protocol codes and generic messages only.
 - `GET /v1/helper/summary` (loopback) returns helper/reader/card lights for

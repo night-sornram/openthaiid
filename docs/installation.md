@@ -41,8 +41,8 @@ Loopback and Allow/Deny are unchanged. See [user.md](user.md) and
 - Optional: `powershell -ExecutionPolicy Bypass -File install.ps1`
   copies to `%LOCALAPPDATA%\OpenThaiID` and adds a Start Menu shortcut.
   `-DesktopShortcut` and `-Autostart` are extra. `uninstall.ps1` reverses that.
-- SmartScreen may warn on an unsigned exe. That is expected until a signed
-  installer exists (out of scope here).
+- SmartScreen may warn on an unsigned exe. That is expected. Signing
+  checklist: [signing.md](signing.md). Auto-update: `openthaiid update check`.
 
 ### Linux (clinic)
 
@@ -74,7 +74,7 @@ or right-click → Open. Autostart writes
 
 ### All platforms
 
-- Go 1.22+ (CI pins the toolchain version).
+- Go 1.27+ (CI pins `go1.27.1`; `go.mod` matches).
 - Node.js 20+ for the web SDK and examples.
 
 ### Windows

@@ -16,8 +16,15 @@ func TestNormalizeFields(t *testing.T) {
 	if _, err := NormalizeFields(nil); err == nil {
 		t.Fatal("expected empty list error")
 	}
-	if _, err := NormalizeFields([]Field{"portrait"}); err == nil {
+	if _, err := NormalizeFields([]Field{"laserId"}); err == nil {
 		t.Fatal("expected unsupported field error")
+	}
+	got, err = NormalizeFields([]Field{FieldPortrait})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != FieldPortrait {
+		t.Fatalf("portrait should be supported, got %v", got)
 	}
 	got, err = NormalizeFields([]Field{FieldGender, FieldAddress, FieldGender})
 	if err != nil {

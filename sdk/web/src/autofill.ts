@@ -10,6 +10,7 @@ import {
   SUPPORTED_FIELDS,
   ThaiID,
   ThaiIDError,
+  type Portrait,
   type CardDate,
   type ConnectionState,
   type Field,
@@ -41,6 +42,7 @@ type NameSlot<P extends NamePrefix> = P | `${P}.${NamePart}`;
 type DateSlot<P extends DatePrefix> = P | `${P}.${DatePart}`;
 type AddressSlot = "address" | `address.${AddressPart}`;
 type GenderSlot = "gender" | "gender.code" | "gender.value";
+type PortraitSlot = "portrait" | "portrait.dataUrl" | "portrait.data" | "portrait.mimeType";
 
 export type AutofillSlot =
   | "citizenId"
@@ -51,7 +53,8 @@ export type AutofillSlot =
   | DateSlot<"issueDate">
   | DateSlot<"expireDate">
   | GenderSlot
-  | AddressSlot;
+  | AddressSlot
+  | PortraitSlot;
 
 export type AutofillTarget = string | Element | ReadonlyArray<Element> | NodeListOf<Element>;
 
@@ -233,6 +236,8 @@ function isKnownPath(field: Field, path: string): boolean {
       return ADDRESS_PARTS.has(path);
     case "gender":
       return GENDER_PARTS.has(path);
+    case "portrait":
+      return path === "dataUrl" || path === "data" || path === "mimeType";
     default:
       return false;
   }
@@ -333,6 +338,13 @@ export function formatAutofillValue(
     }
     case "address":
       return addressPart(raw as ThaiAddress, path);
+    case "portrait": {
+      const p = raw as Portrait;
+      if (path === "data") return p.data ?? "";
+      if (path === "mimeType") return p.mimeType ?? "";
+      if (!p.data) return "";
+      return `data:${p.mimeType || "image/jpeg"};base64,${p.data}`;
+    }
     default:
       return "";
   }
@@ -478,6 +490,10 @@ function uniqueElements(elements: Element[]): Element[] {
 }
 
 function setControlValue(el: Element, value: string): boolean {
+  if (el instanceof HTMLImageElement) {
+    el.src = value;
+    return true;
+  }
   if (el instanceof HTMLInputElement) {
     if (el.type === "file") return false;
     if (el.type === "checkbox" || el.type === "radio") {

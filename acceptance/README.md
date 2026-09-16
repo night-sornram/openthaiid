@@ -26,7 +26,9 @@ Policies (`OPENTHAIID_APPROVAL_POLICY`):
 make build sdk
 cd acceptance
 npm ci
-npx playwright install chrome msedge
+npx playwright install chrome msedge firefox
+# macOS only, for Safari-engine automation:
+# npx playwright install webkit
 ```
 
 ## Run
@@ -34,9 +36,11 @@ npx playwright install chrome msedge
 ```bash
 npm test                 # allow policy, default channel chrome
 npm run test:all         # allow + deny + unanswered
-OPENTHAIID_BROWSER=msedge npm test
+OPENTHAIID_BROWSER=firefox npm test
+OPENTHAIID_BROWSER=webkit npm test   # Safari engine; real Safari is macOS-only
 # or from the repo root
 make acceptance
+make acceptance-firefox
 ```
 
 ## Scenarios (allow policy)
@@ -51,6 +55,7 @@ make acceptance
 7. Extra textual fields (`englishName`, `gender`, `issuer`, `issueDate`,
    `expireDate`, `address`) via `?fields=` — new terminal grant, then
    assert synthetic values (default pages still request the original three)
+7b. Portrait-only grant: JPEG metadata + `/9j/` payload; reports redact photo bytes
 8. Two browser contexts: requester read is unicast (peer page and
    WebSocket frames stay free of card fields); peer can still read on its
    own connection
@@ -72,7 +77,7 @@ this localhost HTTPS automation. See `docs/acceptance.md`.
 | `OPENTHAIID_BIN` | `../dist/openthaiid` | Bridge binary (`.exe` on Windows) |
 | `OPENTHAIID_PORT` | `17899` | Bridge listen port |
 | `OPENTHAIID_HTTPS_PORT` | `8443` | Static HTTPS server |
-| `OPENTHAIID_BROWSER` | `chrome` | Playwright channel (`chrome`, `msedge`, `chromium`) |
+| `OPENTHAIID_BROWSER` | `chrome` | Playwright: `chrome`, `msedge`, `chromium`, `firefox`, `webkit` (`safari` alias) |
 | `OPENTHAIID_APPROVAL_POLICY` | `allow` | `allow` / `deny` / `unanswered` |
 | `OPENTHAIID_REPORT_DIR` | `./reports` | Allowlisted JSON report |
 | `OPENTHAIID_LOG_DIR` | `./logs` | Harness diagnostics |
@@ -87,10 +92,11 @@ start a replacement process if the old listener is still serving.
 Certificates are generated in the OS temp directory and never served.
 Only the acceptance page and `sdk/web/dist/index.js` are served.
 
-GitHub Actions: pull requests run this harness on ubuntu-24.04 Chrome
+GitHub Actions: pull requests run this harness on ubuntu-24.04 **Firefox**
 (allow + deny + unanswered). macOS Chrome and Windows Chrome/Edge run on
-push to `dev`/`main` and `workflow_dispatch`. Local `make acceptance` is
-unchanged (Chrome + Edge when the browsers are installed).
+push to `dev`/`main` and `workflow_dispatch` when the workflow is enabled.
+Local `make acceptance-firefox` is the Linux verification path. Safari/WebKit
+is macOS-only and is not a CI matrix row.
 
 ## Artifacts
 

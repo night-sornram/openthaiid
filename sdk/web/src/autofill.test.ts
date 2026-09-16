@@ -47,6 +47,11 @@ const SYNTHETIC_FIELDS: FieldValues = {
     province: "จังหวัดนิทาน",
     fullAddress: "99 หมู่ที่ 1 ถนนนิทาน ตำบลบ้านใหม่ อำเภอเมือง จังหวัดนิทาน",
   },
+  portrait: {
+    mimeType: "image/jpeg",
+    encoding: "base64",
+    data: "QQ==",
+  },
 };
 
 type FakeWS = {
@@ -177,14 +182,11 @@ describe("autofill mapping", () => {
   });
 
   it("rejects portrait and unknown slots", () => {
-    expect(() => parseSlot("portrait")).toThrow(ThaiIDError);
+    expect(() => parseSlot("laserId")).toThrow(ThaiIDError);
     expect(() => parseSlot("thaiName.nickname")).toThrow(ThaiIDError);
     expect(() => parseSlot("address.country")).toThrow(ThaiIDError);
-    try {
-      parseSlot("portrait");
-    } catch (err) {
-      expect(err).toMatchObject({ code: "UNSUPPORTED_FIELD" });
-    }
+    expect(parseSlot("portrait")).toEqual({ field: "portrait", path: null });
+    expect(parseSlot("portrait.dataUrl")).toEqual({ field: "portrait", path: "dataUrl" });
   });
 
   it("formats synthetic demo values for inputs", () => {
@@ -201,6 +203,8 @@ describe("autofill mapping", () => {
       "99 หมู่ที่ 1 ถนนนิทาน ตำบลบ้านใหม่ อำเภอเมือง จังหวัดนิทาน",
     );
     expect(formatAutofillValue(SYNTHETIC_FIELDS, "address.province")).toBe("จังหวัดนิทาน");
+    expect(formatAutofillValue(SYNTHETIC_FIELDS, "portrait")).toBe("data:image/jpeg;base64,QQ==");
+    expect(formatAutofillValue(SYNTHETIC_FIELDS, "portrait.data")).toBe("QQ==");
   });
 
   it("strips citizenId to digits", () => {
@@ -293,6 +297,17 @@ describe("autofill DOM helpers", () => {
     expect(events).toContain("cid:input");
     expect(events).toContain("cid:change");
     expect(events).toContain("dob:change");
+  });
+
+  it("sets img src from a portrait data URL", () => {
+    document.body.innerHTML = `<img id="photo" alt="" />`;
+    applyAutofillValues(
+      [{ slot: "portrait", elements: [document.getElementById("photo")!] }],
+      SYNTHETIC_FIELDS,
+    );
+    expect((document.getElementById("photo") as HTMLImageElement).getAttribute("src")).toBe(
+      "data:image/jpeg;base64,QQ==",
+    );
   });
 
   it("does not wipe existing input when the card field is null", () => {
@@ -512,12 +527,8 @@ describe("autofill request allowlist", () => {
     expect(normalizeAutofillRequest(undefined)).toBeNull();
     expect(() => normalizeAutofillRequest([])).toThrow(ThaiIDError);
     expect(() => normalizeAutofillRequest(["thaiName.givenName"])).toThrow(ThaiIDError);
-    expect(() => normalizeAutofillRequest(["portrait"])).toThrow(ThaiIDError);
-    try {
-      normalizeAutofillRequest(["portrait"]);
-    } catch (err) {
-      expect(err).toMatchObject({ code: "UNSUPPORTED_FIELD" });
-    }
+    expect(normalizeAutofillRequest(["portrait"])).toEqual(["portrait"]);
+    expect(() => normalizeAutofillRequest(["laserId"])).toThrow(ThaiIDError);
   });
 
   it("filters targets to requested protocol fields", () => {

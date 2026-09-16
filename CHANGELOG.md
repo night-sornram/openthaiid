@@ -5,7 +5,56 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.1-dev] — unreleased
+## [0.1.0-rc.1] — software release candidate (unreleased tag)
+
+Software RC against `dev`. **Do not enable GitHub Actions** on this change
+(minutes exhausted). Tag `v0.1.0-rc.1` only after human review. Physical
+ACR39U qualification (E1–E7) and Apple/Microsoft code signing are **not**
+in this candidate.
+
+### Added
+
+- Optional `portrait` field (cited 20×255-byte JPEG parts at `0x017B`,
+  Photo_Part1/20 … Photo_Part20/20). Protocol minor 3. Default grant is
+  unchanged. SDK: `portraitDataUrl()` / `portraitBlob()`; autofill can set
+  `<img src>` from a data URL. Synthetic fixture is a clearly fictional
+  16×16 checkerboard JPEG (`FICTIONAL-OPENTHAIID-PORTRAIT`). Photo bytes
+  are omitted from logs and acceptance reports.
+- Official Firefox support in the Playwright harness
+  (`OPENTHAIID_BROWSER=firefox`). Linux CI/cloud lane uses Firefox instead
+  of Chrome **without** adding matrix rows. Safari: Playwright `webkit` on
+  macOS (`OPENTHAIID_BROWSER=webkit`); real Safari UI is macOS-only and not
+  in CI.
+- `openthaiid update check|download|apply` against GitHub Releases (version
+  compare, unsigned asset download, SHA256SUMS verify on apply). Tray:
+  Check for updates / Open GitHub Releases. Apply requires `--yes`.
+- `docs/signing.md` checklist for future Authenticode / Developer ID /
+  notarization. This tree still ships **unsigned** packages.
+
+### Changed
+
+- `go.mod` `go` directive is **1.27** (toolchain `go1.27.1`, matching the
+  existing CI pin).
+- Helper version string defaults to `0.1.0-rc.1`.
+
+### Documented, not implemented
+
+- Laser-id and NHSO / other DFs: not in the cited APDU.md revision.
+  Community source offsets are recorded in `docs/provenance.md` as blocked.
+
+### Security
+
+- Auto-update is the only operator-initiated outbound call (GitHub API +
+  release assets). No card fields, tokens, or photo bytes are sent.
+- Portrait Base64 is redacted from acceptance reports (`[portrait-omitted]`).
+
+### Not claimed
+
+- Physical ACR39U acceptance
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+
+## [0.0.1-dev] — previous development line
 
 ### Added
 
@@ -181,5 +230,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Physical ACR39U acceptance on Windows/Linux/macOS
 - Playwright browser acceptance matrix (Chrome/Edge across three OSes)
-- Official Firefox/Safari support
-- Portraits, signed store installers, auto-update
+- Official Firefox/Safari support (see `[0.1.0-rc.1]`)
+- Portraits, signed store installers, auto-update (portrait + unsigned
+  auto-update: see `[0.1.0-rc.1]`; signing still blocked)

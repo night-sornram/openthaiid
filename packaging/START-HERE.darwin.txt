@@ -21,14 +21,16 @@ If Gatekeeper still blocks an unsigned app, run the raw binary from Terminal:
 Menu (menu bar)
 ---------------
 Open Ready page · Open Technician tools · Show status (no personal data) ·
-Start at login (opt-in) · Quit
+Start at login (opt-in) · Check for updates · Open GitHub Releases · Quit
 
 Start at login (opt-in)
 -----------------------
 Menu: Start at login
 or:  ./openthaiid autostart enable
 This writes ~/Library/LaunchAgents/org.openthaiid.helper.plist
-(RunAtLoad, KeepAlive off). Not signed / not notarized.
+(RunAtLoad, KeepAlive off). Not signed / not notarized. See docs/signing.md.
+
+`./openthaiid update check` looks at GitHub Releases (no card data).
 
 Technicians: ./openthaiid in Terminal. See docs/technician.md.
 

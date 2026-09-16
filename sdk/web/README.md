@@ -9,8 +9,9 @@ Autofill and connect must be called from a visible user gesture (so the
 browser can prompt for local-network access).
 
 Origin + field Allow is still required before personal fields are returned.
-This package does not bypass the local helper, and it does not read
-portraits/photos.
+This package does not bypass the local helper. Portrait is optional: request
+`portrait` and Allow it on the helper, then use `portraitDataUrl()` or
+`portraitBlob()`. Do not log photo bytes.
 
 ## Install
 
@@ -128,7 +129,9 @@ fillBtn.addEventListener("click", async () => {
   asks only for fields that also have a mapped or `data-openthaiid` target.
 - `map` — alias of `fields` (slot → selector). Phone / HN stay off the map.
 - `onApprovalRequired` / `onError` — ERP chrome; the promise still rejects.
-- Portrait is not available. Do not call this on page load.
+- Portrait is optional. Request `portrait` and map it to an `<img>` (data URL)
+  or consume `result.fields.portrait` via `portraitDataUrl` / `portraitBlob`.
+  Do not call this on page load; do not log photo bytes.
 
 Worked example: `examples/clinic-patient/`.
 
@@ -152,5 +155,5 @@ const result = await thaiID.read();
 await thaiID.disconnect();
 ```
 
-Default grant remains `citizenId`, `thaiName`, `birthDate`. Portrait is not
-implemented.
+Default grant remains `citizenId`, `thaiName`, `birthDate`. Add `"portrait"`
+only when the screen needs the photo.

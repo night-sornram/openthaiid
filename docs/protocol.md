@@ -53,8 +53,8 @@ Rules:
 - Historical events and read responses are not replayed or cached.
 - Card results are unicast to the requester only.
 - Supported fields and capabilities are advertised after authentication.
-- Protocol **minor 2** adds `bridge.probe` (connection/reader metadata without
-  a session or personal fields) without changing the envelope.
+- Protocol **minor 3** adds optional `portrait` (JPEG Base64) to `fieldsSupported`.
+  Protocol **minor 2** added `bridge.probe` without changing the envelope.
 - Unknown operations and unsupported protocol majors are rejected.
 - Each connection allows at most **eight** concurrent asynchronous operations
   (`session.open`, `session.renew`, `bridge.status`, `bridge.probe`, `card.read`). Excess
@@ -94,7 +94,7 @@ Success result:
   "fields": ["citizenId", "thaiName", "birthDate"],
   "instanceId": "bridge-instance",
   "protocol": { "major": 1, "minor": 1 },
-  "fieldsSupported": ["citizenId", "thaiName", "englishName", "birthDate", "gender", "issuer", "issueDate", "expireDate", "address"]
+  "fieldsSupported": ["citizenId", "thaiName", "englishName", "birthDate", "gender", "issuer", "issueDate", "expireDate", "address", "portrait"]
 }
 ```
 
@@ -234,8 +234,9 @@ Default `session.open` / SDK field set remains `citizenId`, `thaiName`, `birthDa
 | `issueDate` | `CardDate` (same BE→CE rules as `birthDate`) |
 | `expireDate` | `CardDate` (same BE→CE rules as `birthDate`) |
 | `address` | `ThaiAddress`. Community hypothesis: `#` between house / village / alley / street / subdistrict / district / province. Card prefixes such as `จังหวัด` are preserved. |
+| `portrait` | Optional JPEG. `{ mimeType: "image/jpeg", encoding: "base64", data: "<std base64>" }`. Twenty 255-byte READ BINARY parts from offset `0x017B` (cited Photo_Part1/20 … 20/20). Apps typically use `portraitDataUrl()` (`data:image/jpeg;base64,…`) or `portraitBlob()`. Not in the default grant. Photo bytes must not appear in logs or acceptance reports. |
 
-Portrait / photo binary blocks are not part of this protocol revision.
+Laser-id and NHSO are not protocol fields (see `docs/provenance.md`).
 ## Synthetic examples
 
 See `testdata/synthetic/` for parser fixtures and `docs/acceptance.md` for

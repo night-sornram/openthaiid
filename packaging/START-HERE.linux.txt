@@ -29,7 +29,10 @@ Need pcscd, for example:
   sudo apt install pcscd libpcsclite1
   sudo systemctl enable --now pcscd
 
-Commands: openthaiid status | quit | open | open technician | autostart …
+Commands: openthaiid status | quit | open | open technician | autostart | update check
+
+Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
+at GitHub Releases (no card data).
 
 Technicians: ./openthaiid in a terminal. See docs/technician.md.
 

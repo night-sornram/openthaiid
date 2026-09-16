@@ -6,10 +6,9 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
 
 ## Goals
 
-- Predictable web access to selected Thai ID textual fields. The default
+- Predictable web access to selected Thai ID fields. The default
   grant is `citizenId`, `thaiName`, and `birthDate`; remaining textual
-  fields (`englishName`, `gender`, `issuer`, `issueDate`, `expireDate`,
-  `address`) are opt-in and returned only when granted.
+  fields and optional `portrait` are opt-in and returned only when granted.
 - Explicit operator approval for each new origin and field set (helper page
   staff Allow, or terminal; technician tools do not bypass this).
 - No card-data persistence, telemetry, or cloud dependency.
@@ -24,14 +23,16 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
   (Windows/macOS notification area; Linux background + `.desktop`).
 - Opt-in start-at-login (`openthaiid autostart`); off by default.
 
-## Non-goals (MVP)
+## Non-goals (this candidate)
 
 - Biometrics, PIN bypass, card writes, arbitrary APDUs.
-- Portraits / photo binary, laser-id / NHSO profiles.
-- Signed / notarized store installers and auto-update.
+- Laser-id / NHSO profiles (no citable APDU.md layout; see provenance).
+- Signed / notarized store installers (no certificates; see `docs/signing.md`).
 - Persistent trust across bridge restarts.
-- Official Firefox or Safari support.
 - A hosted multi-tenant OpenThaiID backend.
+
+Portrait JPEG, unsigned GitHub Releases auto-update, and Firefox/WebKit
+harness support are in this candidate.
 
 ## Process model
 
@@ -79,6 +80,7 @@ flowchart LR
 | `internal/protocol` | Versioned browser messages and validation |
 | `internal/bridge` | Loopback listener, Manager HTML, WebSocket connections, dispatch |
 | `internal/config` | Typed configuration and validation |
+| `internal/update` | GitHub Releases version check / unsigned download / apply |
 | `sdk/web` | `@openthaiid/web` browser SDK |
 | `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |
 | `examples/vanilla` | Minimal demonstration app |

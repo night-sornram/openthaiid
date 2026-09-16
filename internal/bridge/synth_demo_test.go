@@ -56,7 +56,7 @@ func TestSyntheticDemoReadAllFields(t *testing.T) {
 			t.Fatalf("birth %v (expected 1990-04-12)", birth)
 		}
 		// Extra textual fields must stay omitted when not requested.
-		for _, leaked := range []string{"englishName", "gender", "issuer", "issueDate", "expireDate", "address"} {
+		for _, leaked := range []string{"englishName", "gender", "issuer", "issueDate", "expireDate", "address", "portrait"} {
 			if _, ok := fields[leaked]; ok {
 				t.Fatalf("unrequested %s returned", leaked)
 			}
@@ -90,21 +90,28 @@ func TestSyntheticDemoReadTextualFields(t *testing.T) {
 		t.Fatal("missing token")
 	}
 	proto, _ := openResult["protocol"].(map[string]any)
-	if proto["major"] != 1.0 || proto["minor"] != 2.0 {
-		t.Fatalf("protocol %+v want major=1 minor=2", proto)
+	if proto["major"] != 1.0 || proto["minor"] != 3.0 {
+		t.Fatalf("protocol %+v want major=1 minor=3", proto)
 	}
 	supported, _ := openResult["fieldsSupported"].([]any)
 	if len(supported) != len(card.SupportedFields) {
 		t.Fatalf("fieldsSupported %v", supported)
 	}
 	foundEN := false
+	foundPortrait := false
 	for _, f := range supported {
 		if f == string(card.FieldEnglishName) {
 			foundEN = true
 		}
+		if f == string(card.FieldPortrait) {
+			foundPortrait = true
+		}
 	}
 	if !foundEN {
 		t.Fatalf("fieldsSupported missing englishName: %v", supported)
+	}
+	if !foundPortrait {
+		t.Fatalf("fieldsSupported missing portrait: %v", supported)
 	}
 
 	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
@@ -143,6 +150,50 @@ func TestSyntheticDemoReadTextualFields(t *testing.T) {
 	}
 	if addr["fullAddress"] != "99 หมู่ที่ 1 ถนนนิทาน ตำบลบ้านใหม่ อำเภอเมือง จังหวัดนิทาน" {
 		t.Fatalf("fullAddress %v", addr["fullAddress"])
+	}
+	portrait, _ := fields["portrait"].(map[string]any)
+	if portrait == nil {
+		t.Fatal("portrait missing from full grant")
+	}
+	if portrait["mimeType"] != "image/jpeg" || portrait["encoding"] != "base64" {
+		t.Fatalf("portrait meta %v", portrait)
+	}
+	data, _ := portrait["data"].(string)
+	if data == "" || len(data) < 32 {
+		t.Fatalf("portrait data missing")
+	}
+}
+
+func TestSyntheticDemoReadPortraitOnly(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		seedFullThaiCard(rdb)
+	})
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldPortrait},
+	})
+	token := readToken(t, ctx, conn, 1)
+
+	writeReq(t, ctx, conn, 2, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldPortrait},
+	})
+	msg := readByID(t, ctx, conn, 2)
+	if msg["error"] != nil {
+		t.Fatalf("read error: %v", msg["error"])
+	}
+	fields := msg["result"].(map[string]any)["fields"].(map[string]any)
+	portrait, _ := fields["portrait"].(map[string]any)
+	if portrait == nil || portrait["mimeType"] != "image/jpeg" {
+		t.Fatalf("portrait %v", portrait)
+	}
+	if _, ok := fields["citizenId"]; ok {
+		t.Fatal("unrequested citizenId returned with portrait-only grant")
 	}
 }
 

@@ -22,10 +22,11 @@ import (
 	"github.com/night-sornram/openthaiid/internal/desktop"
 	"github.com/night-sornram/openthaiid/internal/pcsc"
 	"github.com/night-sornram/openthaiid/internal/reader"
+	"github.com/night-sornram/openthaiid/internal/update"
 )
 
 // version is injected via -ldflags at release build time.
-var version = "0.0.1-dev"
+var version = "0.1.0-rc.1"
 
 func main() {
 	if len(os.Args) > 1 {
@@ -46,6 +47,8 @@ func main() {
 			os.Exit(runQuit(os.Args[2:]))
 		case "open":
 			os.Exit(runOpenCmd(os.Args[2:]))
+		case "update":
+			os.Exit(runUpdate(os.Args[2:]))
 		}
 	}
 
@@ -259,6 +262,16 @@ func runHelper(args []string) {
 			},
 			Quit: cancel,
 			Log:  log,
+			CheckUpdate: func() string {
+				ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+				defer cancel()
+				res, err := update.Check(ctx, version, update.Options{})
+				if err != nil {
+					return "Could not check GitHub Releases.\n" + err.Error() + "\nPackages are unsigned.\n" + update.ReleasesPage
+				}
+				return res.Message
+			},
+			ReleasesURL: update.ReleasesPage,
 		}
 		err := desktop.RunTray(ctx, host)
 		if errors.Is(err, desktop.ErrNoTray) {
@@ -433,6 +446,7 @@ Usage:
   openthaiid open            Open the Ready page
   openthaiid open technician Open technician / developer tools
   openthaiid autostart       enable | disable | status   (opt-in start at login)
+  openthaiid update          check | download | apply   (GitHub Releases; unsigned)
   openthaiid doctor          Check the card service (no personal fields)
   openthaiid version         Print version
 

@@ -19,6 +19,8 @@ Tray menu
 - Open Technician tools
 - Show status (helper / reader / card — no personal data)
 - Start at login (opt-in; off by default)
+- Check for updates (GitHub Releases; unsigned)
+- Open GitHub Releases
 - Quit
 
 Start at login (opt-in)
@@ -33,6 +35,7 @@ Menu / Desktop shortcuts. It does not enable autostart unless you pass
 
 Technicians: run openthaiid.exe in a terminal, or Open Technician tools.
 See docs\technician.md. Do not send screenshots of card data.
+`openthaiid.exe update check` looks at GitHub Releases (unsigned packages).
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.
