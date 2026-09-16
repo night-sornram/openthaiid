@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -414,6 +415,11 @@ func TestIntegrationUnicastReadIsolation(t *testing.T) {
 		t.Fatal("competing clients must receive distinct session tokens")
 	}
 
+	// Take over connB reads for the rest of the test. Timed Read contexts
+	// abort the WebSocket, so the peer is drained from a goroutine using the
+	// parent context instead.
+	peer := startFrameCollector(ctx, connB)
+
 	writeReq(t, ctx, connA, 2, "card.read", tokenA, protocol.CardReadPayload{})
 	msgA := readByID(t, ctx, connA, 2)
 	if msgA["error"] != nil {
@@ -424,11 +430,14 @@ func TestIntegrationUnicastReadIsolation(t *testing.T) {
 		t.Fatalf("requester citizenId %v", fieldsA["citizenId"])
 	}
 
-	peerFrames := collectFrames(t, ctx, connB, 250*time.Millisecond)
-	assertNoCardFields(t, peerFrames)
+	time.Sleep(250 * time.Millisecond)
+	assertNoCardFields(t, peer.snapshot())
 
 	writeReq(t, ctx, connB, 2, "card.read", tokenB, protocol.CardReadPayload{})
-	msgB := readByID(t, ctx, connB, 2)
+	msgB, ok := peer.waitID(2, 3*time.Second)
+	if !ok {
+		t.Fatal("peer independent card.read timed out")
+	}
 	if msgB["error"] != nil {
 		t.Fatalf("peer independent card.read error: %v", msgB["error"])
 	}
@@ -438,24 +447,54 @@ func TestIntegrationUnicastReadIsolation(t *testing.T) {
 	}
 }
 
-func collectFrames(t *testing.T, ctx context.Context, c *websocket.Conn, window time.Duration) []map[string]any {
-	t.Helper()
-	var out []map[string]any
-	deadline := time.Now().Add(window)
-	for time.Now().Before(deadline) {
-		rctx, cancel := context.WithTimeout(ctx, 80*time.Millisecond)
-		_, data, err := c.Read(rctx)
-		cancel()
-		if err != nil {
-			continue
+type frameCollector struct {
+	mu     sync.Mutex
+	frames []map[string]any
+}
+
+func startFrameCollector(ctx context.Context, c *websocket.Conn) *frameCollector {
+	fc := &frameCollector{}
+	go func() {
+		for {
+			_, data, err := c.Read(ctx)
+			if err != nil {
+				return
+			}
+			var m map[string]any
+			if json.Unmarshal(data, &m) != nil {
+				continue
+			}
+			fc.mu.Lock()
+			fc.frames = append(fc.frames, m)
+			fc.mu.Unlock()
 		}
-		var m map[string]any
-		if err := json.Unmarshal(data, &m); err != nil {
-			t.Fatalf("peer frame: %v", err)
-		}
-		out = append(out, m)
-	}
+	}()
+	return fc
+}
+
+func (fc *frameCollector) snapshot() []map[string]any {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	out := make([]map[string]any, len(fc.frames))
+	copy(out, fc.frames)
 	return out
+}
+
+func (fc *frameCollector) waitID(id int64, timeout time.Duration) (map[string]any, bool) {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		for _, m := range fc.snapshot() {
+			if m["id"] == nil {
+				continue
+			}
+			mid, _ := m["id"].(float64)
+			if int64(mid) == id {
+				return m, true
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return nil, false
 }
 
 func assertNoCardFields(t *testing.T, frames []map[string]any) {
