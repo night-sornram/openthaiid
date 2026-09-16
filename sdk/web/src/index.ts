@@ -461,11 +461,13 @@ export class ThaiID {
    * Concurrent connect() calls share one attempt.
    */
   async connect(options: { signal?: AbortSignal } = {}): Promise<void> {
-    if (typeof WebSocket === "undefined") {
-      throw new ThaiIDError("CONNECTION_FAILED", "connect() requires a browser environment");
-    }
+    // Honor abort before the environment check so a pre-aborted signal is
+    // CANCELLED even when WebSocket is unavailable (Node/SSR).
     if (options.signal?.aborted) {
       throw new ThaiIDError("CANCELLED", "connect aborted");
+    }
+    if (typeof WebSocket === "undefined") {
+      throw new ThaiIDError("CONNECTION_FAILED", "connect() requires a browser environment");
     }
     if (this.#state === "connected" && this.#token) return;
     if (this.#connectPromise) return this.#connectPromise;
@@ -480,6 +482,9 @@ export class ThaiID {
   }
 
   async #doConnect(signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) {
+      throw new ThaiIDError("CANCELLED", "connect aborted");
+    }
     this.#setState("connecting");
     let ws: WebSocket | null = null;
     try {
@@ -512,7 +517,7 @@ export class ThaiID {
       this.#scheduleRenewal();
 
       // Await an authenticated snapshot before resolving.
-      await this.#awaitSnapshot(2000);
+      await this.#withAbort(this.#awaitSnapshot(2000), signal);
       this.#reconnectAttempt = 0;
       this.#setState("connected");
     } catch (err) {
@@ -526,6 +531,10 @@ export class ThaiID {
 
   #waitOpen(ws: WebSocket, signal?: AbortSignal): Promise<void> {
     return new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new ThaiIDError("CANCELLED", "connect aborted"));
+        return;
+      }
       const timer = setTimeout(() => {
         cleanup();
         reject(new ThaiIDError("BRIDGE_UNAVAILABLE", "bridge did not accept the connection", true));
@@ -541,6 +550,10 @@ export class ThaiID {
         ws.onerror = null;
       };
       signal?.addEventListener("abort", onAbort, { once: true });
+      if (signal?.aborted) {
+        onAbort();
+        return;
+      }
       ws.onopen = () => {
         cleanup();
         resolve();
@@ -585,6 +598,10 @@ export class ThaiID {
         reject(new ThaiIDError("CANCELLED", "aborted"));
       };
       signal.addEventListener("abort", onAbort, { once: true });
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
       p.then(
         (v) => {
           signal.removeEventListener("abort", onAbort);

@@ -13,7 +13,7 @@ type FakeWS = {
   respondTo: (s: string) => void;
 };
 
-function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean } = {}) {
+function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean; autoOpen?: boolean } = {}) {
   const sockets: FakeWS[] = [];
   const sendSnapshot = opts.snapshot !== false;
   class Fake {
@@ -29,6 +29,7 @@ function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean 
     onclose: (() => void) | null = null;
     constructor(public url: string, public protocols?: string[]) {
       sockets.push(this as unknown as FakeWS);
+      if (opts.autoOpen === false) return;
       queueMicrotask(() => {
         this.readyState = 1;
         this.onopen?.();
@@ -179,7 +180,36 @@ describe("ThaiID", () => {
     const id = new ThaiID();
     const c = new AbortController();
     c.abort();
+    // Intentionally no FakeWebSocket: cancellation is reported even in Node/SSR.
     await expect(id.connect({ signal: c.signal })).rejects.toMatchObject({ code: "CANCELLED" });
+    expect(id.state()).toBe("disconnected");
+  });
+
+  it("abort before connect does not open a socket", async () => {
+    const fake = installFakeWebSocket({ autoOpen: false });
+    try {
+      const id = new ThaiID();
+      const c = new AbortController();
+      c.abort();
+      await expect(id.connect({ signal: c.signal })).rejects.toMatchObject({ code: "CANCELLED" });
+      expect(fake.sockets.length).toBe(0);
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("abort during connect is cancelled", async () => {
+    const fake = installFakeWebSocket({ autoOpen: false });
+    try {
+      const id = new ThaiID();
+      const c = new AbortController();
+      const p = id.connect({ signal: c.signal });
+      c.abort();
+      await expect(p).rejects.toMatchObject({ code: "CANCELLED" });
+      expect(id.state()).toBe("disconnected");
+    } finally {
+      fake.restore();
+    }
   });
 
   it("connect deduplicates concurrent calls", async () => {

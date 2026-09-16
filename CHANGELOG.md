@@ -69,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- SDK `connect({ signal })` reports `CANCELLED` when the AbortSignal is already
+  aborted, even if `WebSocket` is unavailable (Node/SSR). Abort during connect
+  also stays `CANCELLED` rather than racing `CONNECTION_FAILED`.
+
 - Sessions are capped at the live grant expiry; an expired grant invalidates
   an otherwise unexpired token
 - Terminal `revoke <origin>` canonicalizes the origin (mixed-case hosts match
