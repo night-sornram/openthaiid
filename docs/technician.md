@@ -109,5 +109,6 @@ mountThaiIDStatus(statusEl); // user copy; { mode: "advanced" } for techs
 await autofillThaiID(config); // from a click
 ```
 
-See [clinic.md](clinic.md), [user.md](user.md), [training.md](training.md),
+See [clinic.md](clinic.md), [erp-integration.md](erp-integration.md),
+[user.md](user.md), [training.md](training.md),
 and [friday-checklist.md](friday-checklist.md).

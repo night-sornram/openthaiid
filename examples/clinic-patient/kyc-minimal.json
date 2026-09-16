@@ -1,0 +1,14 @@
+{
+  "$schema": "../../sdk/web/schema/autofill-clinic-config.schema.json",
+  "kind": "openthaiid.autofill-clinic",
+  "request": ["citizenId", "thaiName", "birthDate"],
+  "map": {
+    "citizenId": "#patient-cid",
+    "thaiName.givenName": "#patient-given",
+    "thaiName.familyName": "#patient-family",
+    "birthDate": "#patient-dob"
+  },
+  "dateFormat": "iso",
+  "discover": false,
+  "lang": "th"
+}

@@ -39,7 +39,13 @@ export {
   TEXTUAL_FIELDS,
   ThaiID,
   ThaiIDError,
+  AUTOFILL_CLINIC_CONFIG_KIND,
+  CODE_ONLY_AUTOFILL_OPTION_KEYS,
   autofillThaiID,
+  autofillClinicConfigDocument,
+  clinicConfigToAutofillOptions,
+  parseAutofillClinicConfig,
+  serializeAutofillClinicConfig,
   probeThaiID,
   mountThaiIDStatus,
   summarizeProbe,
@@ -54,6 +60,7 @@ export {
   portraitBlob,
 } from "@openthaiid/web";
 export type {
+  AutofillClinicConfig,
   AutofillFieldMap,
   AutofillResult,
   AutofillThaiIDOptions,

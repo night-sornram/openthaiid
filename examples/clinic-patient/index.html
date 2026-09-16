@@ -333,9 +333,32 @@
             <select id="gender-labels">
               <option value="th" selected>ชาย / หญิง</option>
               <option value="en">male / female</option>
+              <option value="custom" hidden>Custom (from JSON)</option>
             </select>
           </label>
           <p class="hint">Dates stay ISO (<code>YYYY-MM-DD</code>) for <code>input[type=date]</code>.</p>
+        </fieldset>
+        <fieldset>
+          <legend>config JSON</legend>
+          <p class="hint">
+            Download or upload <code>request</code> + <code>map</code> without
+            editing code. Callbacks stay in the click handler (code-only).
+          </p>
+          <div class="actions">
+            <button type="button" id="download-config">Download JSON</button>
+            <button type="button" id="upload-config">Upload JSON</button>
+            <button type="button" id="load-kyc-minimal">Load KYC sample</button>
+            <button type="button" id="load-clinic-full">Load clinic sample</button>
+          </div>
+          <input id="upload-config-file" type="file" accept="application/json,.json" hidden />
+          <p class="hint">
+            Samples:
+            <a href="./kyc-minimal.json">kyc-minimal.json</a>
+            ·
+            <a href="./clinic-full.json">clinic-full.json</a>
+            · schema
+            <code>sdk/web/schema/autofill-clinic-config.schema.json</code>
+          </p>
         </fieldset>
         <p class="hint">map (slot → selector)</p>
         <table>

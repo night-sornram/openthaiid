@@ -5,11 +5,12 @@ page — not a product to install, and not a backend/frontend to deploy.
 
 ```js
 import { autofillThaiID, mountThaiIDStatus } from "@openthaiid/web";
+import { clinicPatientAutofill } from "./settings.js";
 
 mountThaiIDStatus(document.getElementById("thaiid-status"));
 
 fillBtn.addEventListener("click", async () => {
-  await autofillThaiID(clinicPatientAutofill);
+  await autofillThaiID(clinicPatientAutofill());
 });
 ```
 
@@ -68,8 +69,17 @@ a mapped (or `data-openthaiid`) slot — least privilege. Nested slots such as
 works if you omit `map` and tag inputs with `data-openthaiid`.
 
 This page’s copy-paste config lives in `settings.js`
-(`clinicPatientAutofill()`). The right-hand panel mutates `request` so a
-clinic can drop gender or opt into `englishName` without changing selectors.
+(`clinicPatientAutofill()`) and as JSON samples:
+
+- `kyc-minimal.json` — `citizenId` + `thaiName` + `birthDate`
+- `clinic-full.json` — clinic allowlist (`gender` + `address` too)
+
+Schema: `sdk/web/schema/autofill-clinic-config.schema.json`.
+Hospital/clinic ERP steps: [docs/erp-integration.md](../../docs/erp-integration.md).
+
+The right-hand **Developer settings** panel mutates `request`, and can
+**download / upload** that JSON (or load the samples) so integrators iterate
+without editing code. Callbacks stay in `app.js`.
 
 `probeThaiID()` / `mountThaiIDStatus()` show helper up/down, reader, and card
 present/absent in clinic-staff Thai (พร้อม). Pass `{ lang: "en" }` for English.

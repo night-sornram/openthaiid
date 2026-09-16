@@ -1,10 +1,9 @@
 # Not done
 
-Last updated after Thai Fill errors + staff training + Friday runbook:
-ERP `autofillThaiID` / `probeThaiID` messages default to Thai while codes
-stay stable; Ready-page training card ships with `-synthetic`;
-`docs/friday-checklist.md` is the one-page operator sheet. Physical ACR39U
-execution is still blocked on hardware.
+Last updated after the ERP autofill config package (schema, samples,
+`docs/erp-integration.md`, clinic JSON import/export). Thai Fill-error
+guidance, staff training, and the Friday runbook remain on `dev`. Physical
+ACR39U execution is still blocked on hardware.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional

@@ -106,34 +106,33 @@ guidance by default; `error.code` is unchanged (`formatStaffError`, `{ lang: "en
 
 ## Form autofill (same config as `@openthaiid/web`)
 
-Clinic ERP screens should keep a settings object and call it from a button —
-do not connect on render:
+Clinic ERP screens should keep a JSON config (`request` + `map`) and call it
+from a button — do not connect on render. Parse with
+`parseAutofillClinicConfig`; attach callbacks in code. Samples live in
+`examples/clinic-patient/` (`kyc-minimal.json`, `clinic-full.json`).
 
 ```tsx
-import { autofillThaiID, staffApprovalGuidance } from "@openthaiid/react";
+import { autofillThaiID, parseAutofillClinicConfig, staffApprovalGuidance } from "@openthaiid/react";
+import clinicJson from "./openthaiid-clinic-config.json";
 
-const clinicPatientAutofill = {
-  request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
-  map: {
-    citizenId: "#patient-cid",
-    "thaiName.givenName": "#patient-given",
-    "thaiName.familyName": "#patient-family",
-    birthDate: "#patient-dob",
-    gender: "#patient-gender",
-    address: "#patient-address",
-  },
-  onApprovalRequired: (info) => {
-    const g = staffApprovalGuidance(info);
-    setBanner(`${g.message} ${g.next}`);
-  },
-};
+const clinicPatientAutofill = parseAutofillClinicConfig(clinicJson);
 
-<button type="button" onClick={() => void autofillThaiID(clinicPatientAutofill)}>
+<button
+  type="button"
+  onClick={() =>
+    void autofillThaiID({
+      ...clinicPatientAutofill,
+      onApprovalRequired: (info) => {
+        const g = staffApprovalGuidance(info);
+        setBanner(`${g.message} ${g.next}`);
+      },
+    })
+  }
+>
   กรอกข้อมูล
 </button>
 ```
 
 `useThaiIDAutofill(config)` is a thin wrapper around that same object if you
 want `filling` / `approvalRequired` / `error` state. It does not read until
-`autofill()` runs from a click. Copy-paste clinic example:
-`examples/clinic-patient/`.
+`autofill()` runs from a click. Drop-in ERP steps: `docs/erp-integration.md`.

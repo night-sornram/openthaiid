@@ -70,7 +70,9 @@ same default: human messages in Thai, stable protocol **codes**. Display Fill
 failures with `formatStaffError(err)` (or `{ lang: "en" }`).
 
 `request` is an allowlist. `map` is slot → selector. Phone / HN stay off the
-map. Worked example: `examples/clinic-patient/`.
+map. JSON Schema + samples + import/export:
+[erp-integration.md](erp-integration.md). Worked example:
+`examples/clinic-patient/`.
 
 React:
 

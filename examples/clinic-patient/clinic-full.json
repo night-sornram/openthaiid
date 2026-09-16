@@ -1,0 +1,19 @@
+{
+  "$schema": "../../sdk/web/schema/autofill-clinic-config.schema.json",
+  "kind": "openthaiid.autofill-clinic",
+  "request": ["citizenId", "thaiName", "birthDate", "gender", "address"],
+  "map": {
+    "citizenId": "#patient-cid",
+    "thaiName.givenName": "#patient-given",
+    "thaiName.familyName": "#patient-family",
+    "englishName": "#patient-english",
+    "birthDate": "#patient-dob",
+    "gender": "#patient-gender",
+    "address": "#patient-address",
+    "portrait": "#patient-photo"
+  },
+  "dateFormat": "iso",
+  "genderLabels": { "male": "ชาย", "female": "หญิง" },
+  "discover": false,
+  "lang": "th"
+}

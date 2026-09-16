@@ -1,15 +1,17 @@
 /**
  * Clinic ERP drop-in settings for "Create new patient".
  *
- * Copy this object (or build it from clinic admin settings) and pass it to
- * `autofillThaiID(config)` from a button click. Do not call it on page load.
+ * Copy this object (or load `kyc-minimal.json` / `clinic-full.json`) and pass
+ * it to `autofillThaiID(config)` from a button click. Do not call it on page
+ * load. JSON Schema: `sdk/web/schema/autofill-clinic-config.schema.json`.
  *
  * - `request`: protocol fields to read (subset of supported textual fields
  *   plus optional `portrait`). Nested pieces (`thaiName.givenName`) belong
  *   in `map`, not here. Default clinic request does **not** include portrait.
  * - `map`: slot → CSS selector on this screen. Phone / HN stay unmapped.
  * - Format keys are optional; they are already supported by autofillThaiID.
- * - Attach `onApprovalRequired` / `onError` in the click handler for ERP chrome.
+ * - Attach `onApprovalRequired` / `onError` in the click handler for ERP chrome
+ *   (code-only — they are not part of the JSON config).
  */
 
 export const CLINIC_PATIENT_REQUEST = [
