@@ -22,7 +22,7 @@ type FakeWS = {
   close: () => void;
 };
 
-type ProbeMode = "probe" | "fail-open" | "hang";
+type ProbeMode = "probe" | "fail-open" | "hang" | "pcsc-down";
 
 function installFakeWebSocket(mode: ProbeMode | ProbeMode[] | { current: ProbeMode } = "probe") {
   const sockets: FakeWS[] = [];
@@ -55,18 +55,29 @@ function installFakeWebSocket(mode: ProbeMode | ProbeMode[] | { current: ProbeMo
     send(s: string) {
       this.sent.push(s);
       const msg = JSON.parse(s);
+      const mode = currentMode();
       queueMicrotask(() => {
+        const result =
+          mode === "pcsc-down"
+            ? {
+                version: "0.0.1-test",
+                synthetic: true,
+                backend: { name: "synthetic", status: "unavailable" },
+                readers: [],
+                managerUrl: "http://127.0.0.1:17891/",
+              }
+            : {
+                version: "0.0.1-test",
+                synthetic: true,
+                backend: { name: "synthetic", status: "available" },
+                readers: [{ readerId: "r1", name: "SYNTHETIC ACR39U", presence: "present", selected: true }],
+                managerUrl: "http://127.0.0.1:17891/",
+              };
         this.onmessage?.({
           data: JSON.stringify({
             v: 1,
             id: msg.id,
-            result: {
-              version: "0.0.1-test",
-              synthetic: true,
-              backend: { name: "synthetic", status: "available" },
-              readers: [{ readerId: "r1", name: "SYNTHETIC ACR39U", presence: "present", selected: true }],
-              managerUrl: "http://127.0.0.1:17891/",
-            },
+            result,
           }),
         });
       });
@@ -139,6 +150,23 @@ describe("probeThaiID", () => {
       const r = await probeThaiID({ timeoutMs: 200, lang: "en" });
       expect(r.error?.code).toBe("BRIDGE_UNAVAILABLE");
       expect(r.error?.message).toMatch(/not running/i);
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("reachable helper with card service down keeps PCSC_UNAVAILABLE", async () => {
+    const fake = installFakeWebSocket("pcsc-down");
+    try {
+      const r = await probeThaiID();
+      expect(r.reachable).toBe(true);
+      expect(r.backend?.status).toBe("unavailable");
+      expect(r.error?.code).toBe("PCSC_UNAVAILABLE");
+      expect(r.error?.message).toContain("บริการอ่านบัตร");
+      expect(r.error?.message).toContain("ทดสอบการเชื่อมต่อ");
+      expect(r.error?.message).not.toMatch(/PC\/SC|WebSocket/i);
+      expect(JSON.stringify(r)).not.toContain("1234567890121");
+      expect(fake.sockets[0]!.sent.some((s) => s.includes("card.read"))).toBe(false);
     } finally {
       fake.restore();
     }
@@ -236,6 +264,19 @@ describe("summarizeProbe", () => {
     expect(gone.headline).toBe("ยังไม่พร้อม");
     expect(gone.card).toContain("บัตร");
     expect(gone.next).toContain("กรอกข้อมูล");
+  });
+
+  it("card service down is not Ready", () => {
+    const down = summarizeProbe({
+      reachable: true,
+      backend: { name: "synthetic", status: "unavailable" },
+      readers: [{ readerId: "r1", name: "ACR39U", presence: "present", selected: true }],
+    });
+    expect(down.ready).toBe(false);
+    expect(down.headline).toBe("ยังไม่พร้อม");
+    expect(down.next).toContain("ทดสอบการเชื่อมต่อ");
+    expect(down.next).toContain("Reconnect card service");
+    expect(JSON.stringify(down)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
   });
 
   it("no readers after unplug is not Ready", () => {
@@ -351,6 +392,33 @@ describe("summarizeHelperWatch / formatTestConnection", () => {
 
     expect(formatTestConnection({ reachable: false })).toContain("ไม่สำเร็จ");
     expect(formatTestConnection({ reachable: true, readers: [] })).toContain("ไม่ได้อ่านข้อมูลบนบัตร");
+    expect(
+      formatTestConnection({
+        reachable: true,
+        backend: { name: "synthetic", status: "unavailable" },
+        readers: [],
+      }),
+    ).toContain("บริการอ่านบัตรยังไม่พร้อม");
+    expect(
+      formatTestConnection({
+        reachable: true,
+        backend: { name: "synthetic", status: "unavailable" },
+        readers: [],
+      }),
+    ).not.toMatch(/PC\/SC|WebSocket/i);
+
+    const serviceBack = summarizeHelperWatch(
+      {
+        reachable: true,
+        synthetic: true,
+        backend: { name: "synthetic", status: "available" },
+        readers: [{ readerId: "r1", name: "SYNTHETIC ACR39U", presence: "present", selected: true }],
+      },
+      "service-reconnected",
+    );
+    expect(serviceBack.headline).toBe("พร้อม (บัตรฝึกซ้อม)");
+    expect(serviceBack.next).toContain("กรอกข้อมูล");
+    expect(serviceBack.ready).toBe(true);
   });
 });
 
@@ -377,6 +445,39 @@ describe("watchThaiID", () => {
       await vi.waitFor(() => {
         expect(phases).toContain("reconnected");
       });
+      stop();
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("announces card-service loss and Ready after restore", async () => {
+    const box = { current: "probe" as ProbeMode };
+    const fake = installFakeWebSocket(box);
+    const phases: string[] = [];
+    const headlines: string[] = [];
+    try {
+      const stop = watchThaiID(
+        (u) => {
+          phases.push(u.phase);
+          headlines.push(u.summary.headline);
+        },
+        { intervalMs: 40, offlineIntervalMs: 40, serviceIntervalMs: 40, timeoutMs: 200 },
+      );
+      await vi.waitFor(() => {
+        expect(phases).toContain("online");
+        expect(headlines).toContain("พร้อม (บัตรฝึกซ้อม)");
+      });
+      box.current = "pcsc-down";
+      await vi.waitFor(() => {
+        expect(headlines).toContain("ยังไม่พร้อม");
+      });
+      box.current = "probe";
+      await vi.waitFor(() => {
+        expect(phases).toContain("service-reconnected");
+        expect(headlines).toContain("พร้อม (บัตรฝึกซ้อม)");
+      });
+      expect(JSON.stringify(headlines)).not.toContain("1234567890121");
       stop();
     } finally {
       fake.restore();

@@ -67,6 +67,15 @@ describe("staffErrorGuidance", () => {
     expect(formatStaffError({ code: "CARD_REMOVED" }, "en")).toMatch(/Ready/i);
     expect(isMidReadAbort({ code: "CARD_REMOVED" })).toBe(true);
     expect(isMidReadAbort({ code: "NO_CARD" })).toBe(false);
+    const pcsc = staffErrorGuidance({ code: "PCSC_UNAVAILABLE" });
+    expect(pcsc.code).toBe("PCSC_UNAVAILABLE");
+    expect(pcsc.next).toContain("ทดสอบการเชื่อมต่อ");
+    expect(pcsc.next).toContain("Reconnect card service");
+    expect(pcsc.next).toContain("พร้อม");
+    expect(pcsc.next).toContain("ไม่ต้องรีสตาร์ท");
+    expect(staffErrorGuidance({ code: "PCSC_UNAVAILABLE" }, "en").next).toMatch(/Test connection/i);
+    expect(staffErrorGuidance({ code: "BRIDGE_UNAVAILABLE" }).next).toContain("ทดสอบการเชื่อมต่อ");
+    expect(formatStaffError({ code: "PCSC_UNAVAILABLE" })).not.toMatch(/PC\/SC|WebSocket/i);
   });
 
   it("unknown codes stay unknown and still get guidance", () => {
@@ -153,6 +162,8 @@ describe("staffCopy status strings", () => {
     expect(c.ready).toBe("พร้อม");
     expect(c.helperLost).toContain("หลุด");
     expect(c.testConnection).toBe("ทดสอบการเชื่อมต่อ");
+    expect(c.fixService).toContain("Reconnect card service");
+    expect(c.serviceBack).toContain("กลับมา");
     expect(JSON.stringify(c)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
   });
 });

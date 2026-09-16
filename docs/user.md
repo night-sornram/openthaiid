@@ -55,6 +55,7 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 | OpenThaiID ยังไม่ทำงาน | เปิดตัวช่วย (Start Menu / แอป / `openthaiid tray`) หน้านี้รอให้กลับมาได้เอง |
 | ตัวช่วยหลุดการเชื่อมต่อ | ไม่ต้องปิดหน้าคลินิก — รอไฟสถานะ แล้วกด กรอกข้อมูล อีกครั้ง |
 | ทดสอบการเชื่อมต่อ | บนหน้า พร้อม กด **ทดสอบการเชื่อมต่อ** (ไม่อ่านข้อมูลบนบัตร) |
+| หลังเครื่องหลับ/ตื่น หรือบริการอ่านบัตรสะดุด | ไม่ต้องรีสตาร์ทเครื่อง กด **ทดสอบการเชื่อมต่อ** ถ้ายังไม่ **พร้อม** ให้ช่างเทคนิคกด **Reconnect card service** (`PCSC_UNAVAILABLE`) |
 | ไม่พบเครื่องอ่านบัตร | ถอดแล้วเสียบเครื่องอ่านใหม่ รอไฟ **พร้อม** |
 | เครื่องอ่านถูกถอดระหว่างอ่าน | เสียบเครื่องอ่าน เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`READER_REMOVED`) |
 | บัตรถูกถอดระหว่างอ่าน | เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`CARD_REMOVED`) อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ |
@@ -101,6 +102,9 @@ Technician tools stay English.
    shows personal card data. On the Ready page, **ทดสอบการเชื่อมต่อ / Test
    connection** runs a safe probe (no personal fields). If the helper
    restarts, leave the page open — it detects the helper coming back.
+   After sleep/wake, Ready re-probes without reading card fields; do not
+   reboot. If the card service is down (`PCSC_UNAVAILABLE`), ask a
+   technician to click **Reconnect card service**, then wait until Ready.
    If the card is pulled or the reader is unplugged during Fill, wait until
    Ready says **พร้อม / Ready**, then click Fill again. Do not use half-filled
    values (`CARD_REMOVED` / `READER_REMOVED`).

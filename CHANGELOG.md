@@ -35,6 +35,14 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   remains on `{ lang: "en" }` and qualify prompts. Friday E4 maps to these
   codes in [friday-checklist.md](docs/friday-checklist.md) and
   [hardware-qualification.md](docs/hardware-qualification.md).
+- Sleep/wake and PC/SC recovery UX: Ready re-probes on `pageshow` /
+  visibility / `online` (`bridge.probe` + status, never `card.read`).
+  Helper down stays `BRIDGE_UNAVAILABLE`; card service down is
+  `PCSC_UNAVAILABLE` with Thai “do not reboot / Test connection /
+  Reconnect card service / wait for **พร้อม**”. `watchThaiID` and Ready
+  detect backend unavailable → restored and say **พร้อม** again when the
+  card is seated. Synthetic `SetServiceDown` covers that path without
+  simulating OS sleep. Friday E5/E6 mapped in the same docs.
 - `autofillThaiID` waits for the helper before `session.open`. It still
   never auto-repeats a card read.
 - Ready page **ทดสอบการเชื่อมต่อ** (and the SDK status widget button):

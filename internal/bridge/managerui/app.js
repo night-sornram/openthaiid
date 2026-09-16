@@ -30,8 +30,8 @@ const I18N = {
     helperOn: "OpenThaiID กำลังทำงานบนเครื่องนี้",
     helperOff: "OpenThaiID ยังไม่ทำงาน",
     plugReader: "เสียบเครื่องอ่านบัตรเข้าเครื่องนี้",
-    serviceStalled: "บริการอ่านบัตรไม่ตอบสนอง เปิด Technician tools",
-    serviceOff: "บริการอ่านบัตรปิดอยู่ ให้ช่างเทคนิคเปิดบริการ",
+    serviceStalled: "บริการอ่านบัตรไม่ตอบสนอง เปิด Technician tools — ไม่ต้องรีสตาร์ทเครื่อง",
+    serviceOff: "บริการอ่านบัตรยังไม่พร้อม (หลังเครื่องหลับก็เจอได้) ไม่ต้องรีสตาร์ทเครื่อง",
     readerConnected: "ต่อเครื่องอ่านแล้ว",
     insertAfterReader: "เสียบบัตรหลังจากต่อเครื่องอ่านแล้ว",
     unsupportedCard: "บัตรนี้ไม่ใช่บัตรประชาชนไทย",
@@ -39,7 +39,7 @@ const I18N = {
     cardInserted: "เสียบบัตรแล้ว",
     nextFillClinic: "เปิดหน้าคลินิก แล้วกด กรอกข้อมูล",
     startHelper: "เปิด OpenThaiID บนเครื่องนี้",
-    fixService: "ให้ช่างเทคนิคแก้ไขบริการอ่านบัตร",
+    fixService: "กด ทดสอบการเชื่อมต่อ หรือให้ช่างเทคนิคกด Reconnect card service แล้วรอ พร้อม",
     insertThenFill: "เสียบบัตรประชาชนของผู้ป่วย แล้วกด กรอกข้อมูล ในหน้าคลินิก",
     pendingAllow: "หน้าคลินิกกำลังรอ — กดอนุญาตด้านล่าง แล้วกด กรอกข้อมูล",
     multiReader: "มีเครื่องอ่านมากกว่าหนึ่งเครื่อง เลือกเครื่องด้านล่าง",
@@ -55,12 +55,16 @@ const I18N = {
     helperLostHeadline: "ตัวช่วยหลุดการเชื่อมต่อ",
     helperWaiting: "กำลังรอให้ OpenThaiID กลับมาบนเครื่องนี้ ไม่ต้องปิดหน้านี้",
     helperBack: "ตัวช่วยกลับมาแล้ว กด กรอกข้อมูล ได้ตามปกติ",
+    serviceBack: "บริการอ่านบัตรกลับมาแล้ว",
+    serviceBackReady: "บริการอ่านบัตรกลับมาแล้ว — พร้อม",
     readerUnknown: "เครื่องอ่านบัตร: ยังไม่ทราบ จนกว่าตัวช่วยจะกลับมา",
     cardUnknown: "บัตร: ยังไม่ทราบ จนกว่าตัวช่วยจะกลับมา",
     testConnection: "ทดสอบการเชื่อมต่อ",
     testingConnection: "กำลังทดสอบการเชื่อมต่อ…",
     testOk: "การเชื่อมต่อปกติ — ไม่ได้อ่านข้อมูลบนบัตร",
     testFail: "ทดสอบการเชื่อมต่อไม่สำเร็จ กำลังรอให้ OpenThaiID กลับมา",
+    testServiceOff: "ตัวช่วยทำงาน แต่บริการอ่านบัตรยังไม่พร้อม — ไม่ได้อ่านข้อมูลบนบัตร",
+    testServiceStalled: "ตัวช่วยทำงาน แต่บริการอ่านบัตรไม่ตอบสนอง — ไม่ได้อ่านข้อมูลบนบัตร",
     testWsFail: "หน้านี้ติดต่อช่องทางเดียวกับหน้าคลินิกไม่ได้",
     trainingTitle: "ฝึกใช้ก่อนได้เครื่องจริง",
     trainingHelp:
@@ -105,8 +109,8 @@ const I18N = {
     helperOn: "OpenThaiID is running on this computer.",
     helperOff: "OpenThaiID is not running.",
     plugReader: "Plug the card reader into this computer.",
-    serviceStalled: "The card service is not responding. Open Technician tools.",
-    serviceOff: "The card service is off. Ask a technician to start it.",
+    serviceStalled: "The card service is not responding. Open Technician tools — do not reboot.",
+    serviceOff: "The card service is not ready (this can happen after sleep). Do not reboot.",
     readerConnected: "Reader connected",
     insertAfterReader: "Insert the card after the reader is connected.",
     unsupportedCard: "This card is not a Thai National ID.",
@@ -114,7 +118,7 @@ const I18N = {
     cardInserted: "Card is inserted.",
     nextFillClinic: "Open the clinic page and click Fill.",
     startHelper: "Start OpenThaiID on this computer.",
-    fixService: "Ask a technician to fix the card service.",
+    fixService: "Click Test connection, or ask a technician to click Reconnect card service, then wait until Ready.",
     insertThenFill: "Insert the patient’s Thai ID card, then click Fill in the clinic page.",
     pendingAllow: "A clinic page is waiting — Allow it below, then click Fill.",
     multiReader: "More than one reader is plugged in. Choose one below.",
@@ -130,12 +134,16 @@ const I18N = {
     helperLostHeadline: "The helper disconnected",
     helperWaiting: "Waiting for OpenThaiID to come back on this computer. Leave this page open.",
     helperBack: "The helper is back. Click Fill as usual.",
+    serviceBack: "The card service is back",
+    serviceBackReady: "The card service is back — Ready",
     readerUnknown: "Card reader: unknown until the helper is back.",
     cardUnknown: "Card: unknown until the helper is back.",
     testConnection: "Test connection",
     testingConnection: "Testing connection…",
     testOk: "Connection is OK — no personal card fields were read.",
     testFail: "Connection test failed. Waiting for OpenThaiID to come back.",
+    testServiceOff: "The helper is running, but the card service is not ready — no personal card fields were read.",
+    testServiceStalled: "The helper is running, but the card service is not responding — no personal card fields were read.",
     testWsFail: "This page could not reach the same channel the clinic page uses.",
     trainingTitle: "Practice before the real reader arrives",
     trainingHelp:
@@ -384,6 +392,21 @@ function noteHelperBack() {
   }, 4000);
 }
 
+function noteServiceBack(data) {
+  const prev = window.__lastBackendStatus;
+  const next = data && data.backend && data.backend.status;
+  window.__lastBackendStatus = next;
+  if (window.__helperOffline) return;
+  if ((prev === "unavailable" || prev === "stalled") && next === "available") {
+    const ready = summarize(data).ready;
+    setLiveNote(ready ? t("serviceBackReady") : t("serviceBack"));
+    if (window.__liveNoteTimer) clearTimeout(window.__liveNoteTimer);
+    window.__liveNoteTimer = setTimeout(() => {
+      setLiveNote("");
+    }, 4000);
+  }
+}
+
 function helperWsUrl() {
   const fromStatus = window.__lastStatus && window.__lastStatus.wsUrl;
   if (typeof fromStatus === "string" && fromStatus) return fromStatus;
@@ -454,8 +477,8 @@ function formatTestResult(data, probe) {
   const readers = (probe && probe.readers) || data.readers || [];
   const selected = activeReader(readers);
   const present = selected ? selected.presence === "present" : readers.some((r) => r.presence === "present");
-  if (backend === "stalled") return `${t("testOk")} · ${t("serviceStalled")}`;
-  if (backend === "unavailable") return `${t("testOk")} · ${t("serviceOff")}`;
+  if (backend === "stalled") return t("testServiceStalled");
+  if (backend === "unavailable") return t("testServiceOff");
   if (!readers.length) return `${t("testOk")} · ${t("plugReader")}`;
   if (needsReaderChoice(readers)) return `${t("testOk")} · ${t("multiReader")}`;
   if (present) return `${t("testOk")} · ${t("cardInserted")}`;
@@ -700,7 +723,7 @@ function renderReaders(data) {
     els.readersEmpty.hidden = false;
     if (data.backend && data.backend.status === "unavailable") {
       els.readersEmpty.textContent =
-        "Card service is down. On Linux start pcscd; on Windows start the Smart Card service; then Reconnect.";
+        "Card service is down (sleep/wake or stopped PC/SC). Start pcscd (Linux) or the Smart Card service (Windows), then Reconnect card service. Ready should return to พร้อม / Ready — do not reboot.";
     } else {
       els.readersEmpty.textContent = "No card readers detected. Plug in a reader and click Refresh readers.";
     }
@@ -930,6 +953,7 @@ function render(data) {
 async function loadOnce() {
   const data = await api("/v1/manager/status");
   noteHelperBack();
+  noteServiceBack(data);
   render(data);
 }
 
@@ -1139,9 +1163,32 @@ els.copyDiag.addEventListener("click", () => void copyDiagnostics());
 els.copyAudit?.addEventListener("click", () => void copyAuditJSON());
 els.exportAudit?.addEventListener("click", () => downloadAuditJSON());
 els.verbose.addEventListener("change", () => void setVerbose(els.verbose.checked));
+
+let wakeRefreshTimer = null;
+function gentleWakeRefresh() {
+  if (typeof document !== "undefined" && document.visibilityState && document.visibilityState !== "visible") {
+    return;
+  }
+  if (wakeRefreshTimer) clearTimeout(wakeRefreshTimer);
+  wakeRefreshTimer = setTimeout(() => {
+    wakeRefreshTimer = null;
+    void (async () => {
+      await load();
+      if (window.__helperOffline) return;
+      try {
+        await probeHelper();
+      } catch {
+        // Status lights already updated; never reads personal card fields.
+      }
+    })();
+  }, 80);
+}
+
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") void load();
+  if (document.visibilityState === "visible") gentleWakeRefresh();
 });
+window.addEventListener("pageshow", () => gentleWakeRefresh());
+window.addEventListener("online", () => gentleWakeRefresh());
 
 void load();
 let statusPollTimer = null;
@@ -1149,7 +1196,9 @@ function scheduleStatusPoll() {
   if (statusPollTimer) clearTimeout(statusPollTimer);
   const ready = Boolean(window.__lastStatus && summarize(window.__lastStatus).ready);
   const hidden = document.visibilityState !== "visible";
-  const ms = hidden ? 4000 : ready ? 400 : 1500;
+  const backend = window.__lastStatus && window.__lastStatus.backend && window.__lastStatus.backend.status;
+  const serviceDown = backend === "unavailable" || backend === "stalled";
+  const ms = hidden ? 4000 : window.__helperOffline || serviceDown ? 500 : ready ? 400 : 1500;
   statusPollTimer = setTimeout(async () => {
     if (document.visibilityState === "visible") await load();
     scheduleStatusPoll();

@@ -31,9 +31,12 @@ The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
   ([installation.md](installation.md)).
 - Confirm `http://127.0.0.1:17891/` loads, or use tray **Open Ready page**.
 - Ready page **ทดสอบการเชื่อมต่อ / Test connection** is `bridge.probe` +
-  status only — if that fails, the ERP Fill path will fail too.
+  status only — if that fails, the ERP Fill path will fail too
+  (`BRIDGE_UNAVAILABLE`).
 - After a helper restart, leave the Ready page open: it refreshes the CSRF
   token and shows **ตัวช่วยหลุดการเชื่อมต่อ** until the helper is back.
+- After OS sleep/wake the Ready page re-probes (same `bridge.probe` / status
+  path — never `card.read`). Do not reboot the PC.
 - `openthaiid status` prints helper / reader / card without personal fields.
 - There is no cloud service to restart.
 
@@ -49,11 +52,16 @@ The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
 
 ### 2. No reader / card service down
 
-Lights: helper running, reader not connected.
+Lights: helper running, reader not connected — or **บริการอ่านบัตรยังไม่พร้อม**.
 
 - Unplug/replug the reader, then **Refresh readers**.
-- **Reconnect card service** if the status is stalled or unavailable.
-- Linux: `pcscd` running. Windows: Smart Card service. macOS: built-in PC/SC.
+- **Reconnect card service** if the status is stalled or unavailable
+  (`PCSC_UNAVAILABLE` / `BACKEND_STALLED`). Ready / `probeThaiID()` must
+  leave **พร้อม** while the service is down and return to **พร้อม** after
+  recovery (card seated). Do not reboot.
+- Linux: start `pcscd`, then Reconnect if lights stay down. Windows: start
+  the Smart Card service, then Reconnect. macOS: built-in PC/SC (Friday E6
+  is often SKIP).
 - Two readers and none selected: **Use this reader** (Ready page for staff,
   English **Readers** list here). Probe, status, and Fill then use that reader.
   Audit events may include `readerId` (device id, not card data).
@@ -161,6 +169,15 @@ Friday **E4** (physical): pull the card during Fill → `CARD_REMOVED`; unplug
 the reader during Fill → `READER_REMOVED`; opaque native I/O → `READ_FAILED`.
 Staff Thai on the clinic page; this page stays English. Synthetic tests
 already cover the codes — hardware still has to tick E4.
+
+Friday **E5** (physical): browser refresh, helper quit/start, OS sleep/wake.
+Helper down → `BRIDGE_UNAVAILABLE` and Test connection fails. After wake,
+Ready re-probes without reading card fields. Do not reboot.
+
+Friday **E6** (physical): stop `pcscd` / Smart Card service if safe →
+`PCSC_UNAVAILABLE`, Test connection stays probe-only, **Reconnect card
+service**, Ready says **พร้อม** again. macOS SKIP if you cannot stop PC/SC.
+Synthetic tests cover unavailable → restored without simulating sleep.
 
 ## Verbose logging
 

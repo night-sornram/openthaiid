@@ -71,7 +71,10 @@ same default: human messages in Thai, stable protocol **codes**. Display Fill
 failures with `formatStaffError(err)` (or `{ lang: "en" }`). If Fill stops
 because the card was pulled or the reader was unplugged, those codes stay
 `CARD_REMOVED` / `READER_REMOVED`; Thai copy tells staff to wait for Ready
-and Fill again. `autofillThaiID` writes mapped fields only after a complete
+and Fill again. After sleep/wake or a card-service hiccup, `PCSC_UNAVAILABLE`
+/ `BRIDGE_UNAVAILABLE` tell staff not to reboot: Test connection, then
+technician **Reconnect card service**, then wait for **พร้อม**. `autofillThaiID`
+writes mapped fields only after a complete
 successful read and clears those mapped fields on a mid-read abort so a
 previous patient’s values are not mixed with a failed Fill (phone / HN
 unmapped fields stay).

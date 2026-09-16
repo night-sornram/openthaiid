@@ -1,18 +1,20 @@
 # Not done
 
-Last updated after **card-removed / mid-op recovery**: software surfaces Thai
-staff guidance for `CARD_REMOVED` / `READER_REMOVED` during Fill, updates
-Ready/status when the card or reader leaves, and covers those paths with
-synthetic tests. Physical ACR39U execution (including Friday E4 on hardware)
-is still blocked. Do **not** tag from this working tree unless a coordinator
-is cutting a new RC.
+Last updated after **sleep/wake + PC/SC recovery UX**: software surfaces Thai
+staff guidance for `BRIDGE_UNAVAILABLE` / `PCSC_UNAVAILABLE` after helper
+loss or a card-service hiccup, Ready/status re-probe on wake (no card
+fields) and return to **พร้อม** after Reconnect, and synthetic tests cover
+backend unavailable → restored. Physical ACR39U execution (including Friday
+E5/E6 on hardware) is still blocked. Do **not** tag from this working tree
+unless a coordinator is cutting a new RC.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
 portrait (synthetic), the qualification *kit*, unsigned macOS packaging
-instructions, reconnect/test-connection staff UX, multi-reader select, and
-card-removed / unplug clinic UX are implemented. This file lists everything
-that is **not** complete for a **hardware-qualified** release.
+instructions, reconnect/test-connection staff UX, multi-reader select,
+card-removed / unplug clinic UX, and sleep/wake + PC/SC recovery mapping
+are implemented. This file lists everything that is **not** complete for a
+**hardware-qualified** release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,
@@ -29,8 +31,8 @@ locally.
 | E2 | 100 successful repeated MVP reads (no field values stored in reports) | ACR39U. Kit records pass/fail + timing + codes only |
 | E3 | ≥20 insertion/removal cycles | ACR39U |
 | E4 | Removal during reading and reader unplug | ACR39U |
-| E5 | Browser refresh, bridge restart, sleep/wake | ACR39U + browser |
-| E6 | Missing/stopped PC/SC service recovery where applicable | OS PC/SC |
+| E5 | Browser refresh, bridge restart, sleep/wake | ACR39U + browser (software mapped; physical still required) |
+| E6 | Missing/stopped PC/SC service recovery where applicable | OS PC/SC (synthetic unavailable→restore done; physical still required) |
 | E7 | Local visual verification without storing field contents | Operator |
 | — | Windows physical qualification | Windows host + reader |
 | — | Linux physical qualification | Linux host + reader |
