@@ -13,7 +13,21 @@
 
 ## สั้น ๆ
 
-1. สร้างตัวช่วยฝึกซ้อม:
+ซ้อมก่อนได้เครื่อง (เส้นทางซอฟต์แวร์เช้าวันศุกร์บนบัตรจำลอง — ไม่ใช่ผ่าน ACR39U):
+
+```bash
+make friday-dry-run
+# ซ้อมเลือกเครื่องอ่าน (สองเครื่องจำลอง):
+./scripts/friday-dry-run.sh --two-readers
+# Windows: powershell -ExecutionPolicy Bypass -File scripts/friday-dry-run.ps1
+```
+
+คำสั่งนี้สร้างตัวช่วยถ้ายังไม่มี เปิด `-synthetic` รัน qualify-smoke ตรวจ
+หน้า พร้อม / `GET /v1/helper/summary` / ทดสอบการเชื่อมต่อ (`bridge.probe`)
+แล้วพิมพ์สรุปผ่าน ไทย/อังกฤษ ชี้ไปที่ [getting-started.md](getting-started.md)
+กับ [friday-checklist.md](friday-checklist.md) — ไม่พิมพ์เลขบัตร ชื่อ หรือรูป
+
+1. เปิดตัวช่วยฝึกซ้อมเอง (ถ้ายังไม่ได้รัน dry-run):
 
    ```bash
    make build
@@ -67,7 +81,9 @@
 
 # Practice before the real reader arrives (English)
 
-Start `./dist/openthaiid -synthetic`, open
+Start with `make friday-dry-run` (ซ้อมก่อนได้เครื่อง) to rehearse the
+Friday-morning software path on `-synthetic` without an ACR39U. Then start
+`./dist/openthaiid -synthetic`, open
 `examples/clinic-patient/`, click Fill, then **Allow** on the Ready page.
 The form shows fictional card data. Do not send screenshots or field
 values in tickets — diagnostics, `openthaiid audit` JSON, and error

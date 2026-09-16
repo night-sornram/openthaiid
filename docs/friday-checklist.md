@@ -5,7 +5,8 @@
 เสียบเครื่องอ่าน → พร้อม → qualify → กรอกข้อมูล → ส่งให้ jarvis เฉพาะวินิจฉัย
 **ห้าม** ส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR ที่มียอด `card.read`
 
-ฝึกซ้อมโดยไม่มีเครื่อง: [training.md](training.md) (`-synthetic`)
+ฝึกซ้อมโดยไม่มีเครื่อง: [training.md](training.md) (`make friday-dry-run` /
+`-synthetic`) — ซ้อมก่อนได้เครื่อง ไม่ใช่ผ่าน ACR39U
 ชุดเต็ม: [hardware-qualification.md](hardware-qualification.md)
 
 ## 1. เสียบเครื่องอ่าน → พร้อม

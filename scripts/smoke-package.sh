@@ -81,6 +81,13 @@ grep -q "technician.md" docs/getting-started.md
 grep -q "getting-started.md" docs/friday-checklist.md
 grep -q "getting-started.md" docs/user.md
 grep -q "getting-started.md" docs/training.md
+grep -q "friday-dry-run" docs/getting-started.md
+grep -q "ซ้อมก่อนได้เครื่อง" docs/getting-started.md
+grep -q "friday-dry-run" docs/training.md
+grep -q "ซ้อมก่อนได้เครื่อง" docs/training.md
+grep -q "friday-dry-run" Makefile
+test -f scripts/friday-dry-run.sh
+test -f scripts/friday-dry-run.ps1
 grep -q "getting-started.md" docs/erp-integration.md
 grep -q "getting-started.md" docs/technician.md
 grep -q "getting-started.md" packaging/START-HERE.linux.txt

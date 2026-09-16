@@ -1,10 +1,11 @@
 # Not done
 
-Last updated after the **Getting started + Ready accessibility** pass on
-`dev` (post v0.1.0-rc.3 prep). Friday-morning doc hub and larger Ready
-controls are in tree. Physical ACR39U execution (including Friday E4–E6 on
-hardware) is still blocked. This tree remains **tag-ready** for
-`v0.1.0-rc.3` after review of that RC; this pass is Unreleased polish.
+Last updated after the **Friday dry-run (ซ้อมก่อนได้เครื่อง)** pass on `dev`
+(post getting-started hub / v0.1.0-rc.3). One command rehearses the
+Friday-morning software path on `-synthetic` without a reader. Physical
+ACR39U execution (including Friday E4–E6 on hardware) is still blocked.
+This tree remains **tag-ready** for `v0.1.0-rc.3` after review of that RC;
+this pass is Unreleased polish.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -16,8 +17,8 @@ are implemented. This file lists everything that is **not** complete for a
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,
-`make qualify-smoke`, `make smoke-package`, and `make acceptance-firefox`
-locally.
+`make qualify-smoke`, `make friday-dry-run`, `make smoke-package`, and
+`make acceptance-firefox` locally.
 
 ---
 
@@ -71,7 +72,8 @@ Auto-update against GitHub Releases is implemented for **unsigned** assets.
 
 ## How to close the remaining work
 
-1. Local: `make test`, `make qualify-smoke`, `make smoke-package`, and
+1. Local: `make test`, `make qualify-smoke`, `make friday-dry-run`,
+   `make smoke-package`, and
    `make acceptance-firefox` (Linux). On macOS, `make package-macos` and
    `make acceptance-webkit`. Real Safari is still a headed check.
 2. Connect an ACR39U on macOS; complete

@@ -127,7 +127,8 @@ the clinic page you are using. Match the code if the ERP shows one.
 
 Do not send screenshots of the patient’s card or of filled form fields.
 
-Practice without a reader: [training.md](training.md) (`openthaiid -synthetic`).
+Practice without a reader: [training.md](training.md) (`make friday-dry-run`, then
+`openthaiid -synthetic`).
 Friday with ACR39U (multi-reader, E4 card-removed / unplug, E5/E6 sleep and
 PC/SC recovery): [friday-checklist.md](friday-checklist.md).
 Technicians (Reconnect card service, **Use this reader**):
