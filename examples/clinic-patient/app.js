@@ -1,4 +1,4 @@
-import { autofillThaiID, mountThaiIDStatus } from "../../sdk/web/dist/index.js";
+import { autofillThaiID, formatStaffError, mountThaiIDStatus, staffApprovalGuidance, staffLang } from "../../sdk/web/dist/index.js";
 import {
   CLINIC_GENDER_LABELS,
   CLINIC_PATIENT_MAP,
@@ -19,6 +19,7 @@ const genderLabelsSelect = document.getElementById("gender-labels");
 
 const qs = new URLSearchParams(location.search);
 const endpoint = qs.get("ws") || undefined;
+const lang = staffLang(qs.get("lang"));
 
 const requestable = [...CLINIC_PATIENT_REQUEST, ...OPTIONAL_PATIENT_REQUEST, ...OPTIONAL_PORTRAIT_REQUEST];
 const selected = new Set(CLINIC_PATIENT_REQUEST);
@@ -104,23 +105,21 @@ fillBtn.addEventListener("click", async () => {
   hideBanner();
   const config = currentConfig();
   if (!config.request.length) {
-    showBanner("error", "Enable at least one field in request.");
+    showBanner("error", lang === "en" ? "Enable at least one field in request." : "เลือกอย่างน้อยหนึ่งช่องใน request");
     fillBtn.disabled = false;
     return;
   }
   try {
     const { filled } = await autofillThaiID({
       ...config,
-      onApprovalRequired: ({ comparisonCode, approvalId, fields }) => {
-        showBanner(
-          "approval",
-          `Approve this ERP origin on this PC (OpenThaiID helper) — request ${approvalId}, code ${comparisonCode} (fields: ${fields.join(", ")}).`,
-        );
+      lang,
+      onApprovalRequired: (info) => {
+        const g = staffApprovalGuidance(info, lang);
+        showBanner("approval", `${g.message} ${g.next}`);
       },
       onError: (err) => {
         const code = err && err.code ? err.code : "ERROR";
-        const message = err && err.message ? err.message : String(err);
-        showBanner("error", `${code}: ${message}`);
+        showBanner("error", `${formatStaffError(err, lang)} (${code})`);
       },
     });
     const photo = document.getElementById("patient-photo");
@@ -128,14 +127,17 @@ fillBtn.addEventListener("click", async () => {
     if (photo) {
       photo.hidden = !filledPortrait || !photo.getAttribute("src");
     }
-    showBanner(
-      "ok",
-      filled.length
-        ? `Filled ${filled.length} field(s) from Thai ID. Phone and HN were left blank.${
-            filledPortrait ? " Portrait preview is example-only — do not screenshot it." : ""
-          }`
-        : "Connected, but no values to fill.",
-    );
+    const okTh = filled.length
+      ? `กรอกแล้ว ${filled.length} ช่องจากบัตรประชาชน เบอร์โทรและ HN ไม่ได้อยู่บนบัตรจึงว่างไว้${
+          filledPortrait ? " รูปถ่ายเป็นตัวอย่างในหน้านี้เท่านั้น — ห้ามถ่ายภาพหน้าจอ" : ""
+        }`
+      : "เชื่อมต่อแล้ว แต่ไม่มีค่าให้กรอก";
+    const okEn = filled.length
+      ? `Filled ${filled.length} field(s) from Thai ID. Phone and HN were left blank.${
+          filledPortrait ? " Portrait preview is example-only — do not screenshot it." : ""
+        }`
+      : "Connected, but no values to fill.";
+    showBanner("ok", lang === "en" ? okEn : okTh);
   } catch {
     // onError already updated ERP chrome; keep the rejection from bubbling as an unhandled promise.
   } finally {
@@ -179,4 +181,4 @@ genderLabelsSelect.addEventListener("change", () => {
 renderSettings();
 syncGenderOptions();
 const statusHost = document.getElementById("thaiid-status");
-if (statusHost) mountThaiIDStatus(statusHost);
+if (statusHost) mountThaiIDStatus(statusHost, { lang, ...(endpoint ? { endpoint } : {}) });

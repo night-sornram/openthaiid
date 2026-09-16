@@ -98,7 +98,7 @@ For a Create Patient screen, keep one config object (clinic admin can persist
 `request`) and call it from the button:
 
 ```js
-import { autofillThaiID } from "@openthaiid/web";
+import { autofillThaiID, formatStaffError, staffApprovalGuidance } from "@openthaiid/web";
 
 const clinicPatientAutofill = {
   request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
@@ -112,11 +112,12 @@ const clinicPatientAutofill = {
   },
   dateFormat: "iso",
   genderLabels: { male: "male", female: "female" },
-  onApprovalRequired: ({ comparisonCode, approvalId }) => {
-    showBanner(`Approve in the terminal — request ${approvalId}, code ${comparisonCode}`);
+  onApprovalRequired: (info) => {
+    const g = staffApprovalGuidance(info); // Thai default; pass "en" for English
+    showBanner(`${g.message} ${g.next}`);
   },
   onError: (err) => {
-    showBanner(`${err.code ?? "ERROR"}: ${err.message ?? err}`);
+    showBanner(`${formatStaffError(err)} (${err.code ?? "ERROR"})`);
   },
 };
 
@@ -129,6 +130,8 @@ fillBtn.addEventListener("click", async () => {
   asks only for fields that also have a mapped or `data-openthaiid` target.
 - `map` — alias of `fields` (slot → selector). Phone / HN stay off the map.
 - `onApprovalRequired` / `onError` — ERP chrome; the promise still rejects.
+  Default Fill error **messages** are Thai staff guidance; `err.code` is
+  unchanged. Pass `{ lang: "en" }` or `formatStaffError(err, "en")`.
 - Portrait is optional. Request `portrait` and map it to an `<img>` (data URL)
   or consume `result.fields.portrait` via `portraitDataUrl` / `portraitBlob`.
   Do not call this on page load; do not log photo bytes.

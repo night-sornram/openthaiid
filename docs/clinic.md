@@ -26,6 +26,8 @@ That is the product for clinic ERP teams: one helper in the page you already
 have.
 
 Clinic staff (start helper, plug reader, Fill): [user.md](user.md).
+Practice without a reader: [training.md](training.md).
+Friday with ACR39U: [friday-checklist.md](friday-checklist.md).
 Technicians (Fill failed): [technician.md](technician.md).
 
 ## What you add (and what you do not)
@@ -63,7 +65,9 @@ mountThaiIDStatus(document.getElementById("reader-status"));
 
 `mountThaiIDStatus` defaults to Thai clinic-staff copy (พร้อม / ยังไม่พร้อม).
 Pass `{ lang: "en" }` for English, or `{ mode: "advanced" }` for technician
-details (English) on the same page.
+details (English) on the same page. `autofillThaiID` / `probeThaiID` use the
+same default: human messages in Thai, stable protocol **codes**. Display Fill
+failures with `formatStaffError(err)` (or `{ lang: "en" }`).
 
 `request` is an allowlist. `map` is slot → selector. Phone / HN stay off the
 map. Worked example: `examples/clinic-patient/`.

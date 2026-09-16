@@ -7,12 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Thai staff UX and a stronger Friday qualify kit on `dev` while ACR39U
-hardware is in transit. **Do not enable GitHub Actions.** Physical E1–E7
-execution still waits on the reader. Packages remain **unsigned** (not
-notarized).
+Thai Fill-error guidance, staff training, and a one-page Friday runbook on
+`dev` while ACR39U hardware is in transit. **Do not enable GitHub Actions.**
+Physical E1–E7 execution still waits on the reader. Packages remain
+**unsigned** (not notarized).
 
 ### Added
+
+- Clinic Fill / probe errors default to **Thai** staff guidance
+  (`formatStaffError`, `staffErrorGuidance`) while protocol **codes** stay
+  stable (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `APPROVAL_REQUIRED` /
+  `APPROVAL_DENIED`, `FIELD_NOT_ALLOWED`, …). English: `{ lang: "en" }`.
+  `autofillThaiID` and `probeThaiID` localize `ThaiIDError.message` for ERP
+  chrome. Wire/technician messages remain English.
+- Staff training: Ready-page **ฝึกใช้ก่อนได้เครื่องจริง** card in
+  `-synthetic`, Thai clinic example flow, [docs/training.md](docs/training.md).
+- One-page Friday runbook: [docs/friday-checklist.md](docs/friday-checklist.md)
+  (plug reader → Ready → qualify → Fill → diagnostics only for tickets).
+
+### Changed
+
+- Practice-mode Ready copy no longer hides a pending Allow prompt.
+- Clinic example staff chrome is Thai-first (`?lang=en` fallback).
+
+### Added (Thai staff UX)
 
 - Clinic-staff Ready copy defaults to **Thai** (พร้อม / ยังไม่พร้อม) on the
   helper page, `mountThaiIDStatus` / `summarizeProbe`, tray **แสดงสถานะ**,

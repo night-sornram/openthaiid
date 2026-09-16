@@ -39,6 +39,14 @@ const I18N = {
     practiceNext: "โหมดฝึกซ้อม: กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
     bannerPractice:
       "โหมดฝึกซ้อม: เครื่องอ่านและบัตรจำลอง ไม่มีข้อมูลบุคคล กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
+    trainingTitle: "ฝึกใช้ก่อนได้เครื่องจริง",
+    trainingHelp:
+      "ใช้ตัวช่วยโหมดฝึกซ้อม ไม่ต้องมีเครื่องอ่านจริง ครั้งแรกยังต้องกดอนุญาต ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต",
+    training1: "เปิดตัวช่วยด้วยคำสั่ง openthaiid -synthetic (หน้านี้ถ้าเห็นบัตรฝึกซ้อม แปลว่าเปิดแล้ว)",
+    training2: "เปิดตัวอย่างคลินิก examples/clinic-patient/ จากโฟลเดอร์โปรเจกต์",
+    training3: "กด กรอกข้อมูล ในหน้าคลินิก",
+    training4: "กลับมาที่นี่ แล้วกด อนุญาต สำหรับหน้านั้น (ให้รหัสตรงกันถ้ามี)",
+    training5: "ช่องในหน้าคลินิกมีข้อมูลบัตรจำลอง — นั่นไม่ใช่ผู้ป่วยจริง",
     allow: "อนุญาต",
     deny: "ไม่อนุญาต",
     wouldFill: "จะกรอก:",
@@ -90,6 +98,14 @@ const I18N = {
     practiceNext: "Practice mode: Fill in the clinic page still needs Allow the first time.",
     bannerPractice:
       "Practice mode: fictional reader and card. No personal data. Fill in the clinic page still needs Allow the first time.",
+    trainingTitle: "Practice before the real reader arrives",
+    trainingHelp:
+      "Use the practice helper. No physical reader required. The first Fill still needs Allow. Do not send screenshots or field values in tickets.",
+    training1: "Start the helper with openthaiid -synthetic (this page already shows a practice card if that is running).",
+    training2: "Open the clinic example at examples/clinic-patient/ from the repo.",
+    training3: "Click Fill on the clinic page.",
+    training4: "Come back here and Allow that origin (match the code if one is shown).",
+    training5: "The clinic form shows fictional card data — not a real patient.",
     allow: "Allow",
     deny: "Don't allow",
     wouldFill: "This would fill:",
@@ -196,6 +212,7 @@ const els = {
   copyDiag: document.getElementById("copy-diag"),
   verbose: document.getElementById("verbose"),
   lastErrors: document.getElementById("last-errors"),
+  trainingCard: document.getElementById("training-card"),
 };
 
 function pill(text, kind) {
@@ -337,8 +354,7 @@ function summarize(data) {
   else if (pending) next = t("pendingAllow");
   else if (readers.length > 1 && !readers.some((r) => r.selected)) {
     next = t("multiReader");
-  }
-  if (ready && data.synthetic) {
+  } else if (ready && data.synthetic) {
     next = t("practiceNext");
   }
 
@@ -584,8 +600,10 @@ function render(data) {
   if (data.synthetic) {
     els.banner.hidden = false;
     els.banner.textContent = t("bannerPractice");
+    if (els.trainingCard) els.trainingCard.hidden = false;
   } else {
     els.banner.hidden = true;
+    if (els.trainingCard) els.trainingCard.hidden = true;
   }
 
   renderReaders(data);

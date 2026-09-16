@@ -57,6 +57,14 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 ห้ามส่งภาพหน้าจอของบัตรผู้ป่วย หรือของช่องที่กรอกแล้ว
 หน้าตัวช่วยไม่ต้องการค่านั้นเพื่อหาสาเหตุ
 
+## ฝึกใช้ก่อนได้เครื่องจริง
+
+ยังไม่มี ACR39U ก็ฝึกได้: เปิด `openthaiid -synthetic` แล้วใช้ตัวอย่างคลินิก
+ตาม [training.md](training.md) ครั้งแรกยังต้องกดอนุญาต
+ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต
+
+วันศุกร์ที่มีเครื่องอ่าน: [friday-checklist.md](friday-checklist.md)
+
 ---
 
 # Using OpenThaiID (clinic staff) — English
@@ -91,3 +99,7 @@ The first time that clinic page asks to read a card, OpenThaiID shows
 the clinic page you are using. Match the code if the ERP shows one.
 
 Do not send screenshots of the patient’s card or of filled form fields.
+
+Practice without a reader: [training.md](training.md) (`openthaiid -synthetic`).
+Friday with ACR39U: [friday-checklist.md](friday-checklist.md).
+

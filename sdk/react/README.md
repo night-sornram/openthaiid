@@ -101,7 +101,8 @@ The hook disconnects that client when the component unmounts.
 | `connect` / `read` / `disconnect` | AbortSignal-friendly wrappers around `@openthaiid/web` |
 
 Default field grant remains `citizenId`, `thaiName`, `birthDate`. Portrait is
-not implemented.
+optional and off by default. Fill errors from `autofillThaiID` are Thai staff
+guidance by default; `error.code` is unchanged (`formatStaffError`, `{ lang: "en" }`).
 
 ## Form autofill (same config as `@openthaiid/web`)
 
@@ -109,8 +110,7 @@ Clinic ERP screens should keep a settings object and call it from a button —
 do not connect on render:
 
 ```tsx
-import { autofillThaiID } from "@openthaiid/web";
-// or: import { autofillThaiID, useThaiIDAutofill } from "@openthaiid/react";
+import { autofillThaiID, staffApprovalGuidance } from "@openthaiid/react";
 
 const clinicPatientAutofill = {
   request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
@@ -122,13 +122,14 @@ const clinicPatientAutofill = {
     gender: "#patient-gender",
     address: "#patient-address",
   },
-  onApprovalRequired: ({ comparisonCode }) => {
-    setBanner(`Approve in the terminal, code ${comparisonCode}`);
+  onApprovalRequired: (info) => {
+    const g = staffApprovalGuidance(info);
+    setBanner(`${g.message} ${g.next}`);
   },
 };
 
 <button type="button" onClick={() => void autofillThaiID(clinicPatientAutofill)}>
-  Fill from Thai ID
+  กรอกข้อมูล
 </button>
 ```
 

@@ -44,7 +44,7 @@ if ($Operator) {
     Write-Host "Operator mode: type pass, fail, or skip only. Do not type card data."
 }
 
-Write-Host "See docs\hardware-qualification.md for E4-E7 and M1."
+Write-Host "See docs\friday-checklist.md (one page) and docs\hardware-qualification.md."
 Write-Host "report will be: $Report"
 
 & $Bin @qualifyArgs

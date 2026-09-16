@@ -15,7 +15,10 @@ cannot allow itself.
 
 ## When Fill fails
 
-Work top to bottom. Most failures are the first four.
+Work top to bottom. Most failures are the first four. Clinic ERP pages should
+show `formatStaffError(err)` (Thai by default) and keep the protocol **code**
+for tickets (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `APPROVAL_DENIED`,
+`FIELD_NOT_ALLOWED`, …).
 
 ### 1. Helper not running
 
@@ -106,4 +109,5 @@ mountThaiIDStatus(statusEl); // user copy; { mode: "advanced" } for techs
 await autofillThaiID(config); // from a click
 ```
 
-See [clinic.md](clinic.md) and [user.md](user.md).
+See [clinic.md](clinic.md), [user.md](user.md), [training.md](training.md),
+and [friday-checklist.md](friday-checklist.md).

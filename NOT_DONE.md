@@ -1,9 +1,10 @@
 # Not done
 
-Last updated after Thai staff UX + Friday qualify kit polish: Ready lights
-default to Thai, `openthaiid qualify` prints E4–E7/M1 prompts and always
-writes one redacted JSON report, Windows qualify wrappers ship in the
-package. Physical ACR39U execution is still blocked on hardware.
+Last updated after Thai Fill errors + staff training + Friday runbook:
+ERP `autofillThaiID` / `probeThaiID` messages default to Thai while codes
+stay stable; Ready-page training card ships with `-synthetic`;
+`docs/friday-checklist.md` is the one-page operator sheet. Physical ACR39U
+execution is still blocked on hardware.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional

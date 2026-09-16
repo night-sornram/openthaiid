@@ -50,7 +50,8 @@ Technicians
 ./openthaiid qualify -operator -report ./openthaiid-qualify.json
                              same, and record pass/fail/skip from the keyboard
                              (never type citizen ID, names, address, or photo)
-See docs/technician.md and docs/hardware-qualification.md.
+See docs/technician.md, docs/friday-checklist.md, and
+docs/hardware-qualification.md. Practice without a reader: docs/training.md.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.

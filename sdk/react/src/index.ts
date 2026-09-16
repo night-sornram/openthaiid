@@ -33,13 +33,36 @@ export type {
   ThaiName,
 } from "@openthaiid/web";
 
-export { DEFAULT_FIELDS, SUPPORTED_FIELDS, TEXTUAL_FIELDS, ThaiID, ThaiIDError, autofillThaiID, probeThaiID, mountThaiIDStatus, summarizeProbe, staffLang, staffCopy, portraitDataUrl, portraitBlob } from "@openthaiid/web";
+export {
+  DEFAULT_FIELDS,
+  SUPPORTED_FIELDS,
+  TEXTUAL_FIELDS,
+  ThaiID,
+  ThaiIDError,
+  autofillThaiID,
+  probeThaiID,
+  mountThaiIDStatus,
+  summarizeProbe,
+  staffLang,
+  staffCopy,
+  staffErrorGuidance,
+  staffErrorCode,
+  formatStaffError,
+  staffApprovalGuidance,
+  localizeThaiIDError,
+  portraitDataUrl,
+  portraitBlob,
+} from "@openthaiid/web";
 export type {
   AutofillFieldMap,
   AutofillResult,
   AutofillThaiIDOptions,
   ProbeResult,
   ProbeThaiIDOptions,
+  StaffApprovalGuidance,
+  StaffCopy,
+  StaffErrorGuidance,
+  StaffLang,
 } from "@openthaiid/web";
 
 export { useThaiIDAutofill } from "./autofill.js";

@@ -30,7 +30,9 @@ Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
   openthaiid.exe qualify -operator -report openthaiid-qualify.json
 
 Never type or save citizen ID, names, address, or photo bytes. One JSON
-report path is printed as `report: ...`. See docs\hardware-qualification.md.
+report path is printed as `report: ...`. One-page sheet: docs\friday-checklist.md
+(full kit: docs\hardware-qualification.md). Practice without a reader:
+docs\training.md (`openthaiid -synthetic`).
 
 Tray menu
 ---------
