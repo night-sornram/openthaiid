@@ -55,14 +55,14 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 | OpenThaiID ยังไม่ทำงาน | เปิดตัวช่วย (Start Menu / แอป / `openthaiid tray`) หน้านี้รอให้กลับมาได้เอง |
 | ตัวช่วยหลุดการเชื่อมต่อ | ไม่ต้องปิดหน้าคลินิก — รอไฟสถานะ แล้วกด กรอกข้อมูล อีกครั้ง |
 | ทดสอบการเชื่อมต่อ | บนหน้า พร้อม กด **ทดสอบการเชื่อมต่อ** (ไม่อ่านข้อมูลบนบัตร) |
-| หลังเครื่องหลับ/ตื่น หรือบริการอ่านบัตรสะดุด | ไม่ต้องรีสตาร์ทเครื่อง กด **ทดสอบการเชื่อมต่อ** ถ้ายังไม่ **พร้อม** ให้ช่างเทคนิคกด **Reconnect card service** (`PCSC_UNAVAILABLE`) |
+| หลังเครื่องหลับ/ตื่น หรือบริการอ่านบัตรสะดุด | ไม่ต้องรีสตาร์ทเครื่อง กด **ทดสอบการเชื่อมต่อ** ถ้ายังไม่ **พร้อม** ให้ช่างเทคนิคกด **Reconnect card service** (`PCSC_UNAVAILABLE`) — วันศุกร์ E5/E6: [friday-checklist.md](friday-checklist.md) · ช่างเทคนิค: [technician.md](technician.md) |
 | ไม่พบเครื่องอ่านบัตร | ถอดแล้วเสียบเครื่องอ่านใหม่ รอไฟ **พร้อม** |
 | เครื่องอ่านถูกถอดระหว่างอ่าน | เสียบเครื่องอ่าน เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`READER_REMOVED`) |
-| บัตรถูกถอดระหว่างอ่าน | เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`CARD_REMOVED`) อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ |
+| บัตรถูกถอดระหว่างอ่าน | เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`CARD_REMOVED`) อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ — วันศุกร์ E4: [friday-checklist.md](friday-checklist.md) |
 | เสียบบัตรประชาชนไทย | เสียบบัตรให้สุด |
-| มีเครื่องอ่านมากกว่าหนึ่งเครื่อง | กด **ใช้เครื่องนี้** บนหน้า พร้อม |
+| มีเครื่องอ่านมากกว่าหนึ่งเครื่อง | กด **ใช้เครื่องนี้** บนหน้า พร้อม — ช่างเทคนิค **Use this reader**: [technician.md](technician.md) |
 | เว็บไซต์ต้องการอ่านบัตร | กดอนุญาตหน้าคลินิก (ให้รหัสตรงกัน) |
-| ยังติด | เรียกช่างเทคนิค — **Technician tools** จากถาด หรือ `#technician` |
+| ยังติด | เรียกช่างเทคนิค — **Technician tools** จากถาด หรือ `#technician` ([technician.md](technician.md)) |
 
 ห้ามส่งภาพหน้าจอของบัตรผู้ป่วย หรือของช่องที่กรอกแล้ว
 หน้าตัวช่วยไม่ต้องการค่านั้นเพื่อหาสาเหตุ
@@ -121,5 +121,8 @@ the clinic page you are using. Match the code if the ERP shows one.
 Do not send screenshots of the patient’s card or of filled form fields.
 
 Practice without a reader: [training.md](training.md) (`openthaiid -synthetic`).
-Friday with ACR39U: [friday-checklist.md](friday-checklist.md).
+Friday with ACR39U (multi-reader, E4 card-removed / unplug, E5/E6 sleep and
+PC/SC recovery): [friday-checklist.md](friday-checklist.md).
+Technicians (Reconnect card service, **Use this reader**):
+[technician.md](technician.md).
 

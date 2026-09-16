@@ -10,21 +10,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
+## [0.1.0-rc.3] — software release candidate (unreleased tag)
+
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.3` only after
+human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
+in this candidate.
+
+Summarizes merges since `[0.1.0-rc.2]`: clinic-day reconnect +
+test-connection (#19), multi-reader select (#20), card-removed /
+reader-unplug mid-Fill recovery (#21), sleep/wake + PC/SC recovery UX
+(#22). Earlier qualify / Thai UI / ERP schema / audit / serve waves stay
+in `[0.1.0-rc.2]` (not repeated here).
+
 ### Added
 
-- Multi-reader desks: Ready page lists PC/SC readers in Thai and lets staff
-  pick **ใช้เครื่องนี้**. Technician tools keep English **Use this reader**
-  plus opaque `readerId`. One reader stays auto-selected.
-- `bridge.probe` / `bridge.status` / `status.snapshot` mark `readers[].selected`.
-  `card.read` without `readerId` uses that reader; two readers with no
-  choice return `READER_SELECTION_REQUIRED`.
-- Operator audit may record `readerId` and `reader.selected` (device id,
-  never card values). `OPENTHAIID_SYNTHETIC_READERS=2` seeds a second
-  practice reader so the picker can be exercised without hardware.
 - Clinic-day reconnect UX: `mountThaiIDStatus` / `watchThaiID` auto-detect
   the helper coming back after a restart, with Thai staff copy
   (**ตัวช่วยหลุดการเชื่อมต่อ** / **ตัวช่วยกลับมาแล้ว**). Faster poll while
   waiting. `waitForThaiID()` is the same loop without DOM.
+- Ready page **ทดสอบการเชื่อมต่อ** (and the SDK status widget button):
+  `bridge.probe` + status only, no personal fields.
+- `autofillThaiID` waits for the helper before `session.open`. It still
+  never auto-repeats a card read.
+- Multi-reader desks: Ready page lists PC/SC readers in Thai and lets staff
+  pick **ใช้เครื่องนี้**. Technician tools keep English **Use this reader**
+  plus opaque `readerId`. One reader stays auto-selected.
+- Protocol minor 4: `bridge.probe` / `bridge.status` / `status.snapshot`
+  mark `readers[].selected`. `card.read` without `readerId` uses that
+  reader; two readers with no choice return `READER_SELECTION_REQUIRED`.
+- Operator audit may record `readerId` and `reader.selected` (device id,
+  never card values). `OPENTHAIID_SYNTHETIC_READERS=2` seeds a second
+  practice reader so the picker can be exercised without hardware.
 - Mid-read recovery: pulling the card or unplugging the reader during Fill
   returns promptly with stable `CARD_REMOVED` / `READER_REMOVED` (or
   `READ_FAILED` when native I/O cannot tell). Thai staff copy tells them
@@ -33,8 +50,9 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   after `card.removed` / reader gone. `autofillThaiID` clears mapped
   sensitive fields on those aborts (phone / HN stay). Technician English
   remains on `{ lang: "en" }` and qualify prompts. Friday E4 maps to these
-  codes in [friday-checklist.md](docs/friday-checklist.md) and
-  [hardware-qualification.md](docs/hardware-qualification.md).
+  codes in [friday-checklist.md](docs/friday-checklist.md),
+  [technician.md](docs/technician.md), and
+  [user.md](docs/user.md).
 - Sleep/wake and PC/SC recovery UX: Ready re-probes on `pageshow` /
   visibility / `online` (`bridge.probe` + status, never `card.read`).
   Helper down stays `BRIDGE_UNAVAILABLE`; card service down is
@@ -43,10 +61,12 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   detect backend unavailable → restored and say **พร้อม** again when the
   card is seated. Synthetic `SetServiceDown` covers that path without
   simulating OS sleep. Friday E5/E6 mapped in the same docs.
-- `autofillThaiID` waits for the helper before `session.open`. It still
-  never auto-repeats a card read.
-- Ready page **ทดสอบการเชื่อมต่อ** (and the SDK status widget button):
-  `bridge.probe` + status only, no personal fields.
+
+### Changed
+
+- Helper version string defaults to `0.1.0-rc.3`.
+- Friday checklist, technician, and staff user docs cross-link
+  multi-reader selection and card-removed / sleep-wake / PC/SC recovery.
 
 ### Fixed
 
@@ -55,6 +75,22 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   a successful recovery.
 - Ready page recovers from a helper restart without a manual reload (CSRF
   token refresh + offline lights while waiting).
+
+### Security
+
+- Wake / **ทดสอบการเชื่อมต่อ** stay `bridge.probe` + status only — never
+  `card.read`, citizen ID, names, address, or portrait.
+- Operator audit `readerId` / `reader.selected` are device ids, never card
+  values.
+- Auto-update remains the only operator-initiated outbound call (GitHub
+  API + unsigned release assets). No card fields are sent.
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.2] — software release candidate (unreleased tag)
 

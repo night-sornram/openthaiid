@@ -18,8 +18,10 @@ the **Readers** list below) — the ERP cannot choose a reader over CORS.
 
 Work top to bottom. Most failures are the first four. Clinic ERP pages should
 show `formatStaffError(err)` (Thai by default) and keep the protocol **code**
-for tickets (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `APPROVAL_DENIED`,
-`FIELD_NOT_ALLOWED`, …).
+for tickets (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `CARD_REMOVED`,
+`READER_REMOVED`, `PCSC_UNAVAILABLE`, `APPROVAL_DENIED`, `FIELD_NOT_ALLOWED`,
+…). Staff Thai tables: [user.md](user.md). Friday one-page (E4–E6):
+[friday-checklist.md](friday-checklist.md).
 
 ### 1. Helper not running
 
@@ -143,6 +145,9 @@ One reader stays automatic. When PC/SC lists two or more:
 2. Technician tools (English): **Readers** → **Use this reader** (shows opaque `id`).
 3. Confirm Ready / `probeThaiID()` names the selected reader, then Fill.
 
+Staff copy: [user.md](user.md). Friday plug-in step:
+[friday-checklist.md](friday-checklist.md).
+
 Selection is in-memory on this helper (cleared if that reader is unplugged or
 the helper restarts). The ERP cannot select a reader. Synthetic tests add a
 second reader with `AddReader`. Default `openthaiid -synthetic` still seeds
@@ -167,17 +172,22 @@ Full kit: [hardware-qualification.md](hardware-qualification.md).
 
 Friday **E4** (physical): pull the card during Fill → `CARD_REMOVED`; unplug
 the reader during Fill → `READER_REMOVED`; opaque native I/O → `READ_FAILED`.
-Staff Thai on the clinic page; this page stays English. Synthetic tests
-already cover the codes — hardware still has to tick E4.
+Staff Thai on the clinic page and in [user.md](user.md); this page stays
+English. One-page recovery table: [friday-checklist.md](friday-checklist.md).
+Synthetic tests already cover the codes — hardware still has to tick E4.
 
 Friday **E5** (physical): browser refresh, helper quit/start, OS sleep/wake.
 Helper down → `BRIDGE_UNAVAILABLE` and Test connection fails. After wake,
-Ready re-probes without reading card fields. Do not reboot.
+Ready re-probes without reading card fields. Do not reboot. Staff: do not
+reboot, **ทดสอบการเชื่อมต่อ** ([user.md](user.md)). Friday table:
+[friday-checklist.md](friday-checklist.md).
 
 Friday **E6** (physical): stop `pcscd` / Smart Card service if safe →
 `PCSC_UNAVAILABLE`, Test connection stays probe-only, **Reconnect card
 service**, Ready says **พร้อม** again. macOS SKIP if you cannot stop PC/SC.
 Synthetic tests cover unavailable → restored without simulating sleep.
+Staff copy: [user.md](user.md). Friday E5/E6 table:
+[friday-checklist.md](friday-checklist.md).
 
 ## Verbose logging
 

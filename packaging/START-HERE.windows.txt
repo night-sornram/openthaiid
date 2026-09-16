@@ -13,7 +13,9 @@ Happy path
 1. Double-click "Start OpenThaiID.bat" (or run install.ps1 once for Start Menu).
 2. Allow the helper if Windows SmartScreen warns (unsigned build).
 3. Look for OpenThaiID in the notification area (tray).
-4. Plug in the card reader. Open the clinic ERP. Click Fill (กรอกข้อมูล).
+4. Plug in the card reader. If two readers are listed, pick **ใช้เครื่องนี้ /
+   Use this reader** on the Ready page before Fill. Open the clinic ERP.
+   Click Fill (กรอกข้อมูล).
 5. The first time, Allow the clinic page on the Ready page
    (http://127.0.0.1:17891/). Match the code if the ERP shows one.
 
@@ -67,7 +69,8 @@ Menu / Desktop shortcuts. It does not enable autostart unless you pass
 -Autostart. It does not install a Windows service.
 
 Technicians: run openthaiid.exe in a terminal, or Technician tools.
-See docs\technician.md, docs\friday-checklist.md.
+See docs\technician.md, docs\friday-checklist.md, docs\user.md
+(multi-reader, CARD_REMOVED / READER_REMOVED, sleep/wake PC/SC recovery).
 Do not send screenshots of card data.
 `openthaiid.exe update check` looks at GitHub Releases (unsigned packages).
 

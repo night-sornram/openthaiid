@@ -23,7 +23,8 @@ reader from the same page, call `autofillThaiID(config)`. Drop-in JSON
 (`request` + `map`, schema + samples): [docs/erp-integration.md](docs/erp-integration.md).
 
 Clinic staff: [docs/user.md](docs/user.md) (Thai-first Ready lights; tray /
-Start menu, not a developer terminal). Practice without a reader:
+Start menu, not a developer terminal; multi-reader **ใช้เครื่องนี้**;
+card-removed / sleep-wake recovery). Practice without a reader:
 [docs/training.md](docs/training.md). Friday with ACR39U:
 [docs/friday-checklist.md](docs/friday-checklist.md).
 Technicians: [docs/technician.md](docs/technician.md).
@@ -230,10 +231,10 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 |---|---|
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
 | [docs/erp-integration.md](docs/erp-integration.md) | Drop-in JSON config + schema for an existing hospital/clinic ERP |
-| [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill |
+| [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill; multi-reader and recovery tables |
 | [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives |
-| [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → what to send |
-| [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, service, qualify) |
+| [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
+| [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, service, qualify) |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
 | [docs/security.md](docs/security.md) | Threat model |
 | [docs/protocol.md](docs/protocol.md) | Protocol v1 |
