@@ -8,20 +8,42 @@
   "profiles": {
     "thai-citizen-mvp": {
       "status": "implemented-independently",
-      "fields": ["citizenId", "thaiName", "birthDate"],
+      "fields": [
+        "citizenId",
+        "thaiName",
+        "englishName",
+        "birthDate",
+        "gender",
+        "issuer",
+        "issueDate",
+        "expireDate",
+        "address"
+      ],
       "apduForm": "CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len",
       "commands": {
         "select": "00A4040008A000000054480001",
         "citizenId": "80B0000402000D",
         "thaiName": "80B00011020064",
-        "birthDate": "80B000D9020008"
+        "englishName": "80B00075020064",
+        "birthDate": "80B000D9020008",
+        "gender": "80B000E1020001",
+        "issuer": "80B000F6020064",
+        "issueDate": "80B00167020008",
+        "expireDate": "80B0016F020008",
+        "address": "80B01579020064"
       },
       "offsets": {
         "citizenId": "0x0004",
         "thaiName": "0x0011",
-        "birthDate": "0x00D9"
+        "englishName": "0x0075",
+        "birthDate": "0x00D9",
+        "gender": "0x00E1",
+        "issuer": "0x00F6",
+        "issueDate": "0x0167",
+        "expireDate": "0x016F",
+        "address": "0x1579"
       },
-      "note": "Thai name is a single 100-byte block with '#' delimiters between title/given/middle/family. Birth date year is Buddhist Era on card and Gregorian after parse."
+      "note": "Thai and English names are 100-byte '#'-delimited blocks (title/given/middle/family). Birth, issue, and expire years are Buddhist Era on card and Gregorian after parse. Gender is a 1-byte community convention (1=male, 2=female). Address is a 100-byte '#'-delimited block (house/village/alley/street/subdistrict/district/province). Portrait blocks are out of scope. Gender encoding and address component order are hypotheses pending physical-card confirmation."
     }
   },
   "fixtures": [
@@ -44,6 +66,19 @@
           "middleName": null,
           "familyName": "ใจดี",
           "fullName": "นาย สมชาย ใจดี"
+        }
+      }
+    },
+    {
+      "name": "english-name-hash-delimited",
+      "input": { "raw": "Mr.#Somchai##Jaidee" },
+      "expect": {
+        "englishName": {
+          "title": "Mr.",
+          "givenName": "Somchai",
+          "middleName": null,
+          "familyName": "Jaidee",
+          "fullName": "Mr. Somchai Jaidee"
         }
       }
     },
@@ -77,6 +112,46 @@
       }
     },
     {
+      "name": "gender-male",
+      "input": { "raw": "1" },
+      "expect": { "gender": { "code": "1", "value": "male" } },
+      "note": "Community convention, not stated in APDU.md; confirm on real cards."
+    },
+    {
+      "name": "gender-female",
+      "input": { "raw": "2" },
+      "expect": { "gender": { "code": "2", "value": "female" } }
+    },
+    {
+      "name": "issue-date-be-to-gregorian",
+      "input": { "raw": "25600115" },
+      "expect": { "issueDate": { "year": 2017, "month": 1, "day": 15 } }
+    },
+    {
+      "name": "expire-date-be-to-gregorian",
+      "input": { "raw": "25700114" },
+      "expect": { "expireDate": { "year": 2027, "month": 1, "day": 14 } }
+    },
+    {
+      "name": "address-hash-delimited",
+      "input": {
+        "rawUtf8": "99#หมู่ที่ 1##ถนนนิทาน#ตำบลบ้านใหม่#อำเภอเมือง#จังหวัดนิทาน"
+      },
+      "expect": {
+        "address": {
+          "houseNo": "99",
+          "villageNo": "หมู่ที่ 1",
+          "alley": null,
+          "street": "ถนนนิทาน",
+          "subdistrict": "ตำบลบ้านใหม่",
+          "district": "อำเภอเมือง",
+          "province": "จังหวัดนิทาน",
+          "fullAddress": "99 หมู่ที่ 1 ถนนนิทาน ตำบลบ้านใหม่ อำเภอเมือง จังหวัดนิทาน"
+        }
+      },
+      "note": "Seven-part '#' layout is a community hypothesis pending physical-card confirmation."
+    },
+    {
       "name": "command-bytes-citizen-id",
       "input": { "fields": ["citizenId"] },
       "expect": {
@@ -92,6 +167,36 @@
           "80B0000402000D",
           "80B00011020064",
           "80B000D9020008"
+        ]
+      }
+    },
+    {
+      "name": "command-bytes-all-textual",
+      "input": {
+        "fields": [
+          "citizenId",
+          "thaiName",
+          "englishName",
+          "birthDate",
+          "gender",
+          "issuer",
+          "issueDate",
+          "expireDate",
+          "address"
+        ]
+      },
+      "expect": {
+        "apdus": [
+          "00A4040008A000000054480001",
+          "80B0000402000D",
+          "80B00011020064",
+          "80B00075020064",
+          "80B000D9020008",
+          "80B000E1020001",
+          "80B000F6020064",
+          "80B00167020008",
+          "80B0016F020008",
+          "80B01579020064"
         ]
       }
     }

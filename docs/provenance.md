@@ -43,7 +43,7 @@ sequences is documented in:
 
 | Profile ID | Fields | Source URL | Immutable revision | Source license | Attribution | Concerns | Status |
 |---|---|---|---|---|---|---|---|
-| `thai-citizen-mvp` | `citizenId`, `thaiName`, `birthDate` | https://github.com/dotnetthailand/ThaiNationalIDCard/blob/main/APDU.md | [`4d803243715254cc93efe9040d8b1ecd85f520aa`](https://github.com/dotnetthailand/ThaiNationalIDCard/blob/4d803243715254cc93efe9040d8b1ecd85f520aa/APDU.md) | Community command table; treat as requiring independent implementation | Credit community lineage (chakphanu / Manoi / dotnetthailand) in docs | Not an official government spec; layout may vary by card generation; real-card validation still required | **Implemented independently.** SELECT `00 A4 04 00 08 A0 00 00 00 54 48 00 01`. READ BINARY form `CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len`. Offsets: CID `0x0004`/13; Thai full name `0x0011`/100 (single `#`-delimited block); birth `0x00D9`/8 (Buddhist Era on card, Gregorian after parse). **Release still requires physical ACR39U acceptance.** |
+| `thai-citizen-mvp` | `citizenId`, `thaiName`, `englishName`, `birthDate`, `gender`, `issuer`, `issueDate`, `expireDate`, `address` | https://github.com/dotnetthailand/ThaiNationalIDCard/blob/main/APDU.md | [`4d803243715254cc93efe9040d8b1ecd85f520aa`](https://github.com/dotnetthailand/ThaiNationalIDCard/blob/4d803243715254cc93efe9040d8b1ecd85f520aa/APDU.md) | Community command table; treat as requiring independent implementation | Credit community lineage (chakphanu / Manoi / dotnetthailand) in docs | Not an official government spec; layout may vary by card generation; gender encoding and address component order are community hypotheses (see open concerns); real-card validation still required | **Implemented independently.** SELECT `00 A4 04 00 08 A0 00 00 00 54 48 00 01`. READ BINARY form `CLA=80 INS=B0 P1=off_hi P2=off_lo Lc=02 Data=00 Le=len`. Offsets: CID `0x0004`/13; Thai full name `0x0011`/100; English full name `0x0075`/100; birth `0x00D9`/8; gender `0x00E1`/1; issuer `0x00F6`/100; issue `0x0167`/8; expire `0x016F`/8; address `0x1579`/100. Dates are Buddhist Era on card, Gregorian after parse. **Portrait blocks are not implemented. Release still requires physical ACR39U acceptance.** |
 
 ### Command facts used by `thai-citizen-mvp`
 
@@ -54,7 +54,13 @@ Independently reconstructed from the cited table (not copied from source code):
 | SELECT | `00 A4 04 00 08 A0 00 00 00 54 48 00 01` | Direct DF name selection |
 | READ CID | `80 B0 00 04 02 00 0D` | 13 ASCII digits |
 | READ Thai name | `80 B0 00 11 02 00 64` | 100-byte block, `#` between title/given/middle/family |
+| READ English name | `80 B0 00 75 02 00 64` | 100-byte block, same `#` layout as Thai name (typically ASCII) |
 | READ birth date | `80 B0 00 D9 02 00 08` | `YYYYMMDD` Buddhist Era |
+| READ gender | `80 B0 00 E1 02 00 01` | 1 byte; **hypothesis:** ASCII `1`=male, `2`=female |
+| READ issuer | `80 B0 00 F6 02 00 64` | 100-byte TIS-620 / Windows-874 string |
+| READ issue date | `80 B0 01 67 02 00 08` | `YYYYMMDD` Buddhist Era |
+| READ expire date | `80 B0 01 6F 02 00 08` | `YYYYMMDD` Buddhist Era |
+| READ address | `80 B0 15 79 02 00 64` | 100-byte TIS-620 block; **hypothesis:** `#` between house/village/alley/street/subdistrict/district/province |
 | GET RESPONSE | `00 C0 00 00 <Le>` | Used after `61xx` |
 
 Open concerns retained for qualification:
@@ -63,6 +69,11 @@ Open concerns retained for qualification:
 2. Card generations may differ; physical ACR39U acceptance is required before release claims.
 3. Name delimiter (`#`) and empty-middle handling must be confirmed on real cards during Phase G.
 4. Birth-date century edge cases (cards issued before BE 2400) are out of MVP scope and must remain unverified until observed.
+5. Gender byte encoding (`1`/`2`) is **not** stated in APDU.md. It is a community convention used by independent readers; confirm on real cards. Unrecognized codes are returned with `value: null`.
+6. Address 7-part `#` component order is hypothesized from the same delimiter convention as names. Prefixes such as `จังหวัด` are preserved, not stripped. Confirm on real cards.
+7. English name `#` layout is assumed identical to the Thai name block; confirm on real cards.
+8. Lifetime expire sentinels (for example `99999999`) are unverified; no special-case mapping is implemented.
+9. Portrait / photo 20-part blocks, laser-id, and NHSO profiles are out of this profile.
 
 Before merging real-card reading for a profile:
 

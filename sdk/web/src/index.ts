@@ -5,10 +5,29 @@
  * approve this origin in the terminal before card data is available.
  */
 
-export type Field = "citizenId" | "thaiName" | "birthDate";
+export type Field =
+  | "citizenId"
+  | "thaiName"
+  | "englishName"
+  | "birthDate"
+  | "gender"
+  | "issuer"
+  | "issueDate"
+  | "expireDate"
+  | "address";
 
 export const DEFAULT_FIELDS: Field[] = ["citizenId", "thaiName", "birthDate"];
-export const SUPPORTED_FIELDS: Field[] = ["citizenId", "thaiName", "birthDate"];
+export const SUPPORTED_FIELDS: Field[] = [
+  "citizenId",
+  "thaiName",
+  "englishName",
+  "birthDate",
+  "gender",
+  "issuer",
+  "issueDate",
+  "expireDate",
+  "address",
+];
 
 export type CardDate = {
   year: number | null;
@@ -16,7 +35,7 @@ export type CardDate = {
   day: number | null;
 };
 
-export type ThaiName = {
+export type PersonName = {
   title: string | null;
   givenName: string | null;
   middleName: string | null;
@@ -24,10 +43,34 @@ export type ThaiName = {
   fullName: string;
 };
 
+export type ThaiName = PersonName;
+
+export type Gender = {
+  code: string;
+  value: "male" | "female" | null;
+};
+
+export type ThaiAddress = {
+  houseNo: string | null;
+  villageNo: string | null;
+  alley: string | null;
+  street: string | null;
+  subdistrict: string | null;
+  district: string | null;
+  province: string | null;
+  fullAddress: string;
+};
+
 export type FieldValues = {
   citizenId?: string | null;
   thaiName?: ThaiName | null;
+  englishName?: PersonName | null;
   birthDate?: CardDate | null;
+  gender?: Gender | null;
+  issuer?: string | null;
+  issueDate?: CardDate | null;
+  expireDate?: CardDate | null;
+  address?: ThaiAddress | null;
 };
 
 export type ThaiIDErrorCode =
@@ -109,7 +152,7 @@ type Handler<T> = (payload: T) => void;
 export type ThaiIDOptions = {
   /** Default: ws://127.0.0.1:17891/v1/ws */
   endpoint?: string;
-  /** Default: citizenId, thaiName, birthDate */
+  /** Default: citizenId, thaiName, birthDate (least privilege). Extra textual fields must be requested explicitly. */
   fields?: Field[];
   /** Connect timeout ms (default 30000; approval wait included). */
   connectTimeoutMs?: number;

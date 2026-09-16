@@ -50,6 +50,7 @@ Rules:
 - Historical events and read responses are not replayed or cached.
 - Card results are unicast to the requester only.
 - Supported fields and capabilities are advertised after authentication.
+- Protocol **minor 1** adds remaining textual fields to `fieldsSupported` without changing the envelope.
 - Unknown operations and unsupported protocol majors are rejected.
 - Each connection allows at most **eight** concurrent asynchronous operations
   (`session.open`, `session.renew`, `bridge.status`, `card.read`). Excess
@@ -87,8 +88,8 @@ Success result:
   "expiresAt": "2026-01-01T00:15:00Z",
   "fields": ["citizenId", "thaiName", "birthDate"],
   "instanceId": "bridge-instance",
-  "protocol": { "major": 1, "minor": 0 },
-  "fieldsSupported": ["citizenId", "thaiName", "birthDate"]
+  "protocol": { "major": 1, "minor": 1 },
+  "fieldsSupported": ["citizenId", "thaiName", "englishName", "birthDate", "gender", "issuer", "issueDate", "expireDate", "address"]
 }
 ```
 
@@ -181,7 +182,7 @@ type ThaiIDError = {
 Messages never contain raw field contents, command responses, or native error
 dumps.
 
-## Normalized MVP fields
+## Normalized textual fields
 
 ```ts
 type CardDate = {
@@ -190,21 +191,46 @@ type CardDate = {
   day: number | null;
 };
 
-type ThaiName = {
+type PersonName = {
   title: string | null;
   givenName: string | null;
   middleName: string | null;
   familyName: string | null;
   fullName: string;
 };
+
+type Gender = {
+  code: string;                 // raw card digit, typically "1" or "2"
+  value: "male" | "female" | null;
+};
+
+type ThaiAddress = {
+  houseNo: string | null;
+  villageNo: string | null;     // หมู่ที่
+  alley: string | null;         // ซอย
+  street: string | null;
+  subdistrict: string | null;
+  district: string | null;
+  province: string | null;
+  fullAddress: string;
+};
 ```
+
+Default `session.open` / SDK field set remains `citizenId`, `thaiName`, `birthDate`. Extra fields are returned only when requested **and** granted.
 
 | Field | Representation |
 |---|---|
 | `citizenId` | String preserving all 13 digits |
-| `thaiName` | `ThaiName` (single `#`-delimited card block) |
+| `thaiName` | `PersonName` (single `#`-delimited 100-byte block) |
+| `englishName` | `PersonName` (same `#` layout; typically ASCII) |
 | `birthDate` | `CardDate` with **Gregorian** year (card stores Buddhist Era; bridge converts BE→CE and validates leap years) |
+| `gender` | `Gender`. Community convention (not in APDU.md): `"1"` → `male`, `"2"` → `female`. Unrecognized codes keep `code` and set `value` to `null`. |
+| `issuer` | Trimmed TIS-620 / Windows-874 string |
+| `issueDate` | `CardDate` (same BE→CE rules as `birthDate`) |
+| `expireDate` | `CardDate` (same BE→CE rules as `birthDate`) |
+| `address` | `ThaiAddress`. Community hypothesis: `#` between house / village / alley / street / subdistrict / district / province. Card prefixes such as `จังหวัด` are preserved. |
 
+Portrait / photo binary blocks are not part of this protocol revision.
 ## Synthetic examples
 
 See `testdata/synthetic/` for parser fixtures and `docs/acceptance.md` for

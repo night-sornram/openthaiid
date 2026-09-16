@@ -1,11 +1,14 @@
 # Not done
 
-Last updated after pairing-only handshake, mixed-case revoke, H9 process
-restart, and H11 two-browser isolation coverage.
+Last updated after remaining textual ID fields (`englishName`, `gender`,
+`issuer`, `issueDate`, `expireDate`, `address`) on top of pairing-only
+handshake, mixed-case revoke, H9 restart, H11 isolation, and green CI on
+PR #1.
 
-Software ownership, cancellation, stall recovery, request saturation, and the
-cross-platform acceptance harness are implemented and pass locally. This file
-lists everything that is **not** complete for a qualified MVP release candidate.
+Software ownership, cancellation, stall recovery, request saturation, the
+cross-platform acceptance harness, and remaining textual fields (synthetic)
+are implemented. This file lists everything that is **not** complete for a
+qualified MVP release candidate.
 
 ---
 
@@ -27,19 +30,15 @@ lists everything that is **not** complete for a qualified MVP release candidate.
 
 **Order:** macOS + ACR39U first, then Windows/Linux. Untested configurations stay unverified.
 
+Physical-card confirmation is also still required for community hypotheses on
+this branch: gender `1`/`2` encoding, English-name `#` layout, and 7-part
+address `#` component order (see `docs/provenance.md`).
+
 ---
 
-## Written but not proven in CI
+## Proven in CI (PR #1)
 
-| Item | Status |
-|---|---|
-| Green five-target build + version smoke on GitHub Actions | Workflow updated; needs a green run |
-| `npm ci` only (no `npm install` fallback) in SDK/acceptance jobs | Ready; needs CI run |
-| Artifact upload (5 binaries + SDK dist + allowlisted acceptance reports) | Ready; needs CI run |
-| Browser acceptance: Chrome × Linux/macOS/Windows + Edge × Windows | Jobs present; allow+deny+unanswered policies |
-| node-pty harness on Windows | Code ready; needs Windows CI run |
-| Repeat bridge/reader tests `-count=50` | Step present; needs CI run |
-| Resolved Go 1.27.1 / Node 22 versions in CI reports | Job prints them; needs a green run |
+On `3ca134d` (PR #1, Actions run [35054867099](https://github.com/night-sornram/openthaiid/actions/runs/35054867099)): 11/11 jobs green, including five-target build + version smoke, `npm ci` SDK, Chrome × Linux/macOS/Windows + Edge × Windows (allow/deny/unanswered), artifact-style steps, node-pty Windows, and `go test -count=50`. Re-confirm on this branch after push.
 
 ---
 
@@ -47,12 +46,12 @@ lists everything that is **not** complete for a qualified MVP release candidate.
 
 Do not treat these as MVP gaps:
 
-- Remaining textual fields (address, issuer, issue date, expire date, gender, …)
 - Portrait / photo support
 - React hooks
 - Installers, tray UI, auto-update
 - Official Firefox / Safari support
 - Published GitHub Release / release candidate tag
+- Laser-id / NHSO / other DFs not in the cited APDU table
 
 ---
 
@@ -67,10 +66,12 @@ Do not treat these as MVP gaps:
 
 ## How to close the remaining work
 
-1. Push `dev` and confirm five-target + browser CI jobs (Chrome ×3, Edge ×1)
-   are green with allow/deny/unanswered policies.
+1. Push this branch and confirm five-target + browser CI jobs (Chrome ×3, Edge ×1)
+   stay green with allow/deny/unanswered policies.
 2. Run `make acceptance` on Windows (Chrome + Edge) and Linux.
 3. Connect an ACR39U on macOS; complete E1–E7 without logging field values.
+   While doing so, confirm gender encoding, English-name delimiters, and
+   address component order against a real card.
 4. Repeat physical checks on Windows and Linux.
 5. Complete the headed public-HTTPS local-network permission check (M1).
 6. Finish the binding audit checklist in `docs/dependency-audit.md` /

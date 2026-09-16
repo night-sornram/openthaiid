@@ -90,21 +90,27 @@ func citizenIDChecksumOK(s string) bool {
 	return check == int(s[12]-'0')
 }
 
-// parseBirthDate parses an 8-byte YYYYMMDD field.
+// parseBirthDate parses an 8-byte YYYYMMDD birth-date field.
+func parseBirthDate(raw []byte) (*CardDate, *Warning) {
+	return parseCardDate(raw, FieldBirthDate)
+}
+
+// parseCardDate parses an 8-byte YYYYMMDD field (birth, issue, or expire).
 // Card years are Buddhist Era (typically 2400+); output year is Gregorian.
 // Unknown/invalid components become null with a warning; a zero day is never
 // replaced with 1. Leap-year and month-length rules are validated on the
 // Gregorian calendar after conversion.
-func parseBirthDate(raw []byte) (*CardDate, *Warning) {
+func parseCardDate(raw []byte, field Field) (*CardDate, *Warning) {
+	noun := dateNoun(field)
 	s := strings.TrimSpace(string(raw))
 	s = strings.Trim(s, "\x00")
 	if len(s) != 8 {
-		w := Warning{Field: FieldBirthDate, Code: "BAD_LENGTH", Message: "birth date must be 8 digits"}
+		w := Warning{Field: field, Code: "BAD_LENGTH", Message: noun + " must be 8 digits"}
 		return nil, &w
 	}
 	for i := 0; i < 8; i++ {
 		if s[i] < '0' || s[i] > '9' {
-			w := Warning{Field: FieldBirthDate, Code: "NOT_DIGITS", Message: "birth date must be digits"}
+			w := Warning{Field: field, Code: "NOT_DIGITS", Message: noun + " must be digits"}
 			return nil, &w
 		}
 	}
@@ -128,7 +134,7 @@ func parseBirthDate(raw []byte) (*CardDate, *Warning) {
 	if mo == 0 || mo > 12 {
 		d.Month = nil
 		if mo != 0 {
-			warns = append(warns, Warning{Field: FieldBirthDate, Code: "BAD_MONTH", Message: "birth month invalid"})
+			warns = append(warns, Warning{Field: field, Code: "BAD_MONTH", Message: noun + " month invalid"})
 		}
 	} else {
 		d.Month = &mo
@@ -146,7 +152,7 @@ func parseBirthDate(raw []byte) (*CardDate, *Warning) {
 		d.Day = nil
 	} else if maxDay > 0 && day > maxDay {
 		d.Day = nil
-		warns = append(warns, Warning{Field: FieldBirthDate, Code: "BAD_DAY", Message: "birth day invalid"})
+		warns = append(warns, Warning{Field: field, Code: "BAD_DAY", Message: noun + " day invalid"})
 	} else {
 		d.Day = &day
 	}
@@ -154,7 +160,7 @@ func parseBirthDate(raw []byte) (*CardDate, *Warning) {
 	// Fully unknown date is an unavailable field, not an empty object.
 	if d.Year == nil && d.Month == nil && d.Day == nil {
 		if len(warns) == 0 {
-			warns = append(warns, Warning{Field: FieldBirthDate, Code: "EMPTY", Message: "birth date empty"})
+			warns = append(warns, Warning{Field: field, Code: "EMPTY", Message: noun + " empty"})
 		}
 		return nil, &warns[0]
 	}
@@ -163,6 +169,17 @@ func parseBirthDate(raw []byte) (*CardDate, *Warning) {
 		return d, &warns[0]
 	}
 	return d, nil
+}
+
+func dateNoun(f Field) string {
+	switch f {
+	case FieldIssueDate:
+		return "issue date"
+	case FieldExpireDate:
+		return "expire date"
+	default:
+		return "birth date"
+	}
 }
 
 func atoi2(s string) (int, bool) {
@@ -200,16 +217,21 @@ func daysInGregorianMonth(y, m int) int {
 }
 
 // parseThaiNameBlock splits a single 100-byte Thai-name block.
+func parseThaiNameBlock(raw []byte) (*ThaiName, *Warning) {
+	return parseNameBlock(raw, FieldThaiName)
+}
+
+// parseNameBlock splits a 100-byte name block (Thai or English).
 // Community card layout uses '#' between components:
 //
 //	title # given # middle # family
 //
 // An empty middle name appears as consecutive delimiters. When '#' is absent
 // the block is split on whitespace (title given [middle] family).
-func parseThaiNameBlock(raw []byte) (*ThaiName, *Warning) {
+func parseNameBlock(raw []byte, field Field) (*ThaiName, *Warning) {
 	s := decodeThaiField(raw, 0)
 	if s == nil {
-		return nil, &Warning{Field: FieldThaiName, Code: "EMPTY", Message: "name fields empty"}
+		return nil, &Warning{Field: field, Code: "EMPTY", Message: "name fields empty"}
 	}
 	var parts []string
 	if strings.Contains(*s, "#") {
@@ -222,7 +244,7 @@ func parseThaiNameBlock(raw []byte) (*ThaiName, *Warning) {
 		parts = strings.Fields(*s)
 	}
 	if len(parts) == 0 {
-		return nil, &Warning{Field: FieldThaiName, Code: "EMPTY", Message: "name fields empty"}
+		return nil, &Warning{Field: field, Code: "EMPTY", Message: "name fields empty"}
 	}
 
 	trim := func(p string) *string {
@@ -252,13 +274,97 @@ func parseThaiNameBlock(raw []byte) (*ThaiName, *Warning) {
 		family = trim(parts[3])
 	}
 
-	return buildThaiName(title, given, middle, family)
+	return buildThaiName(field, title, given, middle, family)
+}
+
+// parseGender maps the 1-byte community gender code.
+// Hypothesis (not in APDU.md; used by independent community readers):
+//
+//	"1" → male, "2" → female
+//
+// Other values keep the raw code and set Value to null.
+func parseGender(raw []byte) (*Gender, *Warning) {
+	s := strings.TrimSpace(string(raw))
+	s = strings.Trim(s, "\x00")
+	if s == "" {
+		return nil, &Warning{Field: FieldGender, Code: "EMPTY", Message: "gender empty"}
+	}
+	g := &Gender{Code: s}
+	switch s {
+	case "1":
+		v := GenderMale
+		g.Value = &v
+	case "2":
+		v := GenderFemale
+		g.Value = &v
+	default:
+		return g, &Warning{Field: FieldGender, Code: "UNRECOGNIZED", Message: "gender code unrecognized"}
+	}
+	return g, nil
+}
+
+// parseIssuer decodes the 100-byte TIS-620 issuer field.
+func parseIssuer(raw []byte) (*string, *Warning) {
+	s := decodeThaiField(raw, 0)
+	if s == nil {
+		return nil, &Warning{Field: FieldIssuer, Code: "EMPTY", Message: "issuer empty"}
+	}
+	return s, nil
+}
+
+// parseAddressBlock splits a 100-byte address block.
+// Hypothesis: '#' between house / village / alley / street / subdistrict /
+// district / province, matching the name-block delimiter already used for
+// thaiName. Prefixes such as "จังหวัด" are preserved (not stripped).
+func parseAddressBlock(raw []byte) (*ThaiAddress, *Warning) {
+	s := decodeThaiField(raw, 0)
+	if s == nil {
+		return nil, &Warning{Field: FieldAddress, Code: "EMPTY", Message: "address empty"}
+	}
+	addr := &ThaiAddress{}
+	if strings.Contains(*s, "#") {
+		parts := strings.Split(*s, "#")
+		if n := len(parts); n > 0 && parts[n-1] == "" {
+			parts = parts[:n-1]
+		}
+		get := func(i int) *string {
+			if i >= len(parts) {
+				return nil
+			}
+			p := strings.TrimSpace(parts[i])
+			if p == "" {
+				return nil
+			}
+			return &p
+		}
+		addr.HouseNo = get(0)
+		addr.VillageNo = get(1)
+		addr.Alley = get(2)
+		addr.Street = get(3)
+		addr.Subdistrict = get(4)
+		addr.District = get(5)
+		addr.Province = get(6)
+		nonEmpty := make([]string, 0, len(parts))
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				nonEmpty = append(nonEmpty, p)
+			}
+		}
+		addr.FullAddress = strings.Join(nonEmpty, " ")
+	} else {
+		addr.FullAddress = *s
+	}
+	if addr.FullAddress == "" {
+		return nil, &Warning{Field: FieldAddress, Code: "EMPTY", Message: "address empty"}
+	}
+	return addr, nil
 }
 
 // buildThaiName assembles a ThaiName and fullName.
-func buildThaiName(title, given, middle, family *string) (*ThaiName, *Warning) {
+func buildThaiName(field Field, title, given, middle, family *string) (*ThaiName, *Warning) {
 	if title == nil && given == nil && middle == nil && family == nil {
-		return nil, &Warning{Field: FieldThaiName, Code: "EMPTY", Message: "name fields empty"}
+		return nil, &Warning{Field: field, Code: "EMPTY", Message: "name fields empty"}
 	}
 	parts := make([]string, 0, 4)
 	for _, p := range []*string{title, given, middle, family} {
@@ -267,7 +373,7 @@ func buildThaiName(title, given, middle, family *string) (*ThaiName, *Warning) {
 		}
 	}
 	if len(parts) == 0 {
-		return nil, &Warning{Field: FieldThaiName, Code: "EMPTY", Message: "name fields empty"}
+		return nil, &Warning{Field: field, Code: "EMPTY", Message: "name fields empty"}
 	}
 	return &ThaiName{
 		Title:      title,

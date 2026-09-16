@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PC/SC backend for Windows, Linux, macOS (`ebfe/scard` pinned)
 - Synthetic backend for CI and hardware-free tests, including a seeded
   fictional demo card readable by `openthaiid -synthetic`
-- Thai citizen MVP profile: `citizenId`, `thaiName`, `birthDate`
+- Thai citizen profile textual fields: `citizenId`, `thaiName`, `englishName`,
+  `birthDate`, `gender`, `issuer`, `issueDate`, `expireDate`, `address`
+  (portrait/photo remains out of scope; default grant stays the original three)
 - Browser SDK `@openthaiid/web` with cancellation, session renewal, and reconnect
 - Vanilla example page (external module script, CSP-friendly)
 - Playwright browser acceptance harness (`acceptance/`) against the real
@@ -57,8 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thai name is one `#`-delimited 100-byte block at `0x0011` (not four 100-byte
   blocks)
 - Birth date offset is `0x00D9` (not `0x0331`)
-- Birth-date years on the card are Buddhist Era; the bridge returns Gregorian
-  years and validates leap years
+- Protocol minor 1 advertises remaining textual fields in `fieldsSupported`
 - Requested unavailable fields are explicit JSON `null` with warnings;
   unrequested fields are omitted
 - Oversized APDU responses are rejected instead of truncated
@@ -107,4 +108,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Physical ACR39U acceptance on Windows/Linux/macOS
 - Playwright browser acceptance matrix (Chrome/Edge across three OSes)
 - Official Firefox/Safari support
-- Portraits, remaining fields, React hooks, installers, tray UI
+- Portraits, React hooks, installers, tray UI

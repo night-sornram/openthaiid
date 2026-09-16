@@ -19,14 +19,21 @@ func TestNormalizeFields(t *testing.T) {
 	if _, err := NormalizeFields([]Field{"portrait"}); err == nil {
 		t.Fatal("expected unsupported field error")
 	}
+	got, err = NormalizeFields([]Field{FieldGender, FieldAddress, FieldGender})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0] != FieldGender || got[1] != FieldAddress {
+		t.Fatalf("got %v", got)
+	}
 }
 
 func TestSubset(t *testing.T) {
 	if !Subset([]Field{FieldCitizenID}, DefaultFields) {
 		t.Fatal("expected subset")
 	}
-	if Subset([]Field{"portrait"}, DefaultFields) {
-		t.Fatal("unexpected subset")
+	if Subset([]Field{FieldGender}, DefaultFields) {
+		t.Fatal("gender is not a default-grant subset")
 	}
 }
 

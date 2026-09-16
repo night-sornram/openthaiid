@@ -9,7 +9,9 @@ and PC/SC.
 ## What it does
 
 A local Go process talks to a PC/SC smart-card reader and exposes selected
-Thai ID fields (`citizenId`, `thaiName`, `birthDate`) to browser apps over a
+Thai ID fields (`citizenId`, `thaiName`, `birthDate` by default; additional
+textual fields such as `englishName`, `gender`, `issuer`, `issueDate`,
+`expireDate`, and `address` when requested and granted) to browser apps over a
 loopback WebSocket — only after the operator approves the website origin and
 field set in the terminal.
 
@@ -53,7 +55,11 @@ cd sdk/web && npm install && npm test && npm run build
 ```ts
 import { ThaiID } from "@openthaiid/web";
 
-const thaiID = new ThaiID({ fields: ["thaiName", "birthDate"] });
+const thaiID = new ThaiID({
+  fields: ["thaiName", "birthDate"],
+  // Optional extra textual fields (each must be granted):
+  // "englishName", "gender", "issuer", "issueDate", "expireDate", "address"
+});
 
 thaiID.on("approvalRequired", ({ comparisonCode }) => {
   console.log("Approve in terminal, code", comparisonCode);

@@ -290,7 +290,7 @@ func (s *SyntheticBackend) SetScriptResponse(cmd string, resp []byte) {
 }
 
 // SeedDemoCard installs one clearly labeled fictional reader + Thai ID card
-// with independently specified command responses for the three MVP fields.
+// with independently specified command responses for every supported textual field.
 func (s *SyntheticBackend) SeedDemoCard() {
 	seedDemoCard(s.state)
 	s.notifyAll()
@@ -364,7 +364,13 @@ func seedDemoCard(st *SyntheticState) {
 	selectCmd := string([]byte{0x00, 0xA4, 0x04, 0x00, 0x08, 0xA0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01})
 	cidCmd := string([]byte{0x80, 0xB0, 0x00, 0x04, 0x02, 0x00, 0x0D})
 	nameCmd := string([]byte{0x80, 0xB0, 0x00, 0x11, 0x02, 0x00, 0x64})
+	enNameCmd := string([]byte{0x80, 0xB0, 0x00, 0x75, 0x02, 0x00, 0x64})
 	birthCmd := string([]byte{0x80, 0xB0, 0x00, 0xD9, 0x02, 0x00, 0x08})
+	genderCmd := string([]byte{0x80, 0xB0, 0x00, 0xE1, 0x02, 0x00, 0x01})
+	issuerCmd := string([]byte{0x80, 0xB0, 0x00, 0xF6, 0x02, 0x00, 0x64})
+	issueCmd := string([]byte{0x80, 0xB0, 0x01, 0x67, 0x02, 0x00, 0x08})
+	expireCmd := string([]byte{0x80, 0xB0, 0x01, 0x6F, 0x02, 0x00, 0x08})
+	addrCmd := string([]byte{0x80, 0xB0, 0x15, 0x79, 0x02, 0x00, 0x64})
 
 	// Fictional citizen id with a valid check digit (computed independently).
 	// 1 1017 0123456 7 is the historical sample; use a clearly fictional one:
@@ -377,19 +383,55 @@ func seedDemoCard(st *SyntheticState) {
 	name = append(name, tis620("สมชาย")...)
 	name = append(name, '#', '#')
 	name = append(name, tis620("ใจดี")...)
-	padded := make([]byte, 100)
-	copy(padded, name)
-	for i := len(name); i < 100; i++ {
-		padded[i] = 0x20
-	}
+
+	// English name: Mr.#Somchai##Jaidee (ASCII, same '#' layout as Thai name)
+	enName := []byte("Mr.#Somchai##Jaidee")
 
 	// Birth: 2533-04-12 BE → 1990-04-12 CE
 	birth := []byte("25330412")
 
+	// Gender community convention: '1' = male
+	gender := []byte{'1'}
+
+	// Issuer: clearly fictional municipality (TIS-620)
+	issuer := tis620("เทศบาลนครนิทาน")
+
+	// Issue 2560-01-15 BE → 2017-01-15 CE; expire 2570-01-14 BE → 2027-01-14 CE
+	issue := []byte("25600115")
+	expire := []byte("25700114")
+
+	// Address: 7-part '#' layout; empty alley (consecutive ##).
+	addr := tis620("99")
+	addr = append(addr, '#')
+	addr = append(addr, tis620("หมู่ที่ 1")...)
+	addr = append(addr, '#', '#')
+	addr = append(addr, tis620("ถนนนิทาน")...)
+	addr = append(addr, '#')
+	addr = append(addr, tis620("ตำบลบ้านใหม่")...)
+	addr = append(addr, '#')
+	addr = append(addr, tis620("อำเภอเมือง")...)
+	addr = append(addr, '#')
+	addr = append(addr, tis620("จังหวัดนิทาน")...)
+
 	st.SetScriptResponse(selectCmd, []byte{0x90, 0x00})
 	st.SetScriptResponse(cidCmd, append(append([]byte(nil), cid...), 0x90, 0x00))
-	st.SetScriptResponse(nameCmd, append(append([]byte(nil), padded...), 0x90, 0x00))
+	st.SetScriptResponse(nameCmd, append(padBlock(name, 100), 0x90, 0x00))
+	st.SetScriptResponse(enNameCmd, append(padBlock(enName, 100), 0x90, 0x00))
 	st.SetScriptResponse(birthCmd, append(append([]byte(nil), birth...), 0x90, 0x00))
+	st.SetScriptResponse(genderCmd, append(append([]byte(nil), gender...), 0x90, 0x00))
+	st.SetScriptResponse(issuerCmd, append(padBlock(issuer, 100), 0x90, 0x00))
+	st.SetScriptResponse(issueCmd, append(append([]byte(nil), issue...), 0x90, 0x00))
+	st.SetScriptResponse(expireCmd, append(append([]byte(nil), expire...), 0x90, 0x00))
+	st.SetScriptResponse(addrCmd, append(padBlock(addr, 100), 0x90, 0x00))
+}
+
+func padBlock(b []byte, n int) []byte {
+	padded := make([]byte, n)
+	copy(padded, b)
+	for i := len(b); i < n; i++ {
+		padded[i] = 0x20
+	}
+	return padded
 }
 
 func tis620(s string) []byte {
