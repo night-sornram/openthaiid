@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ThaiIDError } from "../src/index";
-import { managerUrlFromEndpoint, mountThaiIDStatus, probeThaiID, summarizeProbe } from "../src/probe";
+import {
+  formatTestConnection,
+  managerUrlFromEndpoint,
+  mountThaiIDStatus,
+  probeThaiID,
+  summarizeHelperWatch,
+  summarizeProbe,
+  waitForThaiID,
+  watchThaiID,
+} from "../src/probe";
 
 type FakeWS = {
   readyState: number;
@@ -13,8 +22,15 @@ type FakeWS = {
   close: () => void;
 };
 
-function installFakeWebSocket(mode: "probe" | "fail-open" | "hang" = "probe") {
+type ProbeMode = "probe" | "fail-open" | "hang";
+
+function installFakeWebSocket(mode: ProbeMode | ProbeMode[] | { current: ProbeMode } = "probe") {
   const sockets: FakeWS[] = [];
+  const currentMode = (): ProbeMode => {
+    if (typeof mode === "string") return mode;
+    if (Array.isArray(mode)) return mode[Math.min(sockets.length - 1, mode.length - 1)] ?? "probe";
+    return mode.current;
+  };
   class Fake {
     static OPEN = 1;
     readyState = 0;
@@ -25,9 +41,10 @@ function installFakeWebSocket(mode: "probe" | "fail-open" | "hang" = "probe") {
     onclose: (() => void) | null = null;
     constructor(public url: string) {
       sockets.push(this as unknown as FakeWS);
-      if (mode === "hang") return;
+      const current = currentMode();
+      if (current === "hang") return;
       queueMicrotask(() => {
-        if (mode === "fail-open") {
+        if (current === "fail-open") {
           this.onerror?.();
           return;
         }
@@ -200,6 +217,8 @@ describe("mountThaiIDStatus", () => {
       expect(root.textContent).not.toContain("PC/SC");
       expect(root.querySelector("[data-openthaiid-status-mode='user']")).not.toBeNull();
       expect(root.querySelector("[data-openthaiid-lang='th']")).not.toBeNull();
+      expect(root.querySelector("[data-openthaiid-test-connection]")).not.toBeNull();
+      expect(root.textContent).toContain("ทดสอบการเชื่อมต่อ");
       stop();
     } finally {
       fake.restore();
@@ -230,6 +249,111 @@ describe("mountThaiIDStatus", () => {
         expect(root.textContent).toContain("Technician:");
         expect(root.textContent).toContain("card service");
       });
+      stop();
+    } finally {
+      fake.restore();
+    }
+  });
+});
+
+describe("waitForThaiID", () => {
+  it("returns immediately when the helper is already up", async () => {
+    const fake = installFakeWebSocket();
+    try {
+      const r = await waitForThaiID({ timeoutMs: 2_000 });
+      expect(r.reachable).toBe(true);
+      expect(r.readers?.[0]?.presence).toBe("present");
+      expect(JSON.stringify(r)).not.toContain("1234567890121");
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("retries until the helper accepts a probe", async () => {
+    const fake = installFakeWebSocket(["fail-open", "fail-open", "probe"]);
+    try {
+      const r = await waitForThaiID({ timeoutMs: 5_000, intervalMs: 20, probeTimeoutMs: 200 });
+      expect(r.reachable).toBe(true);
+      expect(fake.sockets.length).toBeGreaterThanOrEqual(3);
+    } finally {
+      fake.restore();
+    }
+  });
+});
+
+describe("summarizeHelperWatch / formatTestConnection", () => {
+  it("uses Thai reconnect copy without protocol jargon or PII", () => {
+    const waiting = summarizeHelperWatch({ reachable: false }, "waiting");
+    expect(waiting.headline).toBe("ตัวช่วยหลุดการเชื่อมต่อ");
+    expect(waiting.next).toContain("รอ");
+    expect(JSON.stringify(waiting)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
+    expect(JSON.stringify(waiting)).not.toContain("1234567890121");
+
+    const back = summarizeHelperWatch(
+      {
+        reachable: true,
+        synthetic: true,
+        backend: { name: "synthetic", status: "available" },
+        readers: [{ readerId: "r1", name: "SYNTHETIC ACR39U", presence: "present", selected: true }],
+      },
+      "reconnected",
+    );
+    expect(back.headline).toBe("ตัวช่วยกลับมาแล้ว");
+    expect(back.next).toContain("กรอกข้อมูล");
+
+    expect(formatTestConnection({ reachable: false })).toContain("ไม่สำเร็จ");
+    expect(formatTestConnection({ reachable: true, readers: [] })).toContain("ไม่ได้อ่านข้อมูลบนบัตร");
+  });
+});
+
+describe("watchThaiID", () => {
+  it("announces helper loss and recovery", async () => {
+    const box = { current: "probe" as ProbeMode };
+    const fake = installFakeWebSocket(box);
+    const phases: string[] = [];
+    try {
+      const stop = watchThaiID(
+        (u) => {
+          phases.push(u.phase);
+        },
+        { intervalMs: 40, offlineIntervalMs: 40, timeoutMs: 200 },
+      );
+      await vi.waitFor(() => {
+        expect(phases).toContain("online");
+      });
+      box.current = "fail-open";
+      await vi.waitFor(() => {
+        expect(phases).toContain("waiting");
+      });
+      box.current = "probe";
+      await vi.waitFor(() => {
+        expect(phases).toContain("reconnected");
+      });
+      stop();
+    } finally {
+      fake.restore();
+    }
+  });
+});
+
+describe("mountThaiIDStatus test connection", () => {
+  it("runs a probe-only test from the button", async () => {
+    const fake = installFakeWebSocket();
+    const root = document.createElement("div");
+    try {
+      const stop = mountThaiIDStatus(root, { intervalMs: 60_000 });
+      await vi.waitFor(() => {
+        expect(root.querySelector("[data-openthaiid-test-connection]")).not.toBeNull();
+      });
+      const btn = root.querySelector("[data-openthaiid-test-connection]") as HTMLButtonElement;
+      btn.click();
+      await vi.waitFor(() => {
+        expect(root.querySelector("[data-openthaiid-test-result]")?.textContent).toContain("ไม่ได้อ่านข้อมูลบนบัตร");
+      });
+      expect(root.textContent).not.toContain("1234567890121");
+      expect(fake.sockets.some((s) => s.sent.some((m) => m.includes("bridge.probe")))).toBe(true);
+      expect(fake.sockets.every((s) => s.sent.every((m) => !m.includes("session.open")))).toBe(true);
+      expect(fake.sockets.every((s) => s.sent.every((m) => !m.includes("card.read")))).toBe(true);
       stop();
     } finally {
       fake.restore();

@@ -66,9 +66,10 @@ type FakeWS = {
   respondTo: (s: string) => void;
 };
 
-function installFakeWebSocket(opts: { fields?: FieldValues } = {}) {
+function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number } = {}) {
   const sockets: FakeWS[] = [];
   const cardFields = opts.fields ?? SYNTHETIC_FIELDS;
+  let remainingFails = opts.failFirst ?? 0;
   class Fake {
     static OPEN = 1;
     static CONNECTING = 0;
@@ -82,6 +83,13 @@ function installFakeWebSocket(opts: { fields?: FieldValues } = {}) {
     onclose: (() => void) | null = null;
     constructor(public url: string, public protocols?: string[]) {
       sockets.push(this as unknown as FakeWS);
+      if (remainingFails > 0) {
+        remainingFails--;
+        queueMicrotask(() => {
+          this.onerror?.();
+        });
+        return;
+      }
       queueMicrotask(() => {
         this.readyState = 1;
         this.onopen?.();
@@ -98,6 +106,23 @@ function installFakeWebSocket(opts: { fields?: FieldValues } = {}) {
     respondTo(s: string) {
       if (!this.onmessage) return;
       const msg = JSON.parse(s);
+      if (msg.type === "bridge.probe") {
+        this.onmessage({
+          data: JSON.stringify({
+            v: 1,
+            id: msg.id,
+            result: {
+              version: "0.0.1-test",
+              instanceId: "bridge-x",
+              synthetic: true,
+              backend: { name: "synthetic", status: "available" },
+              readers: [{ readerId: "r1", name: "ACR39U", presence: "present", selected: true }],
+              managerUrl: "http://127.0.0.1:17891/",
+            },
+          }),
+        });
+        return;
+      }
       if (msg.type === "session.open") {
         this.onmessage({
           data: JSON.stringify({
@@ -166,6 +191,14 @@ function installFakeWebSocket(opts: { fields?: FieldValues } = {}) {
       g.WebSocket = prev;
     },
   };
+}
+
+function allSent(fake: { sockets: FakeWS[] }): Array<{ type?: string; payload?: { fields?: string[] } }> {
+  return fake.sockets.flatMap((s) => s.sent.map((x) => JSON.parse(x)));
+}
+
+function sessionOpen(fake: { sockets: FakeWS[] }) {
+  return allSent(fake).find((m) => m.type === "session.open");
 }
 
 afterEach(() => {
@@ -369,10 +402,12 @@ describe("autofillThaiID", () => {
       expect((document.querySelector("[data-openthaiid=thaiName]") as HTMLInputElement).value).toBe("นาย สมชาย ใจดี");
       expect((document.querySelector("[data-openthaiid=birthDate]") as HTMLInputElement).value).toBe("1990-04-12");
       expect(out.filled.map((f) => f.slot).sort()).toEqual(["birthDate", "citizenId", "thaiName"]);
-      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      const open = sessionOpen(fake);
       expect(open.payload.fields).toEqual(["citizenId", "thaiName", "birthDate"]);
-      const closed = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).some((m) => m.type === "session.close");
+      const closed = allSent(fake).some((m) => m.type === "session.close");
       expect(closed).toBe(true);
+      expect(allSent(fake).some((m) => m.type === "bridge.probe")).toBe(true);
+      expect(allSent(fake).filter((m) => m.type === "card.read")).toHaveLength(1);
     } finally {
       fake.restore();
     }
@@ -393,7 +428,7 @@ describe("autofillThaiID", () => {
           address: "#addr",
         },
       });
-      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      const open = sessionOpen(fake);
       expect(open.payload.fields).toEqual(["citizenId", "thaiName", "address"]);
       expect((document.getElementById("addr") as HTMLTextAreaElement).value).toContain("จังหวัดนิทาน");
     } finally {
@@ -468,7 +503,7 @@ describe("autofillThaiID", () => {
         },
         onError: (err) => errors.push(err),
       });
-      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      const open = sessionOpen(fake);
       expect(open.payload.fields).toEqual(["citizenId", "thaiName", "birthDate", "gender", "address"]);
       expect((document.getElementById("patient-cid") as HTMLInputElement).value).toBe("1234567890121");
       expect((document.getElementById("patient-given") as HTMLInputElement).value).toBe("สมชาย");
@@ -503,7 +538,7 @@ describe("autofillThaiID", () => {
         },
         discover: false,
       });
-      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      const open = sessionOpen(fake);
       expect(open.payload.fields).toEqual(["citizenId"]);
       expect((document.getElementById("patient-photo") as HTMLImageElement).getAttribute("src")).toBeNull();
     } finally {
@@ -526,7 +561,7 @@ describe("autofillThaiID", () => {
         },
         discover: false,
       });
-      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      const open = sessionOpen(fake);
       expect(open.payload.fields).toEqual(["citizenId", "portrait"]);
       expect((document.getElementById("patient-photo") as HTMLImageElement).getAttribute("src")).toBe(
         "data:image/jpeg;base64,QQ==",
@@ -550,7 +585,7 @@ describe("autofillThaiID", () => {
           address: "#patient-address",
         },
       });
-      const open = fake.sockets[0]!.sent.map((s) => JSON.parse(s)).find((m) => m.type === "session.open");
+      const open = sessionOpen(fake);
       expect(open.payload.fields).toEqual(["citizenId"]);
       expect((document.getElementById("patient-cid") as HTMLInputElement).value).toBe("1234567890121");
       expect((document.getElementById("patient-address") as HTMLTextAreaElement).value).toBe("");
@@ -580,6 +615,21 @@ describe("autofillThaiID", () => {
     ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatchObject({ code: "INVALID_REQUEST" });
+  });
+
+  it("waits for the helper to return before opening a session or reading", async () => {
+    const fake = installFakeWebSocket({ failFirst: 2 });
+    document.body.innerHTML = `<input data-openthaiid="citizenId" />`;
+    try {
+      await autofillThaiID({ root: document.body, connectTimeoutMs: 5_000 });
+      expect((document.querySelector("[data-openthaiid=citizenId]") as HTMLInputElement).value).toBe("1234567890121");
+      expect(allSent(fake).some((m) => m.type === "bridge.probe")).toBe(true);
+      expect(allSent(fake).filter((m) => m.type === "session.open")).toHaveLength(1);
+      expect(allSent(fake).filter((m) => m.type === "card.read")).toHaveLength(1);
+      expect(JSON.stringify(allSent(fake).filter((m) => m.type === "bridge.probe"))).not.toContain("1234567890121");
+    } finally {
+      fake.restore();
+    }
   });
 });
 

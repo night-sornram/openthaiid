@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
+### Added
+
+- Clinic-day reconnect UX: `mountThaiIDStatus` / `watchThaiID` auto-detect
+  the helper coming back after a restart, with Thai staff copy
+  (**ตัวช่วยหลุดการเชื่อมต่อ** / **ตัวช่วยกลับมาแล้ว**). Faster poll while
+  waiting. `waitForThaiID()` is the same loop without DOM.
+- `autofillThaiID` waits for the helper before `session.open`. It still
+  never auto-repeats a card read.
+- Ready page **ทดสอบการเชื่อมต่อ** (and the SDK status widget button):
+  `bridge.probe` + status only, no personal fields.
+
+### Fixed
+
+- SDK reconnect after helper restart: clear the previous `instanceId` so
+  the new helper snapshot is accepted, and reset the reconnect budget after
+  a successful recovery.
+- Ready page recovers from a helper restart without a manual reload (CSRF
+  token refresh + offline lights while waiting).
+
 ## [0.1.0-rc.2] — software release candidate (unreleased tag)
 
 Software RC against `dev` while ACR39U hardware is in transit. **Do not

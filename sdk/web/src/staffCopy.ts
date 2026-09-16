@@ -37,6 +37,16 @@ export type StaffCopy = {
   technicianLine: (service: string, ver: string, practice: boolean) => string;
   openTechnician: string;
   helperUnreachable: string;
+  checking: string;
+  oneMoment: string;
+  helperLost: string;
+  helperWaiting: string;
+  helperBack: string;
+  helperBackNext: string;
+  testConnection: string;
+  testingConnection: string;
+  testOk: string;
+  testFail: string;
 };
 
 const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
@@ -68,6 +78,16 @@ const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
   technicianDetails: "รายละเอียดช่างเทคนิค",
   openTechnician: "เปิดเครื่องมือช่างเทคนิคบนเครื่องนี้",
   helperUnreachable: "หน้านี้ติดต่อตัวช่วยไม่ได้",
+  checking: "กำลังตรวจ…",
+  oneMoment: "สักครู่",
+  helperLost: "ตัวช่วยหลุดการเชื่อมต่อ",
+  helperWaiting: "กำลังรอให้ OpenThaiID กลับมาบนเครื่องนี้ ไม่ต้องปิดหน้านี้",
+  helperBack: "ตัวช่วยกลับมาแล้ว",
+  helperBackNext: "กด กรอกข้อมูล ได้ตามปกติ",
+  testConnection: "ทดสอบการเชื่อมต่อ",
+  testingConnection: "กำลังทดสอบการเชื่อมต่อ…",
+  testOk: "การเชื่อมต่อปกติ — ไม่ได้อ่านข้อมูลบนบัตร",
+  testFail: "ทดสอบการเชื่อมต่อไม่สำเร็จ เปิด OpenThaiID แล้วลองอีกครั้ง",
 };
 
 const EN: typeof TH = {
@@ -97,6 +117,16 @@ const EN: typeof TH = {
   technicianDetails: "Technician details",
   openTechnician: "Open technician tools on this PC",
   helperUnreachable: "Helper is not reachable from this page.",
+  checking: "Checking…",
+  oneMoment: "One moment.",
+  helperLost: "The helper disconnected",
+  helperWaiting: "Waiting for OpenThaiID to come back on this computer. Leave this page open.",
+  helperBack: "The helper is back",
+  helperBackNext: "Click Fill as usual.",
+  testConnection: "Test connection",
+  testingConnection: "Testing connection…",
+  testOk: "Connection is OK — no personal card fields were read.",
+  testFail: "Connection test failed. Start OpenThaiID, then try again.",
 };
 
 export function staffCopy(lang?: string | null): StaffCopy {
@@ -128,11 +158,11 @@ type ErrorPack = { message: string; next: string };
 const TH_ERRORS: Record<string, ErrorPack> = {
   BRIDGE_UNAVAILABLE: {
     message: "OpenThaiID ยังไม่ทำงานบนเครื่องนี้",
-    next: "เปิดโปรแกรม OpenThaiID แล้วกด กรอกข้อมูล อีกครั้ง",
+    next: "เปิดโปรแกรม OpenThaiID แล้วกด กรอกข้อมูล อีกครั้ง — ถ้าเปิดค้างไว้ หน้านี้รอตัวช่วยกลับมาได้เอง",
   },
   CONNECTION_FAILED: {
     message: "หน้าคลินิกติดต่อตัวช่วยไม่ได้",
-    next: "เปิด OpenThaiID บนเครื่องนี้ ตรวจว่าเบราว์เซอร์อนุญาตเครือข่ายภายใน แล้วลองอีกครั้ง",
+    next: "เปิด OpenThaiID บนเครื่องนี้ ถ้าเพิ่งรีสตาร์ท ให้รอไฟสถานะแล้วกด กรอกข้อมูล อีกครั้ง",
   },
   PROTOCOL_MISMATCH: {
     message: "หน้าคลินิกกับตัวช่วยใช้โปรโตคอลคนละรุ่น",
@@ -223,11 +253,11 @@ const TH_ERRORS: Record<string, ErrorPack> = {
 const EN_ERRORS: Record<string, ErrorPack> = {
   BRIDGE_UNAVAILABLE: {
     message: "OpenThaiID is not running on this computer.",
-    next: "Start OpenThaiID, then click Fill again.",
+    next: "Start OpenThaiID, then click Fill again. If this page stays open, it can detect the helper coming back.",
   },
   CONNECTION_FAILED: {
     message: "This page could not reach the local helper.",
-    next: "Start OpenThaiID on this computer, allow local-network access if asked, then try again.",
+    next: "Start OpenThaiID on this computer. If it just restarted, wait for the status lights, then click Fill again.",
   },
   PROTOCOL_MISMATCH: {
     message: "This page and the helper speak different protocol versions.",
