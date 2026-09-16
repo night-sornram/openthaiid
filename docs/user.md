@@ -121,7 +121,8 @@ Technician tools stay English.
 
 Firefox or Safari on an **https://** clinic page cannot use `ws://127.0.0.1`
 (mixed content: `HTTPS_WS_BLOCKED`) unless a technician enabled local helper
-HTTPS ([loopback-tls.md](loopback-tls.md)). Use Chrome/Edge, an **http** ERP,
+HTTPS ([loopback-tls.md](loopback-tls.md)). Matrix:
+[compatibility.md](compatibility.md). Use Chrome/Edge, an **http** ERP,
 or that local cert. Do not turn off browser security. The Ready page at
 `http://127.0.0.1:17891/` still works. This does not mean OpenThaiID is stopped.
 

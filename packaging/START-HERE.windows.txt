@@ -73,7 +73,9 @@ Technicians: run openthaiid.exe in a terminal, or Technician tools.
 See docs\getting-started.md, docs\technician.md, docs\friday-checklist.md,
 docs\user.md
 (multi-reader, CARD_REMOVED / READER_REMOVED, sleep/wake PC/SC recovery),
-and docs\security.md (loopback HTTP inventory).
+docs\security.md (loopback HTTP inventory), docs\compatibility.md
+(Firefox/Safari https Fill), and docs\loopback-tls.md (optional helper
+HTTPS/WSS).
 From a source checkout: make friday-dry-run (ซ้อมก่อนได้เครื่อง).
 Do not send screenshots of card data.
 `openthaiid.exe update check` looks at GitHub Releases (unsigned packages).

@@ -54,7 +54,8 @@ One Go process owns:
    screen. `GET /v1/helper/summary` is staff-safe lights (no personal data);
    `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`.
    Optional second listener: HTTPS/WSS on `127.0.0.1:17892` when a technician
-   supplies a local cert (Firefox/Safari https ERP).
+   supplies a local cert (Firefox/Safari https ERP) —
+   [loopback-tls.md](loopback-tls.md), matrix [compatibility.md](compatibility.md).
    (browser Origin also needs CSRF). Manager refresh/reconnect are bounded.
    Inventory: [security.md](security.md). Friday-morning hub:
    [getting-started.md](getting-started.md).

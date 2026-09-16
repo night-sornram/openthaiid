@@ -28,7 +28,7 @@ import (
 )
 
 // version is injected via -ldflags at release build time.
-var version = "0.1.0-rc.4"
+var version = "0.1.0-rc.5"
 
 func main() {
 	if maybeRunWindowsService() {

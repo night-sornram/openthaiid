@@ -59,7 +59,9 @@ Technicians
 See docs/getting-started.md, docs/technician.md, docs/friday-checklist.md,
 docs/user.md
 (multi-reader, CARD_REMOVED / sleep-wake / PC/SC recovery),
-docs/security.md (loopback HTTP inventory), and
+docs/security.md (loopback HTTP inventory),
+docs/compatibility.md (Firefox/Safari https Fill),
+docs/loopback-tls.md (optional helper HTTPS/WSS), and
 docs/hardware-qualification.md. Always-on without a menu-bar session:
 docs/installation.md (`openthaiid service install`). Technician audit JSON:
 ./openthaiid audit (or Technician tools → Copy JSON). Practice without a
