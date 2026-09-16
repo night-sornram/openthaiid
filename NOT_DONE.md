@@ -1,10 +1,10 @@
 # Not done
 
-Last updated after **v0.1.0-rc.5 prep**: operator GitHub Releases version
-check, Firefox/Safari clinic Fill honesty, and optional loopback helper TLS
-(technician-managed cert; never a bundled private key). Physical ACR39U
-execution (including Friday E4–E6 on hardware) is still blocked. This tree
-is **tag-ready** for `v0.1.0-rc.5` after review.
+Last updated after **Go module hygiene** on tagged **v0.1.0-rc.5**:
+direct deps `coder/websocket` 1.8.15, `golang.org/x/sys` 0.48.0,
+`golang.org/x/text` 0.42.0; `go` / toolchain held at **1.27** /
+**go1.27.1**; `ebfe/scard` pin held (`7af069cabc25`). Physical ACR39U
+execution (including Friday E4–E6 on hardware) is still blocked.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -12,9 +12,9 @@ portrait (synthetic), the qualification *kit*, unsigned macOS packaging
 instructions, reconnect/test-connection staff UX, multi-reader select,
 card-removed / unplug clinic UX, sleep/wake + PC/SC recovery mapping,
 operator GitHub Releases **check**, honest Firefox/Safari HTTPS Fill
-errors, and optional technician-managed loopback HTTPS/WSS are implemented.
-This file lists everything that is **not** complete for a **hardware-qualified**
-release.
+errors, optional technician-managed loopback HTTPS/WSS, and Go module
+hygiene are implemented. This file lists everything that is **not**
+complete for a **hardware-qualified** release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,
@@ -69,8 +69,9 @@ explicit and unsigned. There is no Store-signed auto-update.
 | Item | Notes |
 |---|---|
 | Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
-| Published GitHub Release / `v0.1.0-rc.5` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. |
+| Next software RC tag | `v0.1.0-rc.5` is already tagged and published as a prerelease. Do not retag it. Do not enable Actions. |
 | Darwin clinic archive on GitHub | Produce with `make package-macos` **on a Mac**. Linux builders cannot cross-compile `ebfe/scard` + Cocoa. Unsigned / not notarized. |
+| Go toolchain / `ebfe/scard` bump | **Held:** `go1.27.1` is current stable (no `go1.27.2`). `ebfe/scard` has no newer tagged revision; keep the pin until the binding audit (P2–P6, P10) or a real upstream fix. |
 
 ---
 
@@ -88,46 +89,12 @@ explicit and unsigned. There is no Store-signed auto-update.
 4. Complete the headed public-HTTPS local-network permission check (M1).
 5. Finish the binding audit checklist in `docs/dependency-audit.md` /
    `docs/acceptance.md` (P2–P6, P10).
-6. Human/coordinator: tag `v0.1.0-rc.5` from `dev` after review. Do **not**
-enable GitHub Actions until minutes are available. Exact commands after
-this PR is merged:
-
-```bash
-git checkout dev && git pull origin dev
-git tag -a v0.1.0-rc.5 -m "OpenThaiID v0.1.0-rc.5"
-git push origin v0.1.0-rc.5
-
-# Linux + Windows archives (Linux builder). Darwin must be on a Mac.
-VERSION=0.1.0-rc.5 OS=linux ARCH=amd64 ./scripts/package.sh
-VERSION=0.1.0-rc.5 OS=windows ARCH=amd64 ./scripts/package.sh
-# On a Mac only:
-#   VERSION=0.1.0-rc.5 make package-macos
-
-# Checksums of the archives (package.sh already writes SHA256SUMS *inside*
-# each archive for the binary):
-(
-  cd dist
-  sha256sum openthaiid-0.1.0-rc.5-linux-amd64.tar.gz \
-    openthaiid-0.1.0-rc.5-windows-amd64.zip \
-    > SHA256SUMS
-)
-# append the darwin archive SHA when produced on a Mac
-
-# Release notes: the [0.1.0-rc.5] section only (not the whole CHANGELOG).
-sed -n '/^## \[0.1.0-rc.5\]/,/^## \[0.1.0-rc.4\]/{ /^## \[0.1.0-rc.4\]/d; p; }' \
-  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.5-notes.md
-
-gh release create v0.1.0-rc.5 \
-  --repo night-sornram/openthaiid \
-  --prerelease \
-  --target dev \
-  --title "v0.1.0-rc.5" \
-  --notes-file /tmp/openthaiid-0.1.0-rc.5-notes.md \
-  dist/openthaiid-0.1.0-rc.5-linux-amd64.tar.gz \
-  dist/openthaiid-0.1.0-rc.5-windows-amd64.zip \
-  dist/SHA256SUMS
-# add dist/openthaiid-0.1.0-rc.5-darwin-<arch>.tar.gz when available
-```
+6. `v0.1.0-rc.5` is already tagged and published. Do **not** retag it.
+   Do **not** enable GitHub Actions until minutes are available. The next
+   software RC is after further Unreleased work (or hardware). Module
+   holds: `go1.27.1`, `ebfe/scard` pin — see [CHANGELOG.md](CHANGELOG.md)
+   `[Unreleased]`.
 
 Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.5]`.
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.5]` plus
+`[Unreleased]` for this hygiene pass.
