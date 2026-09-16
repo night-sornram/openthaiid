@@ -109,11 +109,33 @@ make package
 # dist/openthaiid-<version>-<os>-<arch>.tar.gz (zip on Windows)
 ```
 
+### macOS packaging (Mac host required)
+
+`ebfe/scard` and the Cocoa tray use **cgo**. Darwin archives cannot be
+cross-compiled from Linux or Windows (that is why RC linux/windows
+artifacts exist and darwin is missing from a Linux builder).
+
+On a Mac:
+
+```bash
+make package-macos
+# dist/openthaiid-<version>-darwin-<arch>.tar.gz
+# contains openthaiid, unsigned OpenThaiID.app, start-openthaiid.sh, START-HERE.txt
+```
+
+`make package-macos` builds the **host architecture** (arm64 on Apple
+Silicon, amd64 on Intel). It does **not** sign or notarize. Gatekeeper
+warnings are expected. See [signing.md](signing.md).
+
+`scripts/package.sh` exits with a clear error if `OS=darwin` is set on a
+non-Mac host.
+
 Cross-compilation notes:
 
 - Windows: `CGO_ENABLED=0` is supported by the pinned binding (tray uses
   Win32 syscalls, not cgo).
 - Linux/macOS: cgo is required for PC/SC. macOS tray uses Cocoa (cgo).
+  Darwin **must** be packaged on a Mac (`make package-macos`).
 - Linux tray icon is not shipped (no GTK/AppIndicator dependency). Use the
   Ready page, `.desktop` actions, and `openthaiid status`.
 

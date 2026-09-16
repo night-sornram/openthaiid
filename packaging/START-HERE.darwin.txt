@@ -4,11 +4,18 @@ OpenThaiID helper — clinic Mac
 This folder is the local helper. There is no OpenThaiID website or cloud
 backend. The helper listens only on 127.0.0.1.
 
+This archive is UNSIGNED and NOT notarized. Gatekeeper will warn. That is
+expected. Do not treat this as a Developer ID / App Store build.
+
+This package is produced on a Mac with `make package-macos` (cgo +
+PCSC.framework + Cocoa tray). Linux/Windows cannot cross-compile darwin.
+
 Happy path
 ----------
 1. Open OpenThaiID.app (unsigned: right-click → Open, or:
    xattr -dr com.apple.quarantine OpenThaiID.app
    then open it).
+   Fallback: ./start-openthaiid.sh   or   ./openthaiid tray -open
 2. The helper runs without a Dock icon (menu-bar / extra item).
 3. Plug in the card reader. Open the clinic ERP. Click Fill.
 4. The first time, Allow the clinic page on the Ready page
@@ -32,7 +39,12 @@ This writes ~/Library/LaunchAgents/org.openthaiid.helper.plist
 
 `./openthaiid update check` looks at GitHub Releases (no card data).
 
-Technicians: ./openthaiid in Terminal. See docs/technician.md.
+Technicians
+-----------
+./openthaiid                 terminal helper
+./openthaiid doctor          card service only; never reads personal fields
+./openthaiid qualify         Friday E1–E7 kit (pass/fail + timing + codes)
+See docs/technician.md and docs/hardware-qualification.md.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.

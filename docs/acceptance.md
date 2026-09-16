@@ -129,14 +129,19 @@ run `make acceptance-firefox` locally.
 
 ## Hardware qualification (manual)
 
+Operator kit (checklist + `openthaiid qualify`): [hardware-qualification.md](hardware-qualification.md).
+The kit never stores citizen ID, names, address, or portrait bytes.
+
 For each claimed configuration, record OS, arch, reader variant, driver,
 bridge revision, and non-personal outcome only.
 
+**Order:** macOS + ACR39U first, then Windows, then Linux.
+
 | # | Criterion | Status |
 |---|---|---|
-| E1 | Reader/card detection within 2s under normal operation | Open |
-| E2 | 100 successful repeated MVP reads | Open |
-| E3 | ≥20 insertion/removal cycles | Open |
+| E1 | Reader/card detection within 2s under normal operation | Open — kit ready |
+| E2 | 100 successful repeated MVP reads | Open — kit ready |
+| E3 | ≥20 insertion/removal cycles | Open — kit ready |
 | E4 | Removal during reading and reader unplug | Open |
 | E5 | Browser refresh, bridge restart, sleep/wake | Open |
 | E6 | Missing/stopped PC/SC service recovery where applicable | Open |
@@ -144,7 +149,8 @@ bridge revision, and non-personal outcome only.
 
 Available first target: macOS + ACR39U. Windows/Linux physical qualification
 remains required for the original three-platform release claim. Untested
-configurations stay explicitly unverified.
+configurations stay explicitly unverified. Darwin clinic archives must be
+built on a Mac (`make package-macos`); they are unsigned / not notarized.
 
 ## PC/SC binding audit (`ebfe/scard`)
 

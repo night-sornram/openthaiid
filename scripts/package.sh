@@ -25,6 +25,15 @@ if [ "$OS" = "windows" ]; then
   CGO_ENABLED=0
 fi
 
+HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+if [ "$OS" = "darwin" ] && [ "$HOST_OS" != "darwin" ]; then
+  echo "ERROR: macOS packages cannot be cross-compiled from $HOST_OS." >&2
+  echo "ebfe/scard (PC/SC) and the Cocoa tray require cgo on a Mac host." >&2
+  echo "On a Mac:  make package-macos" >&2
+  echo "This does not produce a signed or notarized build." >&2
+  exit 1
+fi
+
 BIN_NAME="openthaiid-${OS}-${ARCH}"
 if [ "$OS" = "windows" ]; then
   BIN_NAME="${BIN_NAME}.exe"
@@ -70,10 +79,20 @@ case "$OS" in
     ;;
   darwin)
     chmod +x "$STAGE/$CLINIC_BIN"
+    if [ -f packaging/macos/start-openthaiid.sh ]; then
+      cp packaging/macos/start-openthaiid.sh "$STAGE/start-openthaiid.sh"
+      chmod +x "$STAGE/start-openthaiid.sh"
+    fi
     APP="$STAGE/OpenThaiID.app"
     mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
     cp "$STAGE/$CLINIC_BIN" "$APP/Contents/MacOS/openthaiid"
-    cp packaging/macos/Info.plist "$APP/Contents/Info.plist"
+    # Inject the same version as the binary. Unsigned; not notarized.
+    sed "s/__OPENTHAIID_VERSION__/${VERSION}/g" packaging/macos/Info.plist \
+      > "$APP/Contents/Info.plist"
+    if grep -q "__OPENTHAIID_VERSION__" "$APP/Contents/Info.plist"; then
+      echo "ERROR: Info.plist version placeholder not replaced" >&2
+      exit 1
+    fi
     chmod +x "$APP/Contents/MacOS/openthaiid"
     ;;
 esac
@@ -121,6 +140,11 @@ if [ "$OS" = "$HOST_OS" ] && [ "$ARCH" = "$HOST_ARCH" ] && [ "$OS" != "windows" 
   help="$("$VERIFY/$CLINIC_BIN" help)"
   echo "$help" | grep -q "openthaiid tray" || { echo "ERROR: help missing tray" >&2; exit 1; }
   test -f "$VERIFY/START-HERE.txt" || { echo "ERROR: missing START-HERE.txt" >&2; exit 1; }
+  if [ "$OS" = "darwin" ]; then
+    test -x "$VERIFY/OpenThaiID.app/Contents/MacOS/openthaiid" || { echo "ERROR: missing .app executable" >&2; exit 1; }
+    grep -q "$VERSION" "$VERIFY/OpenThaiID.app/Contents/Info.plist" || { echo "ERROR: Info.plist version" >&2; exit 1; }
+    test -x "$VERIFY/start-openthaiid.sh" || { echo "ERROR: missing start-openthaiid.sh" >&2; exit 1; }
+  fi
 fi
 
 echo "OK $ARCHIVE"
