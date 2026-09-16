@@ -176,60 +176,194 @@ export async function probeThaiID(options: ProbeThaiIDOptions = {}): Promise<Pro
   });
 }
 
+export type StatusSummary = {
+  ready: boolean;
+  headline: string;
+  helper: string;
+  reader: string;
+  card: string;
+  next: string;
+};
+
+/** Plain-language helper / reader / card state. No protocol jargon. */
+export function summarizeProbe(probe: ProbeResult): StatusSummary {
+  if (!probe.reachable) {
+    const cancelled = probe.error?.code === "CANCELLED";
+    return {
+      ready: false,
+      headline: cancelled ? "Cancelled" : "Not ready yet",
+      helper: cancelled
+        ? "Cancelled."
+        : "OpenThaiID is not running on this computer. Start it, then try again.",
+      reader: "Card reader: unknown until OpenThaiID is running.",
+      card: "Card: unknown until OpenThaiID is running.",
+      next: cancelled ? "" : "Start OpenThaiID on this computer.",
+    };
+  }
+  const readers = probe.readers ?? [];
+  const backend = probe.backend?.status ?? "unknown";
+  if (backend === "unavailable" || backend === "stalled") {
+    return {
+      ready: false,
+      headline: "Not ready yet",
+      helper: "OpenThaiID is running on this computer.",
+      reader:
+        backend === "stalled"
+          ? "The card service is not responding. Ask a technician."
+          : "The card service is off. Ask a technician to start it.",
+      card: "Card: unknown until the card service is working.",
+      next: "Ask a technician to fix the card service.",
+    };
+  }
+  if (readers.length === 0) {
+    return {
+      ready: false,
+      headline: "Not ready yet",
+      helper: "OpenThaiID is running on this computer.",
+      reader: "No card reader. Plug the reader into this computer.",
+      card: "Insert the card after the reader is connected.",
+      next: "Plug the card reader into this computer.",
+    };
+  }
+  const selected = readers.find((r) => r.selected) ?? readers[0];
+  const present = readers.some((r) => r.presence === "present");
+  const unsupported = readers.some((r) => r.presence === "unsupported");
+  const readerLine = `Reader connected: ${selected?.name ?? "card reader"}`;
+  if (unsupported && !present) {
+    return {
+      ready: false,
+      headline: "Not ready yet",
+      helper: "OpenThaiID is running on this computer.",
+      reader: readerLine,
+      card: "This card is not a Thai National ID.",
+      next: "Insert a Thai National ID card.",
+    };
+  }
+  if (!present) {
+    return {
+      ready: false,
+      headline: "Not ready yet",
+      helper: "OpenThaiID is running on this computer.",
+      reader: readerLine,
+      card: "Insert the Thai ID card.",
+      next: "Insert the patient’s Thai ID card, then click Fill.",
+    };
+  }
+  const demo = probe.synthetic ? " (practice card)" : "";
+  return {
+    ready: true,
+    headline: `Ready${demo}`,
+    helper: "OpenThaiID is running on this computer.",
+    reader: readerLine,
+    card: "Card is inserted.",
+    next: "Click Fill.",
+  };
+}
+
 export type MountThaiIDStatusOptions = ProbeThaiIDOptions & {
   /** Poll interval. Default 2000ms. */
   intervalMs?: number;
+  /**
+   * Default `user`: helper / reader / card in plain language.
+   * `advanced` also shows backend, version, and the local helper link.
+   */
+  mode?: "user" | "advanced";
 };
 
 /**
  * Drop-in reader status into an existing ERP page. No personal field values.
- * Returns a stop function.
+ * Default copy is for clinic staff. Returns a stop function.
  */
 export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptions = {}): () => void {
   const intervalMs = options.intervalMs ?? 2000;
+  const mode = options.mode ?? "user";
   let stopped = false;
   let timer: ReturnType<typeof setInterval> | null = null;
 
   const render = (probe: ProbeResult) => {
+    const summary = summarizeProbe(probe);
     root.replaceChildren();
     const box = document.createElement("div");
     box.setAttribute("data-openthaiid-status", "1");
+    box.setAttribute("data-openthaiid-status-mode", mode);
     box.style.fontFamily = "system-ui, sans-serif";
-    box.style.fontSize = "0.92rem";
+    box.style.fontSize = "0.95rem";
     box.style.lineHeight = "1.4";
 
-    const line = document.createElement("p");
-    line.style.margin = "0 0 0.4rem";
-    if (!probe.reachable) {
-      line.textContent =
-        probe.error?.code === "CANCELLED"
-          ? "Cancelled."
-          : "OpenThaiID helper is not running on this PC. Start it locally — there is nothing to deploy.";
-    } else {
-      const pcsc = probe.backend?.status ?? "unknown";
-      const demo = probe.synthetic ? " (demo)" : "";
-      line.textContent = `Helper connected${demo} · PC/SC ${pcsc}`;
-    }
-    box.append(line);
+    const headline = document.createElement("p");
+    headline.style.margin = "0 0 0.35rem";
+    headline.style.fontWeight = "700";
+    headline.style.fontSize = "1.05rem";
+    headline.textContent = summary.headline;
+    box.append(headline);
 
-    if (probe.reachable && probe.readers && probe.readers.length === 0) {
-      const empty = document.createElement("p");
-      empty.style.margin = "0";
-      empty.textContent = "No card reader detected. Plug the reader into this PC.";
-      box.append(empty);
+    const next = document.createElement("p");
+    next.style.margin = "0 0 0.55rem";
+    next.textContent = summary.next;
+    box.append(next);
+
+    const ul = document.createElement("ul");
+    ul.style.margin = "0";
+    ul.style.paddingLeft = "1.15rem";
+    for (const text of [summary.helper, summary.reader, summary.card]) {
+      const li = document.createElement("li");
+      li.textContent = text;
+      ul.append(li);
     }
-    if (probe.readers) {
-      const ul = document.createElement("ul");
-      ul.style.margin = "0";
-      ul.style.paddingLeft = "1.1rem";
-      for (const r of probe.readers) {
-        const li = document.createElement("li");
-        const presence =
-          r.presence === "present" ? "card present" : r.presence === "unsupported" ? "unsupported card" : "no card";
-        li.textContent = `${r.name} — ${presence}${r.selected ? " (selected)" : ""}`;
-        ul.append(li);
+    box.append(ul);
+
+    if (mode === "advanced" && probe.reachable) {
+      const details = document.createElement("p");
+      details.style.margin = "0.55rem 0 0";
+      details.style.opacity = "0.78";
+      details.style.fontSize = "0.85rem";
+      const pcsc = probe.backend?.status ?? "unknown";
+      const ver = probe.version ? `v${probe.version}` : "";
+      details.textContent = `Technician: card service ${pcsc}${ver ? ` · ${ver}` : ""}${
+        probe.synthetic ? " · practice reader" : ""
+      }`;
+      box.append(details);
+      if (probe.managerUrl) {
+        const link = document.createElement("a");
+        link.href = `${probe.managerUrl}#technician`;
+        link.textContent = "Open technician tools on this PC";
+        link.style.display = "inline-block";
+        link.style.marginTop = "0.35rem";
+        link.style.fontSize = "0.85rem";
+        box.append(link);
       }
-      box.append(ul);
+    } else if (mode === "user") {
+      const details = document.createElement("details");
+      details.style.marginTop = "0.55rem";
+      const summaryEl = document.createElement("summary");
+      summaryEl.textContent = "Technician details";
+      summaryEl.style.cursor = "pointer";
+      summaryEl.style.color = "inherit";
+      summaryEl.style.opacity = "0.72";
+      summaryEl.style.fontSize = "0.85rem";
+      details.append(summaryEl);
+      const extra = document.createElement("p");
+      extra.style.margin = "0.35rem 0 0";
+      extra.style.fontSize = "0.85rem";
+      extra.style.opacity = "0.78";
+      if (!probe.reachable) {
+        extra.textContent = "Helper is not reachable from this page.";
+      } else {
+        extra.textContent = `Card service ${probe.backend?.status ?? "unknown"}${
+          probe.version ? ` · v${probe.version}` : ""
+        }${probe.synthetic ? " · practice reader" : ""}`;
+      }
+      details.append(extra);
+      if (probe.managerUrl) {
+        const link = document.createElement("a");
+        link.href = `${probe.managerUrl}#technician`;
+        link.textContent = "Open technician tools on this PC";
+        link.style.display = "inline-block";
+        link.style.marginTop = "0.3rem";
+        link.style.fontSize = "0.85rem";
+        details.append(link);
+      }
+      box.append(details);
     }
     root.append(box);
   };

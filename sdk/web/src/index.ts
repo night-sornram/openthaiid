@@ -852,11 +852,13 @@ export {
   managerUrlFromEndpoint,
   mountThaiIDStatus,
   probeThaiID,
+  summarizeProbe,
   type MountThaiIDStatusOptions,
   type ProbeBackend,
   type ProbeReader,
   type ProbeResult,
   type ProbeThaiIDOptions,
+  type StatusSummary,
 } from "./probe.js";
 
 export default ThaiID;

@@ -14,7 +14,7 @@ fillBtn.addEventListener("click", async () => {
   await autofillThaiID({
     root: document.getElementById("kyc"),
     onApprovalRequired: ({ comparisonCode, approvalId }) => {
-      status.textContent = `Approve in the terminal — request ${approvalId}, code ${comparisonCode}`;
+      status.textContent = `Allow this page on the helper — request ${approvalId}, code ${comparisonCode}`;
     },
   });
 });
@@ -31,8 +31,9 @@ await autofillThaiID({
 ```
 
 `connect()` still runs from that click (local-network permission). Origin
-Allow still happens on this PC (the page cannot approve itself). The helper
-does not bypass the bridge and does not read portraits.
+Allow still happens on this PC (helper page at `http://127.0.0.1:17891/`,
+or the terminal). The page cannot approve itself. `mountThaiIDStatus`
+shows Ready / not ready in clinic-staff language.
 
 ## Run
 

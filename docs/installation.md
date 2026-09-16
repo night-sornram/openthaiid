@@ -45,14 +45,17 @@ Cross-compilation notes:
 
 Default WebSocket endpoint: `ws://127.0.0.1:17891/v1/ws`
 
-Local Manager (device status, readers, Allow/Deny): `http://127.0.0.1:17891/`
+Local helper page (device status, Allow/Deny; technician tools hidden):
+`http://127.0.0.1:17891/`
 
 ```bash
-./dist/openthaiid manager   # run and try to open the Manager
+./dist/openthaiid manager   # run and try to open the helper page
 ./dist/openthaiid -open     # same
 ```
 
-Approvals are handled in the Manager or the terminal:
+The default view is for clinic staff. Technicians open
+**Technician / developer** (or `#technician`). Approvals are the same
+decision as the terminal:
 
 ```text
 allow <request-id>

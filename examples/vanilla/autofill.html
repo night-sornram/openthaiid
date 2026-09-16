@@ -74,6 +74,12 @@
       #status {
         min-height: 1.5em;
       }
+      .reader-status {
+        border: 1px dashed #8886;
+        border-radius: 8px;
+        padding: 0.65rem 0.75rem;
+        margin: 1rem 0;
+      }
     </style>
   </head>
   <body>
@@ -83,15 +89,16 @@
       Department of Provincial Administration.
     </p>
     <ol class="muted">
-      <li>Start the bridge: <code>./dist/openthaiid -synthetic</code> (or real PC/SC).</li>
-      <li>Click the button — the browser may ask for local-network access.</li>
-      <li>Approve the origin and field set in the bridge terminal (<code>allow &lt;id&gt;</code>).</li>
+      <li>Start the helper: <code>./dist/openthaiid -synthetic</code> (or a real reader).</li>
+      <li>Status below should say Ready. Click the button — the browser may ask for local-network access.</li>
+      <li>The first time, Allow this page on the helper (<code>http://127.0.0.1:17891/</code>).</li>
     </ol>
     <p class="muted">
       Inputs use <code>data-openthaiid</code> slots. Call
       <code>autofillThaiID()</code> from the click; it still goes through the
       local bridge (no bypass). Portrait/photo is not available.
     </p>
+    <div id="reader-status" class="reader-status" aria-live="polite"></div>
     <p id="status" class="muted">Idle.</p>
     <div class="row">
       <button id="fill" class="primary" type="button">Autofill from Thai ID</button>

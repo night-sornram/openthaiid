@@ -12,77 +12,150 @@
     <header class="top">
       <div>
         <h1>OpenThaiID helper</h1>
-        <p class="sub">Operator Allow/Deny on this PC · not a product to install</p>
+        <p class="sub">On this computer · plug in the reader, then Fill in your clinic page</p>
       </div>
       <div class="meta">
-        <span id="version">…</span>
-        <span id="instance" class="muted"></span>
+        <button type="button" id="tech-toggle" class="btn" aria-pressed="false">
+          Technician / developer
+        </button>
       </div>
     </header>
 
     <p id="banner" class="banner" hidden></p>
 
     <main>
-      <section class="card" aria-labelledby="conn-heading">
-        <div class="card-head">
-          <h2 id="conn-heading">Connection</h2>
-          <button type="button" id="refresh" class="btn">Refresh readers</button>
-        </div>
-        <dl class="facts">
-          <div>
-            <dt>Bridge</dt>
-            <dd id="bridge-state">…</dd>
-          </div>
-          <div>
-            <dt>PC/SC</dt>
-            <dd id="pcsc-state">…</dd>
-          </div>
-          <div>
-            <dt>Listen</dt>
-            <dd id="listen">…</dd>
-          </div>
-          <div>
-            <dt>ERP WebSocket</dt>
-            <dd id="ws-url">…</dd>
-          </div>
-        </dl>
+      <section class="card hero" aria-labelledby="ready-heading">
+        <p id="ready-heading" class="headline">Checking…</p>
+        <p id="next-step" class="next">One moment.</p>
+        <ul class="lights" id="lights">
+          <li id="light-helper">
+            <span class="dot" aria-hidden="true"></span>
+            <span class="light-text">OpenThaiID on this computer</span>
+          </li>
+          <li id="light-reader">
+            <span class="dot" aria-hidden="true"></span>
+            <span class="light-text">Card reader</span>
+          </li>
+          <li id="light-card">
+            <span class="dot" aria-hidden="true"></span>
+            <span class="light-text">Thai ID card</span>
+          </li>
+        </ul>
       </section>
 
-      <section class="card" aria-labelledby="readers-heading">
-        <h2 id="readers-heading">Card reader</h2>
-        <p id="readers-empty" class="muted">Checking readers…</p>
-        <ul id="readers" class="readers"></ul>
-      </section>
-
-      <section class="card" aria-labelledby="pending-heading">
-        <div class="card-head">
-          <h2 id="pending-heading">Pending approvals</h2>
-          <span id="pending-count" class="pill">0</span>
-        </div>
+      <section class="card" id="user-pending-card" aria-labelledby="user-pending-heading" hidden>
+        <h2 id="user-pending-heading">A website wants to read the card</h2>
         <p class="help">
-          When an ERP page first connects, it waits here. Allow only origins you
-          recognize. This is the same decision as typing <code>allow</code> in the
-          terminal — the website still cannot read the card until you approve.
+          Allow only the clinic page you are using. Match the code if the clinic
+          page shows one. This does not skip security — the website still cannot
+          approve itself.
         </p>
-        <ul id="pending" class="list"></ul>
+        <ul id="user-pending" class="list"></ul>
       </section>
 
-      <section class="card" aria-labelledby="trust-heading">
-        <div class="card-head">
-          <h2 id="trust-heading">Trusted origins</h2>
-          <button type="button" id="revoke-all" class="btn btn-danger" hidden>Revoke all</button>
-        </div>
+      <section id="technician" class="tech" hidden>
+        <h2 class="tech-title">Technician / developer</h2>
         <p class="help">
-          Trust lives in memory on this PC until OpenThaiID stops or the grant
-          expires. Personal card fields are never shown on this page.
+          Manual controls and diagnostics for fixing problems. Personal card
+          values (citizen ID, names, dates, address) are never shown.
         </p>
-        <ul id="trusted" class="list"></ul>
+
+        <section class="card" aria-labelledby="conn-heading">
+          <div class="card-head">
+            <h3 id="conn-heading">Connection</h3>
+            <div class="actions">
+              <button type="button" id="refresh" class="btn">Refresh readers</button>
+              <button type="button" id="reconnect" class="btn">Reconnect card service</button>
+            </div>
+          </div>
+          <dl class="facts">
+            <div>
+              <dt>Helper</dt>
+              <dd id="bridge-state">…</dd>
+            </div>
+            <div>
+              <dt>Card service</dt>
+              <dd id="pcsc-state">…</dd>
+            </div>
+            <div>
+              <dt>Listen</dt>
+              <dd id="listen">…</dd>
+            </div>
+            <div>
+              <dt>ERP WebSocket</dt>
+              <dd id="ws-url">…</dd>
+            </div>
+            <div>
+              <dt>Version</dt>
+              <dd id="version">…</dd>
+            </div>
+            <div>
+              <dt>OS</dt>
+              <dd id="os">…</dd>
+            </div>
+            <div>
+              <dt>Instance</dt>
+              <dd id="instance">…</dd>
+            </div>
+            <div>
+              <dt>ERP connections</dt>
+              <dd id="connections">…</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="card" aria-labelledby="readers-heading">
+          <h3 id="readers-heading">Readers</h3>
+          <p id="readers-empty" class="muted">Checking readers…</p>
+          <ul id="readers" class="readers"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="pending-heading">
+          <div class="card-head">
+            <h3 id="pending-heading">Pending approvals</h3>
+            <span id="pending-count" class="pill">0</span>
+          </div>
+          <p class="help">
+            Origin + field Allow is still required. Same decision as typing
+            <code>allow</code> in the terminal.
+          </p>
+          <ul id="pending" class="list"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="trust-heading">
+          <div class="card-head">
+            <h3 id="trust-heading">Approved websites</h3>
+            <button type="button" id="revoke-all" class="btn btn-danger" hidden>Revoke all</button>
+          </div>
+          <p class="help">
+            Trust lives in memory on this PC until OpenThaiID stops or the grant
+            expires.
+          </p>
+          <ul id="trusted" class="list"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="diag-heading">
+          <div class="card-head">
+            <h3 id="diag-heading">Diagnostics</h3>
+            <button type="button" id="copy-diag" class="btn">Copy diagnostics</button>
+          </div>
+          <p class="help">
+            Versions, OS, card-service state, and last errors — never personal
+            card field values.
+          </p>
+          <label class="check">
+            <input type="checkbox" id="verbose" />
+            Detailed logs on this PC (until restart; default is quiet)
+          </label>
+          <pre id="last-errors" class="diag"></pre>
+        </section>
       </section>
     </main>
 
     <footer>
-      Independent open-source project — not affiliated with or endorsed by the
-      Department of Provincial Administration.
+      Clinic staff only need the lights above. Independent open-source project —
+      not affiliated with or endorsed by the Department of Provincial
+      Administration.
     </footer>
     <script src="/manager/app.js"></script>
   </body>

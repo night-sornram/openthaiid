@@ -55,7 +55,7 @@ func main() {
 	fs.StringVar(&cfgPath, "config", "", "path to config.json")
 	fs.IntVar(&port, "port", 0, "listen port (default 17891)")
 	fs.StringVar(&bind, "bind", "", "loopback bind address")
-	fs.StringVar(&logLevel, "log-level", "", "debug|info|warn|error")
+	fs.StringVar(&logLevel, "log-level", "", "debug|info|warn|error (default info; quiet for clinic staff)")
 	fs.BoolVar(&synthetic, "synthetic", false, "use synthetic PC/SC backend (no hardware)")
 	fs.BoolVar(&openManager, "open", openManager, "open the local manager in a browser")
 	_ = fs.Parse(args)
@@ -87,7 +87,8 @@ func main() {
 		fatal("config", err)
 	}
 
-	log := newLogger(cfg.LogLevel)
+	levelVar := new(slog.LevelVar)
+	log := newLogger(cfg.LogLevel, levelVar)
 	instanceID := bridge.NewInstanceID()
 	authMgr := auth.NewManager(instanceID, cfg.TrustDuration, cfg.SessionDuration, cfg.ApprovalTimeout, cfg.MaxPendingApprovals)
 	// Approvals are handled in the local Manager UI (and still in the
@@ -139,6 +140,7 @@ func main() {
 
 	srv := bridge.New(cfg, log, authMgr, mgr)
 	srv.SetRuntime(version, synthetic)
+	srv.SetLogLeveler(levelVar)
 	if err := srv.Start(ctx); err != nil {
 		fatal("bridge", err)
 	}
@@ -150,11 +152,12 @@ func main() {
 		"instance", instanceID,
 		"backend", backendName(synthetic),
 	)
-	fmt.Printf("OpenThaiID bridge ready on %s\n", srv.Addr())
-	fmt.Printf("Manager:   %s\n", managerURL)
-	fmt.Printf("WebSocket: %s\n", cfg.WSURL())
-	fmt.Println("Approve ERP sites in the Manager (or terminal: allow/deny).")
-	fmt.Println("Terminal commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
+	fmt.Printf("OpenThaiID is ready on this computer (%s).\n", srv.Addr())
+	fmt.Printf("Clinic staff: keep this window open, plug in the reader, then Fill in the ERP.\n")
+	fmt.Printf("Helper page:  %s  (Technician / developer tools are hidden there)\n", managerURL)
+	fmt.Printf("WebSocket:    %s\n", cfg.WSURL())
+	fmt.Println("The first time a clinic page asks to read the card, Allow it on the helper page.")
+	fmt.Println("Technician commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
 	fmt.Println("This is an independent open-source project and is not affiliated with or endorsed by the Department of Provincial Administration.")
 
 	if openManager {
@@ -291,43 +294,49 @@ func runDoctor() int {
 	return 0
 }
 
-func newLogger(level string) *slog.Logger {
-	var lv slog.Level
+func newLogger(level string, lv *slog.LevelVar) *slog.Logger {
+	if lv == nil {
+		lv = new(slog.LevelVar)
+	}
 	switch level {
 	case "debug":
-		lv = slog.LevelDebug
+		lv.Set(slog.LevelDebug)
 	case "warn":
-		lv = slog.LevelWarn
+		lv.Set(slog.LevelWarn)
 	case "error":
-		lv = slog.LevelError
+		lv.Set(slog.LevelError)
 	default:
-		lv = slog.LevelInfo
+		lv.Set(slog.LevelInfo)
 	}
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: lv}))
 }
 
 func usage() {
-	fmt.Println(`openthaiid — local Thai National ID bridge
+	fmt.Println(`openthaiid — local Thai National ID helper
 
 Usage:
-  openthaiid              Run the bridge (local manager on loopback)
-  openthaiid manager      Run the bridge and open the manager in a browser
-  openthaiid doctor       Check PC/SC availability (no personal fields)
+  openthaiid              Run the helper (simple status page on loopback)
+  openthaiid manager      Run and open the helper page in a browser
+  openthaiid doctor       Check the card service (no personal fields)
   openthaiid version      Print version
 
 Flags (run mode):
   -config path        JSON config file
   -port n             Listen port (default 17891)
   -bind addr          Loopback bind address (default 127.0.0.1)
-  -log-level level    debug|info|warn|error
-  -synthetic          Use synthetic backend (no hardware)
-  -open               Open the local manager in a browser
+  -log-level level    debug|info|warn|error (default info; quiet for clinic staff)
+  -synthetic          Use a practice reader (no hardware)
+  -open               Open the helper page in a browser
 
-Local manager: http://127.0.0.1:17891/
+Helper page:   http://127.0.0.1:17891/
+               Default view is for clinic staff. Technician / developer tools
+               are behind a toggle (or #technician).
 WebSocket:     ws://127.0.0.1:17891/v1/ws
 
-Clinics run this on the PC next to the card reader. There is no backend or
-frontend to deploy. The ERP stays a normal web app and calls autofillThaiID.
+Clinic staff: start this on the PC, plug in the reader, open the ERP, Fill.
+Technicians:  see docs/user.md and docs/technician.md.
+
+There is no backend or frontend to deploy. The ERP calls autofillThaiID.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.`)

@@ -59,6 +59,25 @@ func TestSyntheticLifecycle(t *testing.T) {
 	}
 }
 
+func TestSyntheticReestablishAfterRelease(t *testing.T) {
+	ctx := context.Background()
+	sb := NewSynthetic()
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sb.AddReader("r1", "ACR39U")
+	if err := sb.Release(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	readers, err := sb.Readers(ctx)
+	if err != nil || len(readers) != 1 {
+		t.Fatalf("readers after reconnect=%v err=%v", readers, err)
+	}
+}
+
 func TestSyntheticStalled(t *testing.T) {
 	ctx := context.Background()
 	sb := NewSynthetic()

@@ -72,9 +72,9 @@ func (s *SyntheticBackend) Name() string { return "synthetic" }
 func (s *SyntheticBackend) Establish(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed {
-		return card.NewError(card.ErrPCSCUnavailable, "synthetic backend closed")
-	}
+	// Mirror the OS backend: Release + Establish is a reconnect, not a
+	// permanent close. Card handles still use their own closed flag.
+	s.closed = false
 	s.ready = true
 	return nil
 }

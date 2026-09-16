@@ -29,6 +29,19 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, "OpenThaiID helper") {
 		t.Fatal("missing helper title")
 	}
+	if !strings.Contains(page, "Technician / developer") {
+		t.Fatal("missing technician toggle")
+	}
+	if !strings.Contains(page, `id="technician"`) {
+		t.Fatal("missing technician section")
+	}
+	if !strings.Contains(page, "OpenThaiID on this computer") {
+		t.Fatal("missing user-mode helper light")
+	}
+	css := getBody(t, tb, "/manager/style.css")
+	if !strings.Contains(css, ".tech[hidden]") {
+		t.Fatal("technician section must stay display:none while hidden")
+	}
 	if strings.Contains(page, "1234567890121") || strings.Contains(page, "สมชาย") {
 		t.Fatal("manager HTML must not embed card field values")
 	}
@@ -62,6 +75,15 @@ func TestManagerPageAndStatus(t *testing.T) {
 	backend, _ := st["backend"].(map[string]any)
 	if backend["name"] != "synthetic" || backend["status"] != "available" {
 		t.Fatalf("backend=%v", backend)
+	}
+	if st["os"] == nil || st["os"] == "" {
+		t.Fatal("expected os in status")
+	}
+	if st["logLevel"] != "info" {
+		t.Fatalf("default logLevel=%v", st["logLevel"])
+	}
+	if _, ok := st["lastErrors"].([]any); !ok {
+		t.Fatalf("lastErrors missing: %v", st["lastErrors"])
 	}
 }
 
@@ -195,6 +217,55 @@ func TestManagerHealthzUnchanged(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	if !bytes.Contains(body, []byte(`"status":"ok"`)) && !bytes.Contains(body, []byte(`"status": "ok"`)) {
 		t.Fatalf("healthz body %s", body)
+	}
+}
+
+func TestManagerDiagnosticsLogLevelAndReconnect(t *testing.T) {
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		rdb.SeedDemoCard()
+	})
+	tb.srv.SetRuntime("0.0.1-test", true)
+	waitReader(t, tb, "synthetic-acr39u")
+	token := csrfFrom(t, getBody(t, tb, "/"))
+
+	tb.srv.recordError("websocket", "NO_CARD", "no card present")
+	tb.srv.recordError("websocket", "APPROVAL_REQUIRED", "should be skipped")
+
+	st := managerGET(t, tb, token, "/v1/manager/status")
+	raw, _ := json.Marshal(st)
+	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
+		t.Fatalf("diagnostics leaked personal fields: %s", raw)
+	}
+	errs, _ := st["lastErrors"].([]any)
+	if len(errs) != 1 {
+		t.Fatalf("lastErrors=%v", st["lastErrors"])
+	}
+	e0 := errs[0].(map[string]any)
+	if e0["code"] != "NO_CARD" || e0["source"] != "websocket" {
+		t.Fatalf("last error=%v", e0)
+	}
+
+	out := managerPOST(t, tb, token, "/v1/manager/log-level", map[string]any{"verbose": true})
+	if out["logLevel"] != "debug" {
+		t.Fatalf("logLevel after verbose=%v", out["logLevel"])
+	}
+	st = managerGET(t, tb, token, "/v1/manager/status")
+	if st["logLevel"] != "debug" {
+		t.Fatalf("status logLevel=%v", st["logLevel"])
+	}
+	out = managerPOST(t, tb, token, "/v1/manager/log-level", map[string]any{"verbose": false})
+	if out["logLevel"] != "info" {
+		t.Fatalf("logLevel after quiet=%v", out["logLevel"])
+	}
+
+	out = managerPOST(t, tb, token, "/v1/manager/reconnect", nil)
+	if out["ok"] != true {
+		t.Fatalf("reconnect=%v", out)
+	}
+	st = managerGET(t, tb, token, "/v1/manager/status")
+	readers, _ := st["readers"].([]any)
+	if len(readers) != 1 {
+		t.Fatalf("readers after reconnect=%v", st["readers"])
 	}
 }
 
