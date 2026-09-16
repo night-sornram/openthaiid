@@ -26,8 +26,8 @@ func TestManagerPageAndStatus(t *testing.T) {
 	waitReader(t, tb, "synthetic-acr39u")
 
 	page := getBody(t, tb, "/")
-	if !strings.Contains(page, "OpenThaiID Manager") {
-		t.Fatal("missing manager title")
+	if !strings.Contains(page, "OpenThaiID helper") {
+		t.Fatal("missing helper title")
 	}
 	if strings.Contains(page, "1234567890121") || strings.Contains(page, "สมชาย") {
 		t.Fatal("manager HTML must not embed card field values")

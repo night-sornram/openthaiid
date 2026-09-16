@@ -228,7 +228,7 @@ function render(data) {
   if (data.synthetic) {
     els.banner.hidden = false;
     els.banner.textContent =
-      "Demo mode: synthetic reader and a fictional card. No personal data. ERP autofill still needs an Allow below.";
+      "Demo mode: synthetic reader and a fictional card. No personal data. ERP autofill still needs Allow below.";
   } else {
     els.banner.hidden = true;
   }

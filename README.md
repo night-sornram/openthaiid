@@ -107,7 +107,7 @@ const thaiID = new ThaiID({
 });
 
 thaiID.on("approvalRequired", ({ comparisonCode }) => {
-  console.log("Approve in OpenThaiID Manager, code", comparisonCode);
+  console.log("Allow this origin on the PC, code", comparisonCode);
 });
 
 // Call connect() from a click so the browser can prompt for local network access.
