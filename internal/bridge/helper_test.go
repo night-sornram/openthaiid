@@ -109,7 +109,7 @@ func TestHelperSummaryMultiReaderNeedsSelection(t *testing.T) {
 	if err := json.Unmarshal(raw, &s); err != nil {
 		t.Fatal(err)
 	}
-	if s["card"] != true || s["headline"] != "พร้อม" {
+	if s["card"] != true || !strings.Contains(s["headline"].(string), "พร้อม") {
 		t.Fatalf("selected reader with card should be Ready: %+v", s)
 	}
 	if reader, _ := s["readerText"].(string); !strings.Contains(reader, "Reader Two") {

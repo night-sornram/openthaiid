@@ -67,7 +67,7 @@ The synthetic backend seeds one clearly labeled fictional reader and Thai ID
 card so the documented connect → approve → read path works from a clean
 checkout without hardware. Tests add a second synthetic reader when they need
 the multi-reader picker; default `-synthetic` stays the single-reader auto
-path.
+path. Practice the picker with `OPENTHAIID_SYNTHETIC_READERS=2`.
 
 Local helper (hardware): `ws://127.0.0.1:17891/v1/ws`
 Optional helper page: `http://127.0.0.1:17891/` — default view is Thai

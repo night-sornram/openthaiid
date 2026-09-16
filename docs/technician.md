@@ -137,7 +137,12 @@ One reader stays automatic. When PC/SC lists two or more:
 
 Selection is in-memory on this helper (cleared if that reader is unplugged or
 the helper restarts). The ERP cannot select a reader. Synthetic tests add a
-second reader with `AddReader`; `openthaiid -synthetic` still seeds one.
+second reader with `AddReader`. Default `openthaiid -synthetic` still seeds
+one. To practice the picker without hardware:
+
+```bash
+OPENTHAIID_SYNTHETIC_READERS=2 ./dist/openthaiid -synthetic
+```
 
 ## Friday qualify
 

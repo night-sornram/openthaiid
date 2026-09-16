@@ -19,7 +19,8 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   `card.read` without `readerId` uses that reader; two readers with no
   choice return `READER_SELECTION_REQUIRED`.
 - Operator audit may record `readerId` and `reader.selected` (device id,
-  never card values).
+  never card values). `OPENTHAIID_SYNTHETIC_READERS=2` seeds a second
+  practice reader so the picker can be exercised without hardware.
 - Clinic-day reconnect UX: `mountThaiIDStatus` / `watchThaiID` auto-detect
   the helper coming back after a restart, with Thai staff copy
   (**ตัวช่วยหลุดการเชื่อมต่อ** / **ตัวช่วยกลับมาแล้ว**). Faster poll while

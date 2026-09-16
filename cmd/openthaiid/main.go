@@ -182,6 +182,9 @@ func runHelperCtx(parent context.Context, args []string) {
 			read: func() (pcsc.Backend, error) {
 				b := pcsc.NewSyntheticWithState(shared)
 				b.SeedDemoCard()
+				if os.Getenv("OPENTHAIID_SYNTHETIC_READERS") == "2" {
+					b.SeedSecondDemoReader()
+				}
 				return b, nil
 			},
 		}

@@ -426,8 +426,8 @@ describe("ThaiID", () => {
 
   it("read uses the selected reader from status", async () => {
     const fake = installFakeWebSocket({ autoRespond: true });
+    const id = new ThaiID();
     try {
-      const id = new ThaiID();
       await id.connect();
       const ws = fake.sockets[0]!;
       ws.onmessage?.({
@@ -467,8 +467,8 @@ describe("ThaiID", () => {
 
   it("read requires a Ready-page choice when two readers are unselected", async () => {
     const fake = installFakeWebSocket({ autoRespond: true });
+    const id = new ThaiID();
     try {
-      const id = new ThaiID();
       await id.connect();
       const ws = fake.sockets[0]!;
       ws.onmessage?.({

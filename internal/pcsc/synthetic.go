@@ -298,6 +298,14 @@ func (s *SyntheticBackend) SeedDemoCard() {
 	s.notifyAll()
 }
 
+// SeedSecondDemoReader adds a second fictional reader sharing the same
+// scripted card responses. Used by tests and OPENTHAIID_SYNTHETIC_READERS=2.
+func (s *SyntheticBackend) SeedSecondDemoReader() {
+	const readerID = "synthetic-second"
+	s.AddReader(readerID, "SYNTHETIC second reader (fictional)")
+	s.InsertCard(readerID)
+}
+
 func (st *SyntheticState) AddReader(id, name string) {
 	st.mu.Lock()
 	defer st.mu.Unlock()

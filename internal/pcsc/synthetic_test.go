@@ -112,6 +112,21 @@ func TestSyntheticTwoReaders(t *testing.T) {
 	_ = conn.Close()
 }
 
+func TestSeedSecondDemoReader(t *testing.T) {
+	ctx := context.Background()
+	sb := NewSynthetic()
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sb.Release(ctx) }()
+	sb.SeedDemoCard()
+	sb.SeedSecondDemoReader()
+	readers, err := sb.Readers(ctx)
+	if err != nil || len(readers) != 2 {
+		t.Fatalf("readers=%v err=%v", readers, err)
+	}
+}
+
 func TestSyntheticStalled(t *testing.T) {
 	ctx := context.Background()
 	sb := NewSynthetic()
