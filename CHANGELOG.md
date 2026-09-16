@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React hooks `@openthaiid/react` wrapping `@openthaiid/web` (connect/read/disconnect,
   approvalRequired, status, fields, AbortSignal)
 - Vanilla example page (external module script, CSP-friendly)
+- `@openthaiid/web` `autofillThaiID()` helper: one user-gesture call that
+  connects, waits for terminal approval, reads, maps structured fields to
+  input strings, fills `[data-openthaiid]` / selector targets, then
+  disconnects (existing `ThaiID` class API unchanged)
+- Vanilla form example (`examples/vanilla/autofill.html`) with a single
+  “Autofill from Thai ID” button
 - Playwright browser acceptance harness (`acceptance/`) against the real
   bridge + synthetic card, using node-pty for real terminal approval (no bypass)
 - Cross-platform acceptance: Playwright `chrome` / `msedge` channels,

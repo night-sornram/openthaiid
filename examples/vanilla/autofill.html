@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenThaiID — form autofill</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Segoe UI", "Segoe UI Symbol", sans-serif;
+      }
+      body {
+        margin: 2rem auto;
+        max-width: 42rem;
+        line-height: 1.5;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      button {
+        font: inherit;
+        padding: 0.55rem 1rem;
+        margin: 0 0.4rem 0.4rem 0;
+        border-radius: 8px;
+        border: 1px solid #8886;
+        background: transparent;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #1a56db;
+        border-color: #1a56db;
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      form {
+        display: grid;
+        gap: 0.75rem;
+        margin: 1.25rem 0;
+      }
+      label {
+        display: grid;
+        gap: 0.25rem;
+        font-size: 0.92rem;
+      }
+      input,
+      textarea,
+      select {
+        font: inherit;
+        padding: 0.45rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid #8886;
+        background: transparent;
+      }
+      textarea {
+        min-height: 4.5rem;
+        resize: vertical;
+      }
+      .muted {
+        opacity: 0.72;
+        font-size: 0.92rem;
+      }
+      .row {
+        margin: 1rem 0;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+      }
+      #status {
+        min-height: 1.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Autofill from Thai ID</h1>
+    <p class="muted">
+      Independent open-source project. Not affiliated with or endorsed by the
+      Department of Provincial Administration.
+    </p>
+    <ol class="muted">
+      <li>Start the bridge: <code>./dist/openthaiid -synthetic</code> (or real PC/SC).</li>
+      <li>Click the button — the browser may ask for local-network access.</li>
+      <li>Approve the origin and field set in the bridge terminal (<code>allow &lt;id&gt;</code>).</li>
+    </ol>
+    <p class="muted">
+      Inputs use <code>data-openthaiid</code> slots. Call
+      <code>autofillThaiID()</code> from the click; it still goes through the
+      local bridge (no bypass). Portrait/photo is not available.
+    </p>
+    <p id="status" class="muted">Idle.</p>
+    <div class="row">
+      <button id="fill" class="primary" type="button">Autofill from Thai ID</button>
+      <button id="reset" type="button">Clear form</button>
+    </div>
+    <form id="kyc" autocomplete="off">
+      <label>
+        Citizen ID
+        <input id="citizen-id" name="citizenId" inputmode="numeric" data-openthaiid="citizenId" />
+      </label>
+      <label>
+        Thai full name
+        <input id="full-name" name="thaiName" data-openthaiid="thaiName" />
+      </label>
+      <label>
+        Given name
+        <input name="givenName" data-openthaiid="thaiName.givenName" />
+      </label>
+      <label>
+        Family name
+        <input name="familyName" data-openthaiid="thaiName.familyName" />
+      </label>
+      <label>
+        Date of birth
+        <input id="dob" name="birthDate" type="date" data-openthaiid="birthDate" />
+      </label>
+      <label>
+        Gender
+        <select id="gender" name="gender" data-openthaiid="gender">
+          <option value="">—</option>
+          <option value="male">male</option>
+          <option value="female">female</option>
+        </select>
+      </label>
+      <label>
+        Address
+        <textarea id="address" name="address" data-openthaiid="address"></textarea>
+      </label>
+    </form>
+    <p class="muted">
+      Full connect / read / status demo:
+      <a href="./index.html">index.html</a>.
+      Serve this folder over HTTP(S); localhost HTTP is development-only.
+    </p>
+    <script type="module" src="./autofill.js"></script>
+  </body>
+</html>
