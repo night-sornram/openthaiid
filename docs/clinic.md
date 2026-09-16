@@ -36,10 +36,10 @@ Technicians (Fill failed): [technician.md](technician.md).
 | `probeThaiID` / `mountThaiIDStatus` for connection | A clinic “manager app” to install |
 | `autofillThaiID(config)` on a button click | An OpenThaiID server in the data center |
 
-The browser still cannot talk to a PC/SC reader by itself. A **small local
-helper** (`openthaiid`) must already be running on that PC so the library can
-reach `ws://127.0.0.1:17891/v1/ws`. That helper is not a stack you deploy;
-it is local hardware access. If it is not running, `probeThaiID()` returns
+The PC with the reader still needs the local helper running (`openthaiid tray`
+or `openthaiid` / `openthaiid -synthetic`). That helper is not a stack you deploy;
+it is local hardware access. Clinic IT: unzip the OS archive and follow
+START-HERE.txt ([installation.md](installation.md)). If it is not running, `probeThaiID()` returns
 `reachable: false` and the status panel says so.
 
 ## ERP developers
@@ -80,18 +80,22 @@ fields, and it does **not** skip Allow for a later `autofillThaiID` / `read()`.
 ## Operator Allow (security)
 
 The ERP page cannot approve itself. The first time that origin asks for
-fields, someone at the PC clicks Allow (helper page at
-`http://127.0.0.1:17891/` or `allow <id>` in the helper terminal). After
-that, the grant is reused until it expires or is revoked. Technician tools
-on that page can list pending/approved origins and revoke them; they do not
-bypass Allow.
+fields, someone at the PC clicks Allow on the helper Ready page
+(`http://127.0.0.1:17891/`, tray **Open Ready page**, or `allow <id>` in
+the helper terminal). After that, the grant is reused until it expires or
+is revoked. Technician tools on that page can list pending/approved origins
+and revoke them; they do not bypass Allow.
 
 ## Local helper (hardware only)
 
+Clinic staff should not need a developer terminal. Clinic IT installs the
+per-OS package ([installation.md](installation.md)); staff start **OpenThaiID**
+(tray / application menu) or use **Start at login** (opt-in).
+
 ```bash
-./openthaiid              # real reader
+./openthaiid tray         # background helper (clinic)
+./openthaiid              # terminal helper (technicians)
 ./openthaiid -synthetic   # fictional demo card, no hardware
 ```
 
-No cloud, no extra frontend. See [installation.md](installation.md) for
-PC/SC on Windows/Linux/macOS.
+No cloud, no extra frontend. The helper still binds `127.0.0.1` only.

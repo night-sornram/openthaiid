@@ -71,3 +71,22 @@ func TestLoadMissingFile(t *testing.T) {
 		t.Fatal("expected defaults")
 	}
 }
+
+func TestUserDirOverride(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("OPENTHAIID_HOME", dir)
+	got, err := UserDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != dir {
+		t.Fatalf("UserDir %q", got)
+	}
+	p, err := UserConfigPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p != filepath.Join(dir, "config.json") {
+		t.Fatalf("config path %q", p)
+	}
+}

@@ -1,4 +1,4 @@
-.PHONY: build test race vet fmt doctor sdk sdk-test tidy package clean check acceptance test-repeat
+.PHONY: build test race vet fmt doctor sdk sdk-test tidy package clean check acceptance test-repeat smoke-helper
 
 VERSION ?= 0.0.1-dev
 
@@ -38,6 +38,10 @@ tidy:
 package: build
 	chmod +x scripts/package.sh
 	VERSION=$(VERSION) ./scripts/package.sh
+
+smoke-helper: build
+	chmod +x scripts/smoke-clinic-helper.sh
+	./scripts/smoke-clinic-helper.sh
 
 check: fmt-check vet test sdk-test build
 	@echo "All local checks passed."

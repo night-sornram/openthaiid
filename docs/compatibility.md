@@ -31,11 +31,14 @@ Firefox and Safari are out of MVP scope.
 
 | Artifact | Build environment | Native dependency |
 |---|---|---|
-| `openthaiid-windows-amd64.exe` | Windows amd64 | System WinSCard; cgo disabled |
-| `openthaiid-linux-amd64` | Linux amd64 | cgo + libpcsclite headers |
-| `openthaiid-linux-arm64` | Linux arm64 | cgo + libpcsclite headers |
-| `openthaiid-darwin-arm64` | macOS arm64 | cgo + PCSC.framework |
-| `openthaiid-darwin-amd64` | macOS Intel | cgo + PCSC.framework |
+| `openthaiid-windows-amd64.exe` | Windows amd64 | System WinSCard; cgo disabled (tray is Win32) |
+| `openthaiid-linux-amd64` | Linux amd64 | cgo + libpcsclite headers (no GTK tray) |
+| `openthaiid-linux-arm64` | Linux arm64 | cgo + libpcsclite headers (no GTK tray) |
+| `openthaiid-darwin-arm64` | macOS arm64 | cgo + PCSC.framework + Cocoa tray |
+| `openthaiid-darwin-amd64` | macOS Intel | cgo + PCSC.framework + Cocoa tray |
+
+Clinic archives from `scripts/package.sh` rename the binary to `openthaiid` /
+`openthaiid.exe` and add START-HERE + launch files. Unsigned. Not notarized.
 
 Linux binaries are **not** advertised as fully static or universally compatible
 across libc variants.
@@ -76,3 +79,5 @@ Document distro-specific permissions if a user cannot access the PC/SC daemon.
 - Protocol compatibility is negotiated separately (`openthaiid.v1`).
 - Publish prereleases until the required OS/browser/hardware matrix passes.
 - Platform code signing and notarization belong to a later installer milestone.
+  This tree ships an unsigned portable folder, Windows Start Menu script, Linux
+  `.desktop`, and an unsigned macOS `.app`.

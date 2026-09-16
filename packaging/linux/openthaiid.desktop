@@ -1,0 +1,26 @@
+[Desktop Entry]
+Type=Application
+Name=OpenThaiID
+Comment=Local Thai National ID helper (loopback only)
+Exec=openthaiid tray -open
+TryExec=openthaiid
+Terminal=false
+Categories=Utility;
+Keywords=Thai;ID;card;clinic;
+Actions=Ready;Technician;Status;Quit;
+
+[Desktop Action Ready]
+Name=Open Ready page
+Exec=openthaiid open
+
+[Desktop Action Technician]
+Name=Open Technician tools
+Exec=openthaiid open technician
+
+[Desktop Action Status]
+Name=Show status
+Exec=openthaiid status
+
+[Desktop Action Quit]
+Name=Quit helper
+Exec=openthaiid quit

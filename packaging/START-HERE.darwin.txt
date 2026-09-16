@@ -1,0 +1,36 @@
+OpenThaiID helper — clinic Mac
+==============================
+
+This folder is the local helper. There is no OpenThaiID website or cloud
+backend. The helper listens only on 127.0.0.1.
+
+Happy path
+----------
+1. Open OpenThaiID.app (unsigned: right-click → Open, or:
+   xattr -dr com.apple.quarantine OpenThaiID.app
+   then open it).
+2. The helper runs without a Dock icon (menu-bar / extra item).
+3. Plug in the card reader. Open the clinic ERP. Click Fill.
+4. The first time, Allow the clinic page on the Ready page
+   (http://127.0.0.1:17891/).
+
+If Gatekeeper still blocks an unsigned app, run the raw binary from Terminal:
+
+  ./openthaiid tray -open
+
+Menu (menu bar)
+---------------
+Open Ready page · Open Technician tools · Show status (no personal data) ·
+Start at login (opt-in) · Quit
+
+Start at login (opt-in)
+-----------------------
+Menu: Start at login
+or:  ./openthaiid autostart enable
+This writes ~/Library/LaunchAgents/org.openthaiid.helper.plist
+(RunAtLoad, KeepAlive off). Not signed / not notarized.
+
+Technicians: ./openthaiid in Terminal. See docs/technician.md.
+
+This is an independent open-source project and is not affiliated with or
+endorsed by the Department of Provincial Administration.

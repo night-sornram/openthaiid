@@ -4,9 +4,12 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -16,6 +19,7 @@ import (
 	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/bridge"
 	"github.com/night-sornram/openthaiid/internal/config"
+	"github.com/night-sornram/openthaiid/internal/desktop"
 	"github.com/night-sornram/openthaiid/internal/pcsc"
 	"github.com/night-sornram/openthaiid/internal/reader"
 )
@@ -34,14 +38,32 @@ func main() {
 		case "help", "-h", "--help":
 			usage()
 			return
+		case "autostart":
+			os.Exit(runAutostart(os.Args[2:]))
+		case "status":
+			os.Exit(runStatus(os.Args[2:]))
+		case "quit":
+			os.Exit(runQuit(os.Args[2:]))
+		case "open":
+			os.Exit(runOpenCmd(os.Args[2:]))
 		}
 	}
 
+	runHelper(os.Args[1:])
+}
+
+func runHelper(args []string) {
 	openManager := false
-	args := os.Args[1:]
-	if len(args) > 0 && args[0] == "manager" {
-		openManager = true
-		args = args[1:]
+	tray := false
+	if len(args) > 0 {
+		switch args[0] {
+		case "manager":
+			openManager = true
+			args = args[1:]
+		case "tray":
+			tray = true
+			args = args[1:]
+		}
 	}
 
 	fs := flag.NewFlagSet("openthaiid", flag.ExitOnError)
@@ -58,6 +80,7 @@ func main() {
 	fs.StringVar(&logLevel, "log-level", "", "debug|info|warn|error (default info; quiet for clinic staff)")
 	fs.BoolVar(&synthetic, "synthetic", false, "use synthetic PC/SC backend (no hardware)")
 	fs.BoolVar(&openManager, "open", openManager, "open the local manager in a browser")
+	fs.BoolVar(&tray, "tray", tray, "run as a background helper (tray icon on Windows/macOS)")
 	_ = fs.Parse(args)
 
 	cfg := config.Default()
@@ -87,8 +110,33 @@ func main() {
 		fatal("config", err)
 	}
 
+	userDir, _ := config.UserDir()
+	inst := desktop.Instance{Dir: userDir}
+
+	var logExtra io.Writer
+	if tray {
+		if f, err := inst.OpenLog(); err == nil {
+			defer f.Close()
+			logExtra = f
+		}
+	}
+
 	levelVar := new(slog.LevelVar)
-	log := newLogger(cfg.LogLevel, levelVar)
+	log := newLogger(cfg.LogLevel, levelVar, logExtra)
+
+	if tray {
+		if existing, ok := lookupRunning(cfg); ok {
+			log.Info("helper already running", "page", existing.ReadyPage)
+			fmt.Println("OpenThaiID is already running on this computer.")
+			if openManager {
+				if err := openBrowser(existing.ReadyPage); err != nil {
+					fmt.Printf("Open the helper at %s\n", existing.ReadyPage)
+				}
+			}
+			return
+		}
+	}
+
 	instanceID := bridge.NewInstanceID()
 	authMgr := auth.NewManager(instanceID, cfg.TrustDuration, cfg.SessionDuration, cfg.ApprovalTimeout, cfg.MaxPendingApprovals)
 	// Approvals are handled in the local Manager UI (and still in the
@@ -141,9 +189,29 @@ func main() {
 	srv := bridge.New(cfg, log, authMgr, mgr)
 	srv.SetRuntime(version, synthetic)
 	srv.SetLogLeveler(levelVar)
+	srv.SetShutdownRequest(cancel)
 	if err := srv.Start(ctx); err != nil {
+		if tray {
+			if existing, ok := lookupRunning(cfg); ok {
+				log.Info("helper already running", "page", existing.ReadyPage)
+				fmt.Println("OpenThaiID is already running on this computer.")
+				if openManager {
+					_ = openBrowser(existing.ReadyPage)
+				}
+				return
+			}
+		}
 		fatal("bridge", err)
 	}
+	if tray {
+		if err := inst.WritePID(); err != nil {
+			log.Warn("pid file", "error", err)
+		} else {
+			defer inst.RemovePID()
+		}
+		desktop.HideConsole()
+	}
+
 	managerURL := srv.ManagerURL()
 	log.Info("openthaiid listening",
 		"addr", srv.Addr(),
@@ -151,14 +219,17 @@ func main() {
 		"ws", cfg.WSURL(),
 		"instance", instanceID,
 		"backend", backendName(synthetic),
+		"tray", tray,
 	)
-	fmt.Printf("OpenThaiID is ready on this computer (%s).\n", srv.Addr())
-	fmt.Printf("Clinic staff: keep this window open, plug in the reader, then Fill in the ERP.\n")
-	fmt.Printf("Helper page:  %s  (Technician / developer tools are hidden there)\n", managerURL)
-	fmt.Printf("WebSocket:    %s\n", cfg.WSURL())
-	fmt.Println("The first time a clinic page asks to read the card, Allow it on the helper page.")
-	fmt.Println("Technician commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
-	fmt.Println("This is an independent open-source project and is not affiliated with or endorsed by the Department of Provincial Administration.")
+	if !tray {
+		fmt.Printf("OpenThaiID is ready on this computer (%s).\n", srv.Addr())
+		fmt.Printf("Clinic staff: keep this window open, plug in the reader, then Fill in the ERP.\n")
+		fmt.Printf("Helper page:  %s  (Technician / developer tools are hidden there)\n", managerURL)
+		fmt.Printf("WebSocket:    %s\n", cfg.WSURL())
+		fmt.Println("The first time a clinic page asks to read the card, Allow it on the helper page.")
+		fmt.Println("Technician commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
+		fmt.Println("This is an independent open-source project and is not affiliated with or endorsed by the Department of Provincial Administration.")
+	}
 
 	if openManager {
 		if err := openBrowser(managerURL); err != nil {
@@ -167,9 +238,44 @@ func main() {
 		}
 	}
 
-	go terminalLoop(ctx, cancel, authMgr, log)
+	if tray {
+		host := desktop.Host{
+			ReadyURL:      managerURL,
+			TechnicianURL: strings.TrimRight(managerURL, "/") + "/#technician",
+			Status: func() string {
+				return desktop.Format(srv.HelperSummary())
+			},
+			OpenURL: openBrowser,
+			AutostartOn: func() bool {
+				on, _, err := (desktop.Autostart{}).Enabled()
+				return err == nil && on
+			},
+			SetAutostart: func(enabled bool) error {
+				a := desktop.Autostart{}
+				if enabled {
+					return a.Enable()
+				}
+				return a.Disable()
+			},
+			Quit: cancel,
+			Log:  log,
+		}
+		err := desktop.RunTray(ctx, host)
+		if errors.Is(err, desktop.ErrNoTray) {
+			log.Info("no notification area; helper running in the background")
+			fmt.Printf("OpenThaiID is running in the background on %s.\n", srv.Addr())
+			fmt.Printf("Ready page: %s\n", managerURL)
+			fmt.Println("This session has no tray icon (typical on Linux without a desktop). Use the Ready page, or: openthaiid status | openthaiid quit")
+			<-ctx.Done()
+		} else if err != nil {
+			log.Warn("tray", "error", err)
+			<-ctx.Done()
+		}
+	} else {
+		go terminalLoop(ctx, cancel, authMgr, log)
+		<-ctx.Done()
+	}
 
-	<-ctx.Done()
 	shutCtx, c2 := context.WithTimeout(context.Background(), 5*time.Second)
 	defer c2()
 	_ = srv.Shutdown(shutCtx)
@@ -294,7 +400,7 @@ func runDoctor() int {
 	return 0
 }
 
-func newLogger(level string, lv *slog.LevelVar) *slog.Logger {
+func newLogger(level string, lv *slog.LevelVar, extra io.Writer) *slog.Logger {
 	if lv == nil {
 		lv = new(slog.LevelVar)
 	}
@@ -308,35 +414,47 @@ func newLogger(level string, lv *slog.LevelVar) *slog.Logger {
 	default:
 		lv.Set(slog.LevelInfo)
 	}
-	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: lv}))
+	var w io.Writer = os.Stderr
+	if extra != nil {
+		w = io.MultiWriter(os.Stderr, extra)
+	}
+	return slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{Level: lv}))
 }
 
 func usage() {
 	fmt.Println(`openthaiid — local Thai National ID helper
 
 Usage:
-  openthaiid              Run the helper (simple status page on loopback)
-  openthaiid manager      Run and open the helper page in a browser
-  openthaiid doctor       Check the card service (no personal fields)
-  openthaiid version      Print version
+  openthaiid                 Run the helper in a terminal (technicians / developers)
+  openthaiid tray            Run as a background helper (tray on Windows/macOS)
+  openthaiid manager         Run and open the Ready page in a browser
+  openthaiid status          Staff-safe helper / reader / card status (no personal data)
+  openthaiid quit            Stop a running helper on this computer
+  openthaiid open            Open the Ready page
+  openthaiid open technician Open technician / developer tools
+  openthaiid autostart       enable | disable | status   (opt-in start at login)
+  openthaiid doctor          Check the card service (no personal fields)
+  openthaiid version         Print version
 
-Flags (run mode):
+Flags (run / tray mode):
   -config path        JSON config file
   -port n             Listen port (default 17891)
   -bind addr          Loopback bind address (default 127.0.0.1)
   -log-level level    debug|info|warn|error (default info; quiet for clinic staff)
   -synthetic          Use a practice reader (no hardware)
-  -open               Open the helper page in a browser
+  -open               Open the Ready page in a browser
+  -tray               Same as the tray subcommand
 
 Helper page:   http://127.0.0.1:17891/
                Default view is for clinic staff. Technician / developer tools
                are behind a toggle (or #technician).
 WebSocket:     ws://127.0.0.1:17891/v1/ws
 
-Clinic staff: start this on the PC, plug in the reader, open the ERP, Fill.
+Clinic staff: install once, start the helper (tray or Start menu), plug reader, Fill.
 Technicians:  see docs/user.md and docs/technician.md.
 
 There is no backend or frontend to deploy. The ERP calls autofillThaiID.
+The helper listens on loopback only. Approvals are unchanged.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.`)
@@ -345,4 +463,16 @@ endorsed by the Department of Provincial Administration.`)
 func fatal(what string, err error) {
 	fmt.Fprintf(os.Stderr, "%s: %v\n", what, err)
 	os.Exit(1)
+}
+
+func lookupRunning(cfg config.Config) (desktop.Summary, bool) {
+	base := "http://" + net.JoinHostPort(cfg.BindAddress, fmt.Sprintf("%d", cfg.Port))
+	sum, err := fetchHelperSummary(base)
+	if err == nil && sum.Helper {
+		return sum, true
+	}
+	if helperHealthz(base) {
+		return desktop.Summarize(desktop.Lights{Helper: true, ReadyPage: base + "/", TechnicianPage: base + "/#technician"}), true
+	}
+	return desktop.Summary{}, false
 }

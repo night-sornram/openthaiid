@@ -21,8 +21,9 @@ WebSocket — only after the operator Allows the website origin and field set.
 See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the
 reader from the same page, call `autofillThaiID(config)`.
 
-Clinic staff: [docs/user.md](docs/user.md). Technicians:
-[docs/technician.md](docs/technician.md).
+Clinic staff: [docs/user.md](docs/user.md) (tray / Start menu, not a developer
+terminal). Technicians: [docs/technician.md](docs/technician.md).
+Clinic IT packaging: [docs/installation.md](docs/installation.md).
 
 ## Quick start
 
@@ -33,8 +34,11 @@ make build
 # Check PC/SC (never reads personal fields)
 ./dist/openthaiid doctor
 
-# Run with real hardware
+# Run with real hardware (terminal; technicians)
 ./dist/openthaiid
+
+# Clinic background helper (tray on Windows/macOS; background on Linux)
+./dist/openthaiid tray -open
 
 # Run and open the local helper page (clinic-staff view; technician tools hidden)
 ./dist/openthaiid manager
@@ -164,6 +168,7 @@ Copy-paste React usage is in `examples/react/README.md` and `sdk/react/README.md
 Browser (HTTPS ERP page)
   └─ WebSocket ws://127.0.0.1:17891/v1/ws
        └─ OpenThaiID on the clinic PC (Go)
+            ├─ Tray / background helper (optional; default for clinic packages)
             ├─ Helper page http://127.0.0.1:17891/ (staff view + hidden technician tools)
             ├─ Origin + field grants (Manager or terminal approval)
             ├─ Reader manager (card generations)
@@ -172,7 +177,8 @@ Browser (HTTPS ERP page)
 
 | Package | Role |
 |---|---|
-| `cmd/openthaiid` | CLI, signals, wiring |
+| `cmd/openthaiid` | CLI, tray, autostart, signals, wiring |
+| `internal/desktop` | Tray host, login items, staff-safe status |
 | `internal/card` | Thai profile, APDU engine, TIS-620 parsers |
 | `internal/reader` | Inventory, generations, single-read slot |
 | `internal/pcsc` | OS PC/SC + synthetic backends |
@@ -188,6 +194,7 @@ Browser (HTTPS ERP page)
 - Validates browser `Origin` (HTTPS always; HTTP loopback for development).
 - Operator approval per origin + exact field set (Manager or terminal); trust is memory-only.
 - Local Manager is loopback HTML; mutating APIs require a CSRF token and the manager origin. No CORS.
+- `POST /v1/helper/shutdown` is loopback-only and ignores foreign website `Origin` headers.
 - One active read; results are unicast; card-session generations prevent stale data.
 - Never logs citizen IDs, names, dates, raw APDUs, or tokens. The helper page
   does not display personal field values. Technician diagnostics copy the same
@@ -200,7 +207,7 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 | Document | Contents |
 |---|---|
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
-| [docs/user.md](docs/user.md) | Clinic staff: start helper, plug reader, Fill |
+| [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill |
 | [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
 | [docs/security.md](docs/security.md) | Threat model |
@@ -208,13 +215,15 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 | [docs/provenance.md](docs/provenance.md) | APDU sources and licenses |
 | [docs/compatibility.md](docs/compatibility.md) | OS/browser/reader matrix |
 | [docs/acceptance.md](docs/acceptance.md) | Acceptance gates |
-| [docs/installation.md](docs/installation.md) | Runtime prerequisites |
+| [docs/installation.md](docs/installation.md) | Clinic package + source build |
 | [docs/dependency-audit.md](docs/dependency-audit.md) | Binding audit checklist |
 
 ## Tests
 
 ```bash
 make test          # Go unit + integration (synthetic hardware)
+make smoke-helper  # Linux tray/background + package-free status/quit/autostart
+make package       # clinic archive (START-HERE + OS launch files)
 make race          # race detector
 make test-repeat   # bridge/reader tests ×50 (local determinism; full CI too)
 cd sdk/web && npm test

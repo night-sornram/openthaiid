@@ -1,0 +1,37 @@
+OpenThaiID helper — clinic Linux
+================================
+
+This folder is the local helper. There is no OpenThaiID website or cloud
+backend. The helper listens only on 127.0.0.1.
+
+Happy path
+----------
+1. Optional once: ./install-linux.sh
+   (copies to ~/.local/bin and an application menu entry).
+2. Start: ./start-openthaiid.sh
+   or:    ./openthaiid tray -open
+3. GNOME/KDE often have no notification-area icon without extra extensions.
+   The helper still runs in the background. Use the Ready page:
+   http://127.0.0.1:17891/
+4. Plug in the reader (pcscd). Open the clinic ERP. Click Fill.
+5. The first time, Allow the clinic page on the Ready page.
+
+Start at login (opt-in, off by default)
+---------------------------------------
+  ./openthaiid autostart enable
+  ./openthaiid autostart disable
+Writes ~/.config/autostart/openthaiid.desktop (XDG). Does not open a browser
+at login.
+
+systemd --user (optional, not enabled by default): see openthaiid.service.
+
+Need pcscd, for example:
+  sudo apt install pcscd libpcsclite1
+  sudo systemctl enable --now pcscd
+
+Commands: openthaiid status | quit | open | open technician | autostart …
+
+Technicians: ./openthaiid in a terminal. See docs/technician.md.
+
+This is an independent open-source project and is not affiliated with or
+endorsed by the Department of Provincial Administration.

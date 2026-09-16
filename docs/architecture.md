@@ -20,11 +20,15 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
 - A loopback HTML page on the helper: clinic-staff Ready view plus hidden
   technician tools for Allow/Deny and diagnostics (the ERP cannot approve
   itself).
+- A tray / background helper so clinic PCs do not need a developer terminal
+  (Windows/macOS notification area; Linux background + `.desktop`).
+- Opt-in start-at-login (`openthaiid autostart`); off by default.
 
 ## Non-goals (MVP)
 
 - Biometrics, PIN bypass, card writes, arbitrary APDUs.
-- Portraits / photo binary, laser-id / NHSO profiles, Windows MSI / tray app.
+- Portraits / photo binary, laser-id / NHSO profiles.
+- Signed / notarized store installers and auto-update.
 - Persistent trust across bridge restarts.
 - Official Firefox or Safari support.
 - A hosted multi-tenant OpenThaiID backend.
@@ -39,9 +43,11 @@ One Go process owns:
 4. A loopback HTTP server: helper page (`/`, `/v1/manager/*`) plus
    WebSocket (`/v1/ws`, subprotocol `openthaiid.v1`). The default HTML view
    is clinic-staff status; technician controls are toggled, not the home
-   screen.
-5. A terminal command loop for approvals and revocation (optional when using
-   the Manager).
+   screen. `GET /v1/helper/summary` is staff-safe lights (no personal data);
+   `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`.
+5. A terminal command loop for approvals and revocation (console mode).
+6. Optional tray / background mode (`openthaiid tray`) instead of the
+   terminal loop.
 
 ```mermaid
 flowchart LR
@@ -64,7 +70,8 @@ flowchart LR
 
 | Path | Responsibility |
 |---|---|
-| `cmd/openthaiid` | Startup, flags, signals, wiring |
+| `cmd/openthaiid` | Startup, flags, tray/autostart/status/quit, wiring |
+| `internal/desktop` | Tray host, login-item files, staff-safe status text |
 | `internal/card` | Field types, profiles, APDU handling, decoding |
 | `internal/reader` | Reader inventory, card generations, read coordination |
 | `internal/pcsc` | OS PC/SC adapter and native resource ownership |

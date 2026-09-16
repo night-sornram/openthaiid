@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   helper / reader / card in plain language; **Technician / developer** tools
   (refresh, reconnect, pending/approved origins, copy diagnostics, verbose
   logs) stay hidden (`#technician`)
+- Background helper UX: `openthaiid tray` (Windows/macOS notification-area
+  menu: Open Ready page, Open Technician tools, Show status without PII,
+  opt-in Start at login, Quit). Linux runs the same command in the background
+  and uses the Ready page / `.desktop` actions when there is no tray
+- Opt-in start at login: `openthaiid autostart enable|disable|status`
+  (Windows Startup folder, macOS LaunchAgent, Linux XDG autostart). Off by
+  default; login does not open a browser
+- Clinic packaging: `scripts/package.sh` ships a runnable folder (`openthaiid`
+  / `openthaiid.exe`, START-HERE.txt, Windows bat/ps1, Linux desktop/service,
+  unsigned macOS `.app`)
+- `openthaiid status` / `quit` / `open` for staff-safe control without a TTY
+- Loopback `GET /v1/helper/summary` (no personal fields) and
+  `POST /v1/helper/shutdown` (foreign `Origin` rejected)
 - `docs/user.md` (clinic staff happy path) and `docs/technician.md` (Fill
   failure checklist)
 - Manager APIs `POST /v1/manager/reconnect` and `POST /v1/manager/log-level`
@@ -169,4 +182,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Physical ACR39U acceptance on Windows/Linux/macOS
 - Playwright browser acceptance matrix (Chrome/Edge across three OSes)
 - Official Firefox/Safari support
-- Portraits, installers, tray UI
+- Portraits, signed store installers, auto-update

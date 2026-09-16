@@ -21,12 +21,14 @@ Work top to bottom. Most failures are the first four.
 The ERP status says OpenThaiID is not running, or `probeThaiID()` returns
 `reachable: false`.
 
-- Start `openthaiid` on **this** PC (the one with the reader).
-- Confirm `http://127.0.0.1:17891/` loads.
+- Start `openthaiid tray` (clinic) or `openthaiid` on **this** PC (the one with the reader).
+- Confirm `http://127.0.0.1:17891/` loads, or use tray **Open Ready page**.
+- `openthaiid status` prints helper / reader / card without personal fields.
 - There is no cloud service to restart.
 
 ```bash
-./openthaiid              # real reader
+./openthaiid tray         # background helper
+./openthaiid              # terminal helper
 ./openthaiid -synthetic   # practice reader (no hardware)
 ./openthaiid doctor       # card service only; never reads personal fields
 ```
