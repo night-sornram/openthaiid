@@ -32,7 +32,7 @@ export type {
   ThaiName,
 } from "@openthaiid/web";
 
-export { DEFAULT_FIELDS, SUPPORTED_FIELDS, ThaiID, ThaiIDError, autofillThaiID, probeThaiID, mountThaiIDStatus } from "@openthaiid/web";
+export { DEFAULT_FIELDS, SUPPORTED_FIELDS, ThaiID, ThaiIDError, autofillThaiID, probeThaiID, mountThaiIDStatus, summarizeProbe } from "@openthaiid/web";
 export type {
   AutofillFieldMap,
   AutofillResult,

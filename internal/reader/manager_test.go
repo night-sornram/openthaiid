@@ -114,6 +114,26 @@ func TestSelectReader(t *testing.T) {
 	}
 }
 
+func TestReconnectKeepsInventory(t *testing.T) {
+	ctx := context.Background()
+	m, mon, _, _ := startPair(t)
+	mon.AddReader("r1", "ACR39U")
+	mon.InsertCard("r1")
+	if err := m.Refresh(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Reconnect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	snap := m.Snapshot()
+	if snap.Backend != "available" {
+		t.Fatalf("backend=%s", snap.Backend)
+	}
+	if len(snap.Readers) != 1 {
+		t.Fatalf("readers=%v", snap.Readers)
+	}
+}
+
 func TestPreferredReaderSelection(t *testing.T) {
 	ctx := context.Background()
 	m, mon, _, _ := startPair(t)

@@ -49,6 +49,11 @@ type Server struct {
 	version      string
 	synthetic    bool
 	managerToken string
+
+	logLevel *slog.LevelVar
+
+	lastErrMu sync.Mutex
+	lastErrs  []managerLastError
 }
 
 type clientConn struct {
@@ -126,7 +131,9 @@ func New(cfg config.Config, log *slog.Logger, authMgr *auth.Manager, readers *re
 		clients:      map[string]*clientConn{},
 		opSem:        make(chan struct{}, n),
 		managerToken: newManagerToken(),
+		logLevel:     new(slog.LevelVar),
 	}
+	s.logLevel.Set(slog.LevelInfo)
 	authMgr.OnRevoke = s.handleAuthRevoked
 	return s
 }
@@ -160,6 +167,8 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /v1/manager/approvals/{id}/deny", s.handleManagerDeny)
 	mux.HandleFunc("POST /v1/manager/trust/revoke", s.handleManagerRevoke)
 	mux.HandleFunc("POST /v1/manager/trust/revoke-all", s.handleManagerRevokeAll)
+	mux.HandleFunc("POST /v1/manager/log-level", s.handleManagerLogLevel)
+	mux.HandleFunc("POST /v1/manager/reconnect", s.handleManagerReconnect)
 	s.httpSrv = &http.Server{
 		Handler:           s.securityMiddleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
@@ -841,6 +850,7 @@ func (s *Server) writeError(cc *clientConn, id int64, e *card.Error) {
 	if e == nil {
 		e = card.NewError(card.ErrConnectionFailed, "unknown error")
 	}
+	s.recordError("websocket", string(e.Code), e.Message)
 	body, err := json.Marshal(protocol.Response{
 		V:     protocol.Major,
 		ID:    id,

@@ -21,6 +21,9 @@ WebSocket — only after the operator Allows the website origin and field set.
 See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the
 reader from the same page, call `autofillThaiID(config)`.
 
+Clinic staff: [docs/user.md](docs/user.md). Technicians:
+[docs/technician.md](docs/technician.md).
+
 ## Quick start
 
 ```bash
@@ -33,10 +36,10 @@ make build
 # Run with real hardware
 ./dist/openthaiid
 
-# Run and open the local Manager in a browser
+# Run and open the local helper page (clinic-staff view; technician tools hidden)
 ./dist/openthaiid manager
 
-# Or run without hardware (synthetic backend + fictional demo card)
+# Or run without hardware (practice reader + fictional demo card)
 ./dist/openthaiid -synthetic
 ```
 
@@ -45,7 +48,9 @@ card so the documented connect → approve → read path works from a clean
 checkout without hardware.
 
 Local helper (hardware): `ws://127.0.0.1:17891/v1/ws`
-Optional operator Allow UI: `http://127.0.0.1:17891/`
+Optional helper page: `http://127.0.0.1:17891/` — default view is
+connected / reader / card for clinic staff. Technician / developer tools
+are behind a toggle (`#technician`).
 
 ### Terminal commands
 
@@ -53,9 +58,10 @@ Optional operator Allow UI: `http://127.0.0.1:17891/`
 status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | quit
 ```
 
-When a website first connects, the terminal prints the exact origin, requested
-fields, request id, and comparison code. Type `allow <id>` to grant in-memory
-trust (8 hours or until the bridge stops).
+When a website first connects, the helper page shows the origin, requested
+fields, and comparison code. Allow only the clinic page staff are using
+(the website still cannot approve itself). Terminal `allow <id>` remains
+available for technicians.
 
 ## Browser SDK (the library)
 
@@ -78,6 +84,7 @@ gesture), waits for terminal approval, reads, fills inputs, then disconnects:
 import { autofillThaiID, mountThaiIDStatus } from "@openthaiid/web";
 
 mountThaiIDStatus(document.getElementById("reader-status"));
+// Ready / not ready in plain language. { mode: "advanced" } for technicians.
 
 document.getElementById("fill").addEventListener("click", async () => {
   await autofillThaiID({
@@ -157,7 +164,7 @@ Copy-paste React usage is in `examples/react/README.md` and `sdk/react/README.md
 Browser (HTTPS ERP page)
   └─ WebSocket ws://127.0.0.1:17891/v1/ws
        └─ OpenThaiID on the clinic PC (Go)
-            ├─ Local Manager http://127.0.0.1:17891/
+            ├─ Helper page http://127.0.0.1:17891/ (staff view + hidden technician tools)
             ├─ Origin + field grants (Manager or terminal approval)
             ├─ Reader manager (card generations)
             └─ PC/SC adapter → Thai ID card
@@ -182,7 +189,9 @@ Browser (HTTPS ERP page)
 - Operator approval per origin + exact field set (Manager or terminal); trust is memory-only.
 - Local Manager is loopback HTML; mutating APIs require a CSRF token and the manager origin. No CORS.
 - One active read; results are unicast; card-session generations prevent stale data.
-- Never logs citizen IDs, names, dates, raw APDUs, or tokens. The Manager does not display personal field values.
+- Never logs citizen IDs, names, dates, raw APDUs, or tokens. The helper page
+  does not display personal field values. Technician diagnostics copy the same
+  rule (versions, OS, card-service state, last error *codes* — not card data).
 
 See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md).
 
@@ -191,6 +200,8 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 | Document | Contents |
 |---|---|
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
+| [docs/user.md](docs/user.md) | Clinic staff: start helper, plug reader, Fill |
+| [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
 | [docs/security.md](docs/security.md) | Threat model |
 | [docs/protocol.md](docs/protocol.md) | Protocol v1 |

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ThaiIDError } from "../src/index";
-import { managerUrlFromEndpoint, mountThaiIDStatus, probeThaiID } from "../src/probe";
+import { managerUrlFromEndpoint, mountThaiIDStatus, probeThaiID, summarizeProbe } from "../src/probe";
 
 type FakeWS = {
   readyState: number;
@@ -135,18 +135,54 @@ describe("managerUrlFromEndpoint", () => {
   });
 });
 
+describe("summarizeProbe", () => {
+  it("uses plain language and no protocol jargon", () => {
+    const down = summarizeProbe({ reachable: false });
+    expect(down.headline).toBe("Not ready yet");
+    expect(down.helper).toContain("not running");
+    expect(JSON.stringify(down)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
+
+    const ready = summarizeProbe({
+      reachable: true,
+      synthetic: true,
+      backend: { name: "synthetic", status: "available" },
+      readers: [{ readerId: "r1", name: "SYNTHETIC ACR39U", presence: "present", selected: true }],
+    });
+    expect(ready.ready).toBe(true);
+    expect(ready.headline).toContain("Ready");
+    expect(ready.next).toContain("Fill");
+  });
+});
+
 describe("mountThaiIDStatus", () => {
-  it("renders helper + reader state", async () => {
+  it("renders helper + reader state in user language", async () => {
     const fake = installFakeWebSocket();
     const root = document.createElement("div");
     try {
       const stop = mountThaiIDStatus(root, { intervalMs: 60_000 });
       await vi.waitFor(() => {
-        expect(root.textContent).toContain("Helper connected");
+        expect(root.textContent).toContain("Ready");
         expect(root.textContent).toContain("SYNTHETIC ACR39U");
-        expect(root.textContent).toContain("card present");
+        expect(root.textContent).toContain("Card is inserted");
       });
       expect(root.textContent).not.toContain("1234567890121");
+      expect(root.textContent).not.toContain("PC/SC");
+      expect(root.querySelector("[data-openthaiid-status-mode='user']")).not.toBeNull();
+      stop();
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("advanced mode shows technician backend details", async () => {
+    const fake = installFakeWebSocket();
+    const root = document.createElement("div");
+    try {
+      const stop = mountThaiIDStatus(root, { intervalMs: 60_000, mode: "advanced" });
+      await vi.waitFor(() => {
+        expect(root.textContent).toContain("Technician:");
+        expect(root.textContent).toContain("card service");
+      });
       stop();
     } finally {
       fake.restore();

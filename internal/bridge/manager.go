@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,18 +36,31 @@ type probeView struct {
 }
 
 type managerStatus struct {
-	Version       string           `json:"version"`
-	InstanceID    string           `json:"instanceId"`
-	Running       bool             `json:"running"`
-	Synthetic     bool             `json:"synthetic"`
-	ListenAddr    string           `json:"listenAddr"`
-	ManagerURL    string           `json:"managerUrl"`
-	WSURL         string           `json:"wsUrl"`
-	Backend       managerBackend   `json:"backend"`
-	Readers       []managerReader  `json:"readers"`
-	Pending       []managerPending `json:"pending"`
-	Trusted       []managerGrant   `json:"trusted"`
-	TrustDuration string           `json:"trustDuration"`
+	Version       string             `json:"version"`
+	InstanceID    string             `json:"instanceId"`
+	Running       bool               `json:"running"`
+	Synthetic     bool               `json:"synthetic"`
+	ListenAddr    string             `json:"listenAddr"`
+	ManagerURL    string             `json:"managerUrl"`
+	WSURL         string             `json:"wsUrl"`
+	OS            string             `json:"os"`
+	LogLevel      string             `json:"logLevel"`
+	Connections   int                `json:"connections"`
+	Backend       managerBackend     `json:"backend"`
+	Readers       []managerReader    `json:"readers"`
+	Pending       []managerPending   `json:"pending"`
+	Trusted       []managerGrant     `json:"trusted"`
+	TrustDuration string             `json:"trustDuration"`
+	LastErrors    []managerLastError `json:"lastErrors"`
+}
+
+// managerLastError is an operational failure for technicians. Messages never
+// include citizen ID, names, dates, or other personal card field values.
+type managerLastError struct {
+	At      string `json:"at"`
+	Source  string `json:"source"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
 }
 
 type managerBackend struct {
@@ -185,10 +200,12 @@ func (s *Server) handleManagerRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	err := s.readers.Refresh(r.Context())
 	if err != nil {
+		ce := card.AsError(err)
+		s.recordError("refresh", string(ce.Code), ce.Message)
 		s.writeJSON(w, http.StatusOK, map[string]any{
 			"ok":      false,
-			"code":    card.AsError(err).Code,
-			"message": card.AsError(err).Message,
+			"code":    ce.Code,
+			"message": ce.Message,
 			"status":  s.managerStatus(),
 		})
 		return
@@ -268,6 +285,56 @@ func (s *Server) handleManagerRevokeAll(w http.ResponseWriter, r *http.Request) 
 	s.writeJSON(w, http.StatusOK, map[string]any{"ok": true, "status": s.managerStatus()})
 }
 
+func (s *Server) handleManagerReconnect(w http.ResponseWriter, r *http.Request) {
+	if !s.requireManagerAPI(w, r) {
+		return
+	}
+	err := s.readers.Reconnect(r.Context())
+	if err != nil {
+		ce := card.AsError(err)
+		s.recordError("reconnect", string(ce.Code), ce.Message)
+		s.writeJSON(w, http.StatusOK, map[string]any{
+			"ok":      false,
+			"code":    ce.Code,
+			"message": ce.Message,
+			"status":  s.managerStatus(),
+		})
+		return
+	}
+	s.writeJSON(w, http.StatusOK, map[string]any{"ok": true, "status": s.managerStatus()})
+}
+
+func (s *Server) handleManagerLogLevel(w http.ResponseWriter, r *http.Request) {
+	if !s.requireManagerAPI(w, r) {
+		return
+	}
+	var body struct {
+		Level   string `json:"level"`
+		Verbose *bool  `json:"verbose"`
+	}
+	if err := decodeManagerBody(r, &body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	level := strings.ToLower(strings.TrimSpace(body.Level))
+	if body.Verbose != nil && level == "" {
+		if *body.Verbose {
+			level = "debug"
+		} else {
+			level = "info"
+		}
+	}
+	if err := s.setLogLevel(level); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, map[string]any{
+		"ok":       true,
+		"logLevel": s.currentLogLevel(),
+		"status":   s.managerStatus(),
+	})
+}
+
 func (s *Server) probeView() probeView {
 	backend, readers := s.deviceView()
 	version := s.version
@@ -341,6 +408,9 @@ func (s *Server) managerStatus() managerStatus {
 	if version == "" {
 		version = "dev"
 	}
+	s.clientsMu.Lock()
+	connections := len(s.clients)
+	s.clientsMu.Unlock()
 	return managerStatus{
 		Version:       version,
 		InstanceID:    s.InstanceID(),
@@ -349,12 +419,96 @@ func (s *Server) managerStatus() managerStatus {
 		ListenAddr:    s.Addr(),
 		ManagerURL:    "http://" + s.Addr() + "/",
 		WSURL:         s.cfg.WSURL(),
+		OS:            runtime.GOOS + "/" + runtime.GOARCH,
+		LogLevel:      s.currentLogLevel(),
+		Connections:   connections,
 		Backend:       backend,
 		Readers:       readers,
 		Pending:       outPending,
 		Trusted:       outTrust,
 		TrustDuration: s.cfg.TrustDuration.String(),
+		LastErrors:    s.copyLastErrors(),
 	}
+}
+
+const maxLastErrors = 8
+
+func (s *Server) recordError(source, code, message string) {
+	switch card.Code(code) {
+	case card.ErrApprovalRequired, card.ErrCancelled:
+		return
+	}
+	s.lastErrMu.Lock()
+	defer s.lastErrMu.Unlock()
+	s.lastErrs = append(s.lastErrs, managerLastError{
+		At:      time.Now().UTC().Format(time.RFC3339),
+		Source:  source,
+		Code:    code,
+		Message: message,
+	})
+	if len(s.lastErrs) > maxLastErrors {
+		s.lastErrs = append([]managerLastError(nil), s.lastErrs[len(s.lastErrs)-maxLastErrors:]...)
+	}
+}
+
+func (s *Server) copyLastErrors() []managerLastError {
+	s.lastErrMu.Lock()
+	defer s.lastErrMu.Unlock()
+	if len(s.lastErrs) == 0 {
+		return []managerLastError{}
+	}
+	out := make([]managerLastError, len(s.lastErrs))
+	copy(out, s.lastErrs)
+	return out
+}
+
+// SetLogLeveler attaches the process-wide slog level so Technician verbose
+// logging changes what the helper actually prints. Defaults stay info.
+func (s *Server) SetLogLeveler(lv *slog.LevelVar) {
+	if lv == nil {
+		return
+	}
+	s.logLevel = lv
+}
+
+func (s *Server) currentLogLevel() string {
+	if s.logLevel == nil {
+		return "info"
+	}
+	switch s.logLevel.Level() {
+	case slog.LevelDebug:
+		return "debug"
+	case slog.LevelWarn:
+		return "warn"
+	case slog.LevelError:
+		return "error"
+	default:
+		return "info"
+	}
+}
+
+func (s *Server) setLogLevel(level string) error {
+	if s.logLevel == nil {
+		s.logLevel = new(slog.LevelVar)
+	}
+	var lv slog.Level
+	switch level {
+	case "debug":
+		lv = slog.LevelDebug
+	case "info":
+		lv = slog.LevelInfo
+	case "warn":
+		lv = slog.LevelWarn
+	case "error":
+		lv = slog.LevelError
+	default:
+		return card.NewError(card.ErrInvalidRequest, "invalid log level")
+	}
+	s.logLevel.Set(lv)
+	if s.log != nil {
+		s.log.Info("log level changed", "level", level)
+	}
+	return nil
 }
 
 func fieldsToStrings(fields []card.Field) []string {

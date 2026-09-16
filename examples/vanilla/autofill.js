@@ -1,4 +1,4 @@
-import { autofillThaiID } from "../../sdk/web/dist/index.js";
+import { autofillThaiID, mountThaiIDStatus } from "../../sdk/web/dist/index.js";
 
 const form = document.getElementById("kyc");
 const statusEl = document.getElementById("status");
@@ -7,6 +7,11 @@ const resetBtn = document.getElementById("reset");
 
 const qs = new URLSearchParams(location.search);
 const endpoint = qs.get("ws") || undefined;
+
+const statusHost = document.getElementById("reader-status");
+if (statusHost) {
+  mountThaiIDStatus(statusHost, endpoint ? { endpoint } : {});
+}
 
 fillBtn.addEventListener("click", async () => {
   fillBtn.disabled = true;

@@ -47,8 +47,9 @@ within browser security rules only.
 2. SDK sends `session.open` with the intended field set.
 3. Bridge derives origin from the handshake and creates an expiring pending
    request.
-4. The local helper shows the origin, fields, request id, and comparison code
-   (loopback Manager page or terminal).
+4. The local helper shows the origin, fields, and comparison code on the
+   clinic-staff view (request id and field tokens also appear in technician
+   tools, or in the terminal).
 5. Operator clicks Allow/Deny (the ERP page cannot approve itself).
 6. Approval creates an in-memory origin grant and authenticates the connection.
 
@@ -61,7 +62,7 @@ within browser security rules only.
 - Revocation cancels pending reads, closes sessions, and blocks delivery.
 - Authorization is rechecked before delivering a completed read.
 - Noninteractive processes may still create pending approvals because the
-  local Manager is the operator UI (stdin need not be a TTY). Set
+  helper page is the operator UI (stdin need not be a TTY). Set
   `NonInteractive` only for explicit fail-closed tests.
 - At most eight asynchronous operations may be in flight per connection.
 - Revocation during a blocked read suppresses the result and closes the socket.
@@ -73,6 +74,10 @@ within browser security rules only.
 - Logs carry only error codes, durations, counts, and random request ids.
 - Never log citizen IDs, names, addresses, dates, portraits, raw APDUs, tokens,
   or hashes of personal fields.
+- The helper page and technician **Copy diagnostics** omit personal card
+  field values. Last errors store protocol codes and generic messages only.
+- Verbose logging (`-log-level debug` or the technician checkbox) is optional
+  and defaults off; it still must not include personal fields.
 - Terminal approval output is separate from persistent logs.
 - Response buffers are released promptly; guaranteed memory erasure is not
   promised in Go or JavaScript.

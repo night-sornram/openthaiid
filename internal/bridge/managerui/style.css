@@ -61,14 +61,14 @@ body {
 
 h1 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
   font-weight: 650;
 }
 
 .sub {
   margin: 0.15rem 0 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .meta {
@@ -97,6 +97,66 @@ main {
   padding: 0.95rem 1rem 1rem;
 }
 
+.hero {
+  padding: 1.15rem 1.15rem 1.2rem;
+}
+
+.headline {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.headline.ok {
+  color: var(--ok);
+}
+
+.headline.wait {
+  color: var(--warn);
+}
+
+.next {
+  margin: 0.35rem 0 0.9rem;
+  font-size: 1.05rem;
+}
+
+.lights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.lights li {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  font-size: 1.02rem;
+}
+
+.dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: var(--line);
+  margin-top: 0.28rem;
+  flex-shrink: 0;
+}
+
+.light-ok .dot {
+  background: var(--ok);
+}
+
+.light-warn .dot {
+  background: var(--warn);
+}
+
+.light-bad .dot {
+  background: var(--bad);
+}
+
 .card-head {
   display: flex;
   justify-content: space-between;
@@ -106,12 +166,18 @@ main {
 
 h2 {
   margin: 0 0 0.55rem;
+  font-size: 1.05rem;
+}
+
+h3 {
+  margin: 0 0 0.55rem;
   font-size: 0.95rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
-.card-head h2 {
+.card-head h2,
+.card-head h3 {
   margin: 0;
 }
 
@@ -271,9 +337,46 @@ dd {
   margin: 0.25rem 0 0;
 }
 
+.tech {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.tech-title {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+  margin: 0.35rem 0 0.7rem;
+}
+
+.diag {
+  margin: 0.4rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 2.4rem;
+}
+
 footer {
   padding: 0 1.25rem 1.5rem;
   color: var(--muted);
   font-size: 0.8rem;
   max-width: 52rem;
+}
+
+[aria-pressed="true"] {
+  border-color: var(--accent);
 }

@@ -25,6 +25,9 @@ fillBtn.addEventListener("click", async () => {
 That is the product for clinic ERP teams: one helper in the page you already
 have.
 
+Clinic staff (start helper, plug reader, Fill): [user.md](user.md).
+Technicians (Fill failed): [technician.md](technician.md).
+
 ## What you add (and what you do not)
 
 | In the ERP (your existing app) | Not an OpenThaiID product |
@@ -49,8 +52,11 @@ mountThaiIDStatus(document.getElementById("reader-status"));
 ```
 
 3. On **Create Patient**, call `autofillThaiID(config)` from the click.
-   Origin + field Allow still happens on the PC (local Manager page or
-   terminal). The library never silent-reads and never returns a portrait.
+   Origin + field Allow still happens on the PC (helper page or terminal).
+   The library never silent-reads and never returns a portrait.
+
+`mountThaiIDStatus` defaults to clinic-staff copy (Ready / not ready). Pass
+`{ mode: "advanced" }` for technician details on the same page.
 
 `request` is an allowlist. `map` is slot → selector. Phone / HN stay off the
 map. Worked example: `examples/clinic-patient/`.
@@ -66,16 +72,19 @@ Same config object. `useThaiIDAutofill(config)` if you want `filling` state.
 ## Check connection from the page
 
 `probeThaiID()` opens a short WebSocket, sends `bridge.probe`, and closes.
-It reports helper up/down, PC/SC, readers, and card present/absent. It does
-**not** return citizen ID, names, or other personal fields, and it does
-**not** skip Allow for a later `autofillThaiID` / `read()`.
+It reports helper up/down, card service, readers, and card present/absent in
+machine fields. `mountThaiIDStatus` turns that into **Ready** / plug reader /
+insert card. It does **not** return citizen ID, names, or other personal
+fields, and it does **not** skip Allow for a later `autofillThaiID` / `read()`.
 
 ## Operator Allow (security)
 
 The ERP page cannot approve itself. The first time that origin asks for
-fields, someone at the PC clicks Allow (local page at
+fields, someone at the PC clicks Allow (helper page at
 `http://127.0.0.1:17891/` or `allow <id>` in the helper terminal). After
-that, the grant is reused until it expires or is revoked.
+that, the grant is reused until it expires or is revoked. Technician tools
+on that page can list pending/approved origins and revoke them; they do not
+bypass Allow.
 
 ## Local helper (hardware only)
 

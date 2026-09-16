@@ -10,15 +10,16 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
   grant is `citizenId`, `thaiName`, and `birthDate`; remaining textual
   fields (`englishName`, `gender`, `issuer`, `issueDate`, `expireDate`,
   `address`) are opt-in and returned only when granted.
-- Explicit operator approval for each new origin and field set (local
-  Manager or terminal).
+- Explicit operator approval for each new origin and field set (helper page
+  staff Allow, or terminal; technician tools do not bypass this).
 - No card-data persistence, telemetry, or cloud dependency.
 - Hardware behavior separated from browser behavior so synthetic backends can
   exercise the full bridge.
 - Clinic ERP integration as a JS library (`probeThaiID`, `autofillThaiID`)
   with no extra website to install.
-- A loopback HTML page on the helper for operator Allow/Deny (the ERP cannot
-  approve itself).
+- A loopback HTML page on the helper: clinic-staff Ready view plus hidden
+  technician tools for Allow/Deny and diagnostics (the ERP cannot approve
+  itself).
 
 ## Non-goals (MVP)
 
@@ -35,8 +36,10 @@ One Go process owns:
 1. A reader-monitoring loop (separate PC/SC context).
 2. A single bounded native read worker (serialized card connection).
 3. An in-memory authorization module (origin grants + sessions).
-4. A loopback HTTP server: local Manager (`/`, `/v1/manager/*`) plus
-   WebSocket (`/v1/ws`, subprotocol `openthaiid.v1`).
+4. A loopback HTTP server: helper page (`/`, `/v1/manager/*`) plus
+   WebSocket (`/v1/ws`, subprotocol `openthaiid.v1`). The default HTML view
+   is clinic-staff status; technician controls are toggled, not the home
+   screen.
 5. A terminal command loop for approvals and revocation (optional when using
    the Manager).
 

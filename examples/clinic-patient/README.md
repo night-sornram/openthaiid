@@ -63,8 +63,9 @@ This page’s copy-paste config lives in `settings.js`
 (`clinicPatientAutofill()`). The right-hand panel mutates `request` so a
 clinic can drop gender or opt into `englishName` without changing selectors.
 
-`probeThaiID()` / `mountThaiIDStatus()` show helper up/down, PC/SC, and card
-present/absent. They never display personal field values.
+`probeThaiID()` / `mountThaiIDStatus()` show helper up/down, reader, and card
+present/absent in clinic-staff language. They never display personal field
+values. Pass `{ mode: "advanced" }` for technician details.
 
 ## Run
 

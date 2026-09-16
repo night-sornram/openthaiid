@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Clinic-staff vs technician split on the local helper page: default view is
+  helper / reader / card in plain language; **Technician / developer** tools
+  (refresh, reconnect, pending/approved origins, copy diagnostics, verbose
+  logs) stay hidden (`#technician`)
+- `docs/user.md` (clinic staff happy path) and `docs/technician.md` (Fill
+  failure checklist)
+- Manager APIs `POST /v1/manager/reconnect` and `POST /v1/manager/log-level`
+  (CSRF + manager origin; verbose logging is not persisted)
+- Status diagnostics: OS, log level, ERP connection count, last operational
+  errors (codes/messages only — no personal card field values)
+- `@openthaiid/web` `summarizeProbe()` and `mountThaiIDStatus({ mode })`
+  (`user` default, `advanced` for technicians)
 - Local loopback WebSocket bridge (`openthaiid.v1`) on `127.0.0.1:17891`
 - `@openthaiid/web` library helpers `probeThaiID()` and `mountThaiIDStatus()`
   so an existing ERP page can check helper/PC/SC/readers without installing
@@ -84,6 +96,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Helper page and ERP status default copy is clinic-staff language (helper /
+  reader / card). Protocol details live under Technician / developer.
+- CLI startup points staff at the simple helper page; `-log-level` default
+  stays `info`
 - GitHub Actions CI is split to conserve included minutes: **pull requests**
   run 4 ubuntu jobs (Go test/race with bridge/reader `-count=5`, linux/amd64
   build, Web + React SDKs, Chrome allow/deny/unanswered). The **full** 11-job matrix

@@ -258,6 +258,17 @@ func (m *Manager) Refresh(ctx context.Context) error {
 	return m.resync(ctx)
 }
 
+// Reconnect releases idle PC/SC contexts and tries to establish them again.
+// Used by technician tools when the card service looks stuck. A read that
+// still owns a context is left alone (tryReleaseBackends is a no-op then).
+func (m *Manager) Reconnect(ctx context.Context) error {
+	m.tryReleaseBackends(ctx)
+	if !m.recoverBackend(ctx) {
+		return card.NewError(card.ErrPCSCUnavailable, "could not reconnect to the card service")
+	}
+	return nil
+}
+
 // SetPreferredReader records which reader the operator selected.
 // An empty id clears the selection (auto when exactly one card is present).
 func (m *Manager) SetPreferredReader(id string) error {
