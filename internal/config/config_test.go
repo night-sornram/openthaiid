@@ -17,6 +17,12 @@ func TestDefaultValidate(t *testing.T) {
 	if cfg.Port != 17891 {
 		t.Fatalf("port %d", cfg.Port)
 	}
+	if cfg.ManagerURL() != "http://127.0.0.1:17891/" {
+		t.Fatalf("manager url %s", cfg.ManagerURL())
+	}
+	if cfg.WSURL() != "ws://127.0.0.1:17891/v1/ws" {
+		t.Fatalf("ws url %s", cfg.WSURL())
+	}
 }
 
 func TestValidateRejectsUnsafe(t *testing.T) {

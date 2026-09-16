@@ -45,6 +45,10 @@ type Server struct {
 
 	readerSubMu sync.Mutex
 	readerSub   chan reader.ChangeEvent
+
+	version      string
+	synthetic    bool
+	managerToken string
 }
 
 type clientConn struct {
@@ -114,13 +118,14 @@ func New(cfg config.Config, log *slog.Logger, authMgr *auth.Manager, readers *re
 		n = 1
 	}
 	s := &Server{
-		cfg:     cfg,
-		log:     log,
-		auth:    authMgr,
-		readers: readers,
-		engine:  card.NewEngine(card.DefaultProfile()),
-		clients: map[string]*clientConn{},
-		opSem:   make(chan struct{}, n),
+		cfg:          cfg,
+		log:          log,
+		auth:         authMgr,
+		readers:      readers,
+		engine:       card.NewEngine(card.DefaultProfile()),
+		clients:      map[string]*clientConn{},
+		opSem:        make(chan struct{}, n),
+		managerToken: newManagerToken(),
 	}
 	authMgr.OnRevoke = s.handleAuthRevoked
 	return s
@@ -140,8 +145,21 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 	s.listener = ln
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", s.handleHealthz)
-	mux.HandleFunc("/v1/ws", s.handleWS)
+	mux.HandleFunc("GET /{$}", s.handleManagerPage)
+	mux.HandleFunc("GET /manager", s.handleManagerPage)
+	mux.HandleFunc("GET /manager/{$}", s.handleManagerPage)
+	mux.HandleFunc("GET /manager/app.js", s.handleManagerJS)
+	mux.HandleFunc("GET /manager/style.css", s.handleManagerCSS)
+	mux.HandleFunc("GET /favicon.ico", s.handleFavicon)
+	mux.HandleFunc("GET /healthz", s.handleHealthz)
+	mux.HandleFunc("GET /v1/ws", s.handleWS)
+	mux.HandleFunc("GET /v1/manager/status", s.handleManagerStatus)
+	mux.HandleFunc("POST /v1/manager/refresh", s.handleManagerRefresh)
+	mux.HandleFunc("POST /v1/manager/reader/select", s.handleManagerSelectReader)
+	mux.HandleFunc("POST /v1/manager/approvals/{id}/allow", s.handleManagerAllow)
+	mux.HandleFunc("POST /v1/manager/approvals/{id}/deny", s.handleManagerDeny)
+	mux.HandleFunc("POST /v1/manager/trust/revoke", s.handleManagerRevoke)
+	mux.HandleFunc("POST /v1/manager/trust/revoke-all", s.handleManagerRevokeAll)
 	s.httpSrv = &http.Server{
 		Handler:           s.securityMiddleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
@@ -357,6 +375,8 @@ func (s *Server) dispatch(ctx context.Context, cc *clientConn, data []byte) {
 		s.opSessionClose(cc, req)
 	case protocol.TypeBridgeStatus:
 		s.runAsync(ctx, cc, req, s.opBridgeStatus)
+	case protocol.TypeBridgeProbe:
+		s.runAsync(ctx, cc, req, s.opBridgeProbe)
 	case protocol.TypeCardRead:
 		s.runAsync(ctx, cc, req, s.opCardRead)
 	case protocol.TypeRequestCancel:
@@ -474,7 +494,8 @@ func sessionResult(sess *auth.Session) protocol.SessionOpenResult {
 func (s *Server) logApprovalPrompt(p *auth.PendingRequest) {
 	fmt.Printf("\n[approval] %s requests: %v\n", auth.EscapeTerminal(string(p.Origin)), p.Fields)
 	fmt.Printf("Trust ends when OpenThaiID stops or after %s.\n", s.cfg.TrustDuration)
-	fmt.Printf("Request: %d   Comparison code: %s\n\n", p.ID, p.Comparison)
+	fmt.Printf("Request: %d   Comparison code: %s\n", p.ID, p.Comparison)
+	fmt.Printf("Approve in the local Manager (%s) or the terminal:\n\n", s.ManagerURL())
 	fmt.Printf("allow %d\n", p.ID)
 	fmt.Printf("deny %d\n\n", p.ID)
 }
@@ -510,6 +531,12 @@ func (s *Server) opBridgeStatus(ctx context.Context, cc *clientConn, req protoco
 		return
 	}
 	s.writeResult(cc, req.ID, s.buildStatus())
+}
+
+func (s *Server) opBridgeProbe(ctx context.Context, cc *clientConn, req protocol.Request) {
+	// Eligible origin, no grant: metadata only so an ERP page can call
+	// probeThaiID() as a library without a separate manager install.
+	s.writeResult(cc, req.ID, s.probeView())
 }
 
 func (s *Server) opCardRead(ctx context.Context, cc *clientConn, req protocol.Request) {

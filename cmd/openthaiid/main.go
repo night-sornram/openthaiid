@@ -37,6 +37,13 @@ func main() {
 		}
 	}
 
+	openManager := false
+	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "manager" {
+		openManager = true
+		args = args[1:]
+	}
+
 	fs := flag.NewFlagSet("openthaiid", flag.ExitOnError)
 	var (
 		cfgPath   string
@@ -50,7 +57,8 @@ func main() {
 	fs.StringVar(&bind, "bind", "", "loopback bind address")
 	fs.StringVar(&logLevel, "log-level", "", "debug|info|warn|error")
 	fs.BoolVar(&synthetic, "synthetic", false, "use synthetic PC/SC backend (no hardware)")
-	_ = fs.Parse(os.Args[1:])
+	fs.BoolVar(&openManager, "open", openManager, "open the local manager in a browser")
+	_ = fs.Parse(args)
 
 	cfg := config.Default()
 	path := cfgPath
@@ -82,7 +90,10 @@ func main() {
 	log := newLogger(cfg.LogLevel)
 	instanceID := bridge.NewInstanceID()
 	authMgr := auth.NewManager(instanceID, cfg.TrustDuration, cfg.SessionDuration, cfg.ApprovalTimeout, cfg.MaxPendingApprovals)
-	authMgr.NonInteractive = !stdinIsTTY()
+	// Approvals are handled in the local Manager UI (and still in the
+	// terminal when a TTY is attached). Do not fail closed just because
+	// stdin is not a console — clinics often start the bridge from a
+	// shortcut or service.
 
 	var factory readerFactories
 	if synthetic {
@@ -127,19 +138,31 @@ func main() {
 	}
 
 	srv := bridge.New(cfg, log, authMgr, mgr)
+	srv.SetRuntime(version, synthetic)
 	if err := srv.Start(ctx); err != nil {
 		fatal("bridge", err)
 	}
+	managerURL := srv.ManagerURL()
 	log.Info("openthaiid listening",
 		"addr", srv.Addr(),
+		"manager", managerURL,
 		"ws", cfg.WSURL(),
 		"instance", instanceID,
 		"backend", backendName(synthetic),
 	)
 	fmt.Printf("OpenThaiID bridge ready on %s\n", srv.Addr())
+	fmt.Printf("Manager:   %s\n", managerURL)
 	fmt.Printf("WebSocket: %s\n", cfg.WSURL())
-	fmt.Println("Terminal commands: status | trust | revoke <origin> | revoke-all | help | quit")
+	fmt.Println("Approve ERP sites in the Manager (or terminal: allow/deny).")
+	fmt.Println("Terminal commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
 	fmt.Println("This is an independent open-source project and is not affiliated with or endorsed by the Department of Provincial Administration.")
+
+	if openManager {
+		if err := openBrowser(managerURL); err != nil {
+			log.Warn("could not open manager", "error", err, "url", managerURL)
+			fmt.Printf("Open the manager at %s\n", managerURL)
+		}
+	}
 
 	go terminalLoop(ctx, cancel, authMgr, log)
 
@@ -283,19 +306,12 @@ func newLogger(level string) *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: lv}))
 }
 
-func stdinIsTTY() bool {
-	fi, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-	return (fi.Mode() & os.ModeCharDevice) != 0
-}
-
 func usage() {
 	fmt.Println(`openthaiid — local Thai National ID bridge
 
 Usage:
-  openthaiid              Run the bridge
+  openthaiid              Run the bridge (local manager on loopback)
+  openthaiid manager      Run the bridge and open the manager in a browser
   openthaiid doctor       Check PC/SC availability (no personal fields)
   openthaiid version      Print version
 
@@ -305,6 +321,13 @@ Flags (run mode):
   -bind addr          Loopback bind address (default 127.0.0.1)
   -log-level level    debug|info|warn|error
   -synthetic          Use synthetic backend (no hardware)
+  -open               Open the local manager in a browser
+
+Local manager: http://127.0.0.1:17891/
+WebSocket:     ws://127.0.0.1:17891/v1/ws
+
+Clinics run this on the PC next to the card reader. There is no backend or
+frontend to deploy. The ERP stays a normal web app and calls autofillThaiID.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.`)

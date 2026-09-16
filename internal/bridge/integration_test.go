@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -556,6 +557,44 @@ func TestIntegrationPairingOnlyNoInventory(t *testing.T) {
 		}
 	}
 	t.Fatal("expected approval.required without inventory")
+}
+
+func TestIntegrationProbeMetadataOnly(t *testing.T) {
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		rdb.SeedDemoCard()
+	})
+	tb.srv.SetRuntime("0.0.1-test", true)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "synthetic-acr39u")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "bridge.probe", "", nil)
+	msg := readByID(t, ctx, conn, 1)
+	if msg["error"] != nil {
+		t.Fatalf("probe error %v", msg["error"])
+	}
+	raw, _ := json.Marshal(msg["result"])
+	if bytes.Contains(raw, []byte("1234567890121")) || bytes.Contains(raw, []byte("สมชาย")) {
+		t.Fatalf("probe leaked personal fields: %s", raw)
+	}
+	res := msg["result"].(map[string]any)
+	if res["synthetic"] != true {
+		t.Fatalf("synthetic=%v", res["synthetic"])
+	}
+	readers, _ := res["readers"].([]any)
+	if len(readers) != 1 {
+		t.Fatalf("readers=%v", res["readers"])
+	}
+	r0 := readers[0].(map[string]any)
+	if r0["presence"] != "present" {
+		t.Fatalf("presence=%v", r0["presence"])
+	}
+	if _, ok := r0["cardSessionId"]; ok {
+		t.Fatal("probe must not include cardSessionId")
+	}
 }
 
 func TestIntegrationNoFieldExpansion(t *testing.T) {

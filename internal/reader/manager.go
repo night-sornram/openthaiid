@@ -33,6 +33,10 @@ type Snapshot struct {
 	Readers []ReaderState `json:"readers"`
 	// Backend: available | unavailable | stalled
 	Backend string `json:"backend"`
+	// BackendName is "pcsc" or "synthetic".
+	BackendName string `json:"backendName,omitempty"`
+	// PreferredReaderID is the operator-selected reader, if any.
+	PreferredReaderID string `json:"preferredReaderId,omitempty"`
 }
 
 // ChangeEvent is emitted on inventory transitions.
@@ -52,6 +56,7 @@ type Manager struct {
 
 	readers       map[string]*ReaderState
 	backendStatus string
+	preferredID   string
 
 	reading bool
 	stalled bool
@@ -226,7 +231,54 @@ func (m *Manager) Snapshot() Snapshot {
 	for _, r := range m.readers {
 		out = append(out, *r)
 	}
-	return Snapshot{Readers: out, Backend: m.backendStatus}
+	name := ""
+	if m.backend != nil {
+		name = m.backend.Name()
+	}
+	return Snapshot{
+		Readers:           out,
+		Backend:           m.backendStatus,
+		BackendName:       name,
+		PreferredReaderID: m.preferredID,
+	}
+}
+
+// BackendName identifies the native adapter ("pcsc" or "synthetic").
+func (m *Manager) BackendName() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.backend == nil {
+		return ""
+	}
+	return m.backend.Name()
+}
+
+// Refresh rebuilds inventory from the monitoring backend.
+func (m *Manager) Refresh(ctx context.Context) error {
+	return m.resync(ctx)
+}
+
+// SetPreferredReader records which reader the operator selected.
+// An empty id clears the selection (auto when exactly one card is present).
+func (m *Manager) SetPreferredReader(id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if id == "" {
+		m.preferredID = ""
+		return nil
+	}
+	if _, ok := m.readers[id]; !ok {
+		return card.NewError(card.ErrNoReader, "reader not found")
+	}
+	m.preferredID = id
+	return nil
+}
+
+// PreferredReader returns the operator-selected reader id, if any.
+func (m *Manager) PreferredReader() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.preferredID
 }
 
 func (m *Manager) monitorLoop(ctx context.Context) {
@@ -415,6 +467,11 @@ func (m *Manager) resync(ctx context.Context) error {
 		}
 	}
 	m.readers = next
+	if m.preferredID != "" {
+		if _, ok := next[m.preferredID]; !ok {
+			m.preferredID = ""
+		}
+	}
 	m.mu.Unlock()
 
 	for _, ev := range events {
@@ -453,7 +510,8 @@ func (m *Manager) WaitCardSession(readerID string, deadline time.Time) (string, 
 	return m.CardSession(readerID)
 }
 
-// SelectReader picks a reader when exactly one exists.
+// SelectReader picks a reader when exactly one exists, or the preferred
+// reader when the operator has selected one in the local manager.
 func (m *Manager) SelectReader(requested string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -466,6 +524,16 @@ func (m *Manager) SelectReader(requested string) (string, error) {
 			return "", card.NewError(card.ErrNoCard, "no card")
 		}
 		return requested, nil
+	}
+	if m.preferredID != "" {
+		st, ok := m.readers[m.preferredID]
+		if !ok {
+			return "", card.NewError(card.ErrNoReader, "selected reader not found")
+		}
+		if st.Presence != pcsc.PresencePresent {
+			return "", card.NewError(card.ErrNoCard, "no card")
+		}
+		return m.preferredID, nil
 	}
 	var only string
 	n := 0

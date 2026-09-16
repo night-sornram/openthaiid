@@ -1,7 +1,7 @@
 # `@openthaiid/react`
 
-React hooks for the OpenThaiID local bridge. This package wraps
-[`@openthaiid/web`](../web) and does not talk to the WebSocket itself.
+React hooks wrapping the `@openthaiid/web` **library**. Drop them into an
+existing ERP screen. This package does not talk to the WebSocket itself.
 
 Call `connect()` from a click so the browser can prompt for local-network
 access. Importing the module is SSR-safe; `connect()` still requires a browser.
@@ -36,7 +36,7 @@ export function ThaiIDPanel() {
     disconnect,
   } = useThaiID({
     fields: ["citizenId", "thaiName", "birthDate"],
-    // Extra textual fields each need a new terminal grant:
+    // Extra textual fields each need a new grant on the PC:
     // "englishName", "gender", "issuer", "issueDate", "expireDate", "address"
   });
 

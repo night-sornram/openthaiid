@@ -30,9 +30,9 @@ await autofillThaiID({
 });
 ```
 
-`connect()` still runs from that click (local-network permission). The operator
-must `allow <id>` in the bridge terminal. The helper does not bypass the
-bridge and does not read portraits.
+`connect()` still runs from that click (local-network permission). Origin
+Allow still happens on this PC (the page cannot approve itself). The helper
+does not bypass the bridge and does not read portraits.
 
 ## Run
 

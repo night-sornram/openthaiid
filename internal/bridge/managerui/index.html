@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="openthaiid-csrf" content="__CSRF_TOKEN__" />
+    <meta name="referrer" content="no-referrer" />
+    <title>OpenThaiID helper</title>
+    <link rel="stylesheet" href="/manager/style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <h1>OpenThaiID helper</h1>
+        <p class="sub">Operator Allow/Deny on this PC · not a product to install</p>
+      </div>
+      <div class="meta">
+        <span id="version">…</span>
+        <span id="instance" class="muted"></span>
+      </div>
+    </header>
+
+    <p id="banner" class="banner" hidden></p>
+
+    <main>
+      <section class="card" aria-labelledby="conn-heading">
+        <div class="card-head">
+          <h2 id="conn-heading">Connection</h2>
+          <button type="button" id="refresh" class="btn">Refresh readers</button>
+        </div>
+        <dl class="facts">
+          <div>
+            <dt>Bridge</dt>
+            <dd id="bridge-state">…</dd>
+          </div>
+          <div>
+            <dt>PC/SC</dt>
+            <dd id="pcsc-state">…</dd>
+          </div>
+          <div>
+            <dt>Listen</dt>
+            <dd id="listen">…</dd>
+          </div>
+          <div>
+            <dt>ERP WebSocket</dt>
+            <dd id="ws-url">…</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="card" aria-labelledby="readers-heading">
+        <h2 id="readers-heading">Card reader</h2>
+        <p id="readers-empty" class="muted">Checking readers…</p>
+        <ul id="readers" class="readers"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="pending-heading">
+        <div class="card-head">
+          <h2 id="pending-heading">Pending approvals</h2>
+          <span id="pending-count" class="pill">0</span>
+        </div>
+        <p class="help">
+          When an ERP page first connects, it waits here. Allow only origins you
+          recognize. This is the same decision as typing <code>allow</code> in the
+          terminal — the website still cannot read the card until you approve.
+        </p>
+        <ul id="pending" class="list"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="trust-heading">
+        <div class="card-head">
+          <h2 id="trust-heading">Trusted origins</h2>
+          <button type="button" id="revoke-all" class="btn btn-danger" hidden>Revoke all</button>
+        </div>
+        <p class="help">
+          Trust lives in memory on this PC until OpenThaiID stops or the grant
+          expires. Personal card fields are never shown on this page.
+        </p>
+        <ul id="trusted" class="list"></ul>
+      </section>
+    </main>
+
+    <footer>
+      Independent open-source project — not affiliated with or endorsed by the
+      Department of Provincial Administration.
+    </footer>
+    <script src="/manager/app.js"></script>
+  </body>
+</html>

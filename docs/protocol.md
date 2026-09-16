@@ -5,6 +5,9 @@
 - Default endpoint: `ws://127.0.0.1:17891/v1/ws`
 - Subprotocol: `openthaiid.v1`
 - Health: `GET /healthz` — liveness only. No readers, grants, or card state.
+- Local Manager: `GET /` — HTML device UI. JSON under `/v1/manager/*`
+  (CSRF header + manager origin; no CORS). Status includes reader names and
+  card present/absent only — never personal field values.
 - Frame limit: 64 KiB text-only. Compression disabled.
 - Port is explicit configuration. No port scanning or silent fallback.
 
@@ -50,10 +53,11 @@ Rules:
 - Historical events and read responses are not replayed or cached.
 - Card results are unicast to the requester only.
 - Supported fields and capabilities are advertised after authentication.
-- Protocol **minor 1** adds remaining textual fields to `fieldsSupported` without changing the envelope.
+- Protocol **minor 2** adds `bridge.probe` (connection/reader metadata without
+  a session or personal fields) without changing the envelope.
 - Unknown operations and unsupported protocol majors are rejected.
 - Each connection allows at most **eight** concurrent asynchronous operations
-  (`session.open`, `session.renew`, `bridge.status`, `card.read`). Excess
+  (`session.open`, `session.renew`, `bridge.status`, `bridge.probe`, `card.read`). Excess
   requests receive `RATE_LIMITED`. `session.close` and `request.cancel` stay
   synchronous and remain responsive under the limit.
 - If a client is too slow to drain events, or the internal reader-event queue
@@ -68,7 +72,8 @@ Rules:
 | `session.open` | client | Request authentication with intended fields |
 | `session.renew` | client | Refresh an active session token |
 | `session.close` | client | End the session |
-| `bridge.status` | client | Request current status snapshot |
+| `bridge.status` | client | Request current status snapshot (authenticated) |
+| `bridge.probe` | client | Metadata only, no session: helper version, PC/SC, readers, card present/absent. No personal fields. Used by `probeThaiID()` |
 | `card.read` | client | Read selected fields from the current card session |
 | `request.cancel` | client | Cancel an in-flight operation by request id |
 

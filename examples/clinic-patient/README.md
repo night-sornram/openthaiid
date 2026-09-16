@@ -1,24 +1,32 @@
 # Clinic ERP — create patient
 
-Vanilla example of a clinic “New patient” screen that autofills from Thai ID
-through OpenThaiID. Clinics configure **which fields** are requested and how
-they map to this form via a settings object — not a forked SDK.
+The ERP is a normal web page. OpenThaiID is a **library** you call from that
+page — not a product to install, and not a backend/frontend to deploy.
+
+```js
+import { autofillThaiID, mountThaiIDStatus } from "@openthaiid/web";
+
+mountThaiIDStatus(document.getElementById("thaiid-status"));
+
+fillBtn.addEventListener("click", async () => {
+  await autofillThaiID(clinicPatientAutofill);
+});
+```
 
 The flow stays **manual**: a user clicks **Fill from Thai ID**. The helper
-still connects from that gesture and waits for **terminal origin + field
-approval**. There is no silent background read and no portrait/photo.
+connects from that gesture. Origin + field Allow still happens on this PC
+(the page cannot approve itself). There is no silent background read and no
+portrait/photo.
 
 ## Integrator snippet
 
 On Create Patient (or a dedicated fill button):
 
 ```js
-import { autofillThaiID } from "@openthaiid/web";
+import { autofillThaiID, probeThaiID, mountThaiIDStatus } from "@openthaiid/web";
 
 const clinicPatientAutofill = {
-  // Protocol fields to request (subset of supported textual fields).
   request: ["citizenId", "thaiName", "birthDate", "gender", "address"],
-  // Slot → selector on this screen. Phone / HN stay unmapped.
   map: {
     citizenId: "#patient-cid",
     "thaiName.givenName": "#patient-given",
@@ -31,13 +39,14 @@ const clinicPatientAutofill = {
   genderLabels: { male: "male", female: "female" },
   discover: false,
   onApprovalRequired: ({ comparisonCode, approvalId }) => {
-    showBanner(`Approve in the terminal — request ${approvalId}, code ${comparisonCode}`);
+    showBanner(`Allow this ERP origin on the PC — request ${approvalId}, code ${comparisonCode}`);
   },
   onError: (err) => {
     showBanner(`${err.code ?? "ERROR"}: ${err.message ?? err}`);
   },
 };
 
+mountThaiIDStatus(document.getElementById("thaiid-status"));
 fillBtn.addEventListener("click", async () => {
   await autofillThaiID(clinicPatientAutofill);
 });
@@ -54,10 +63,13 @@ This page’s copy-paste config lives in `settings.js`
 (`clinicPatientAutofill()`). The right-hand panel mutates `request` so a
 clinic can drop gender or opt into `englishName` without changing selectors.
 
+`probeThaiID()` / `mountThaiIDStatus()` show helper up/down, PC/SC, and card
+present/absent. They never display personal field values.
+
 ## Run
 
 ```bash
-# Terminal 1: bridge (fictional demo card, no hardware)
+# Terminal 1: local helper (fictional demo card, no hardware)
 ./dist/openthaiid -synthetic
 
 # Terminal 2: build the SDK, then serve the repo root
@@ -73,7 +85,7 @@ family name `ใจดี`, birth `1990-04-12`, gender `male`, and the seeded
 fictional address. Phone and HN stay empty.
 
 Uncheck a field in **request** and fill again: that column is left alone and
-the terminal grant does not include it.
+the grant does not include it.
 
 ## React
 
@@ -85,5 +97,5 @@ The same config object works from a React click handler:
 </button>
 ```
 
-`@openthaiid/react` also exports `useThaiIDAutofill(config)` if you want
-`filling` / `approvalRequired` / `error` state. See `sdk/react/README.md`.
+`@openthaiid/react` also exports `useThaiIDAutofill(config)` and
+`probeThaiID`. See `sdk/react/README.md`.
