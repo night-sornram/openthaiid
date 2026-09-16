@@ -263,6 +263,11 @@ main {
   font-weight: 650;
 }
 
+#update-result,
+#tech-update-result {
+  white-space: pre-wrap;
+}
+
 .live-note {
   color: var(--ok);
   font-weight: 650;

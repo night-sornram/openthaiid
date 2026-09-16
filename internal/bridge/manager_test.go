@@ -130,6 +130,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(css, "min-height: 2.75rem") {
 		t.Fatal("staff tap targets should be at least 44px")
 	}
+	if !strings.Contains(css, "#update-result") || !strings.Contains(css, "pre-wrap") {
+		t.Fatal("version-check result should keep line breaks")
+	}
 	if !strings.Contains(css, ".light-state") {
 		t.Fatal("lights must style a text status, not color alone")
 	}
