@@ -1,9 +1,53 @@
 name: ci
 
+# CI lanes (GitHub Actions minutes)
+#
+# PR lane (`pull_request`) — cheap, ubuntu-only:
+#   Jobs: Go test, linux/amd64 build, Web SDK, Chrome acceptance
+#         (allow + deny + unanswered).
+#   Repeat formerly-flaky bridge/reader tests at -count=5 (not 50).
+#   Target: ~4 billed-job-minutes-equivalent vs ~11 jobs / ~70 billed
+#   minutes on the old every-push full matrix (Linux 1× / Windows 2× /
+#   macOS 10×). macOS jobs dominate the included-minutes pool.
+#
+# Full lane (`push` to main/dev, `workflow_dispatch`):
+#   Same as PR, plus linux/arm64, windows/amd64, darwin/arm64,
+#   darwin/amd64 builds; Chrome on macOS and Windows; Edge on Windows;
+#   bridge/reader -count=50.
+#   Windows/macOS coverage is not removed — it runs after merge (or on
+#   manual dispatch) so PR iteration does not pay OS multipliers on
+#   every push. Pick branch `dev` when dispatching until `main` tracks
+#   releases.
+#
+# Docs-only / `.cursor/`-only changes skip this workflow (paths-ignore).
+# A new SHA still cancels in-progress runs (hung Windows jobs must not
+# occupy hosted runners until the 6h default).
+#
+# Nightly `schedule` is omitted: GitHub runs cron on the default branch
+# (`main`), which is still the initial commit. Enable a cron after `main`
+# tracks releases, or dispatch this workflow on `dev`.
+#
+# Local `make test` / `make test-repeat` / `make acceptance` are unchanged.
+
 on:
   push:
     branches: [main, dev]
+    paths-ignore:
+      - "*.md"
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+      - ".cursor/**"
   pull_request:
+    paths-ignore:
+      - "*.md"
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+      - ".cursor/**"
+  workflow_dispatch:
 
 # Superfluous in-progress runs (especially hung Windows acceptance) occupy
 # hosted runners for up to the 6h GitHub default. Cancel them on a new SHA.
@@ -17,6 +61,9 @@ permissions:
 env:
   GO_VERSION: "1.27.1"
   NODE_VERSION: "22"
+  # `pr` on pull_request; `full` on push to main/dev and workflow_dispatch.
+  CI_LANE: ${{ github.event_name == 'pull_request' && 'pr' || 'full' }}
+  REPEAT_COUNT: ${{ github.event_name == 'pull_request' && 5 || 50 }}
 
 jobs:
   go-test:
@@ -37,6 +84,7 @@ jobs:
       - name: Record resolved versions
         run: |
           {
+            echo "lane: $CI_LANE (repeat -count=$REPEAT_COUNT)"
             echo "go: $(go version)"
             echo "node: (not used in this job)"
             echo "runner: $ImageOS $ImageVersion"
@@ -56,7 +104,9 @@ jobs:
         run: go test -race ./internal/... -count=1 -timeout 10m
       - name: Repeat flaky-prone bridge/reader tests
         timeout-minutes: 22
-        run: go test ./internal/bridge/ ./internal/reader/ -count=50 -timeout 20m
+        run: |
+          echo "go test ./internal/bridge/ ./internal/reader/ -count=${REPEAT_COUNT} (lane=${CI_LANE})"
+          go test ./internal/bridge/ ./internal/reader/ -count="${REPEAT_COUNT}" -timeout 20m
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
@@ -70,33 +120,10 @@ jobs:
     timeout-minutes: 15
     strategy:
       fail-fast: false
+      # PR include: linux/amd64 only.
+      # Full include: linux/amd64, linux/arm64, windows/amd64, darwin/arm64, darwin/amd64.
       matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            cgo: "1"
-            runner: ubuntu-24.04
-            packages: libpcsclite-dev
-          - goos: linux
-            goarch: arm64
-            cgo: "1"
-            runner: ubuntu-24.04-arm
-            packages: libpcsclite-dev
-          - goos: windows
-            goarch: amd64
-            cgo: "0"
-            runner: windows-2025
-            packages: ""
-          - goos: darwin
-            goarch: arm64
-            cgo: "1"
-            runner: macos-15
-            packages: ""
-          - goos: darwin
-            goarch: amd64
-            cgo: "1"
-            runner: macos-15-intel
-            packages: ""
+        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"goos":"linux","goarch":"amd64","cgo":"1","runner":"ubuntu-24.04","packages":"libpcsclite-dev"}]') || fromJSON('[{"goos":"linux","goarch":"amd64","cgo":"1","runner":"ubuntu-24.04","packages":"libpcsclite-dev"},{"goos":"linux","goarch":"arm64","cgo":"1","runner":"ubuntu-24.04-arm","packages":"libpcsclite-dev"},{"goos":"windows","goarch":"amd64","cgo":"0","runner":"windows-2025","packages":""},{"goos":"darwin","goarch":"arm64","cgo":"1","runner":"macos-15","packages":""},{"goos":"darwin","goarch":"amd64","cgo":"1","runner":"macos-15-intel","packages":""}]') }}
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -160,6 +187,7 @@ jobs:
       - name: Record resolved versions
         run: |
           {
+            echo "lane: $CI_LANE"
             echo "node: $(node -v)"
             echo "npm: $(npm -v)"
           } | tee tool-versions.txt
@@ -185,16 +213,9 @@ jobs:
     name: Browser acceptance (${{ matrix.os }} / ${{ matrix.browser }})
     strategy:
       fail-fast: false
+      # PR: ubuntu Chrome only. Full: Chrome × Linux/macOS/Windows + Edge × Windows.
       matrix:
-        include:
-          - os: ubuntu-24.04
-            browser: chrome
-          - os: macos-15
-            browser: chrome
-          - os: windows-2025
-            browser: chrome
-          - os: windows-2025
-            browser: msedge
+        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"os":"ubuntu-24.04","browser":"chrome"}]') || fromJSON('[{"os":"ubuntu-24.04","browser":"chrome"},{"os":"macos-15","browser":"chrome"},{"os":"windows-2025","browser":"chrome"},{"os":"windows-2025","browser":"msedge"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     defaults:

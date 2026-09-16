@@ -127,9 +127,17 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 ```bash
 make test          # Go unit + integration (synthetic hardware)
 make race          # race detector
+make test-repeat   # bridge/reader tests ×50 (local determinism; full CI too)
 cd sdk/web && npm test
 make acceptance    # node-pty + Playwright (Chrome/Edge) against real bridge
 ```
+
+GitHub Actions is split to conserve included minutes: **pull requests** run
+Ubuntu Go tests (`-count=5` on formerly flaky packages), linux/amd64 build,
+the Web SDK, and Chrome acceptance (allow/deny/unanswered). The **full**
+five-target build + Chrome×Linux/macOS/Windows + Edge×Windows matrix, and
+`-count=50`, run on push to `dev`/`main` and via **workflow_dispatch**.
+Docs-only changes skip CI. See [docs/acceptance.md](docs/acceptance.md).
 
 Browser acceptance uses Playwright channels (`chrome`, `msedge`) and a real
 PTY via node-pty for terminal approval. Approval policies: allow, deny,

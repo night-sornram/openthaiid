@@ -40,7 +40,8 @@ package: build
 check: fmt-check vet test sdk-test build
 	@echo "All local checks passed."
 
-# Repeat formerly flaky integration cases many times (local determinism gate).
+# Repeat formerly flaky integration cases many times (local + full-CI gate).
+# GitHub PR CI uses -count=5; push to main/dev and workflow_dispatch use 50.
 test-repeat:
 	go test ./internal/bridge/ ./internal/reader/ -count=50 -timeout 20m
 

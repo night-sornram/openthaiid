@@ -84,6 +84,11 @@ start a replacement process if the old listener is still serving.
 Certificates are generated in the OS temp directory and never served.
 Only the acceptance page and `sdk/web/dist/index.js` are served.
 
+GitHub Actions: pull requests run this harness on ubuntu-24.04 Chrome
+(allow + deny + unanswered). macOS Chrome and Windows Chrome/Edge run on
+push to `dev`/`main` and `workflow_dispatch`. Local `make acceptance` is
+unchanged (Chrome + Edge when the browsers are installed).
+
 ## Artifacts
 
 - `reports/acceptance-report.json` — commit, platform, browser version,
