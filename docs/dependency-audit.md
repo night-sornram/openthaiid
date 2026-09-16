@@ -7,8 +7,14 @@ PC/SC path production-ready (Phase 7).
 
 | Module | Version / revision | License | Purpose |
 |---|---|---|---|
-| `github.com/ebfe/scard` | `v0.0.0-20241214075232-7af069cabc25` (git `7af069cabc25c2ba8051ea6216c0eb0d376f95fb`) | BSD-2-Clause | PC/SC bindings |
-| `github.com/coder/websocket` | `v1.8.12` | MIT | Loopback WebSocket server/client |
+| `github.com/ebfe/scard` | `v0.0.0-20241214075232-7af069cabc25` (git `7af069cabc25c2ba8051ea6216c0eb0d376f95fb`) | BSD-2-Clause | PC/SC bindings (**held**: no newer tagged revision) |
+| `github.com/coder/websocket` | `v1.8.15` | ISC | Loopback WebSocket server/client |
+| `golang.org/x/sys` | `v0.48.0` | BSD-3-Clause | Windows service / event log (`windows/svc`) |
+| `golang.org/x/text` | `v0.42.0` | BSD-3-Clause | Windows-874 decoder (`encoding/charmap`) |
+
+Toolchain: `go` **1.27**, `toolchain go1.27.1` (current stable; **held**
+until a 1.27 patch or a later Go release is worth taking). `go mod tidy`
+does not add extra modules to `go.sum`.
 
 ### ebfe/scard audit
 
@@ -36,12 +42,13 @@ Compilation and local synthetic tests do **not** close these items.
 If a confirmed defect is found and upstream will not fix promptly, maintain a
 narrow, attributed fork. Do not silently switch libraries.
 
-## Planned (not yet required)
+## Held / not bumping
 
-| Module | Use | When |
-|---|---|---|
-| `github.com/coder/websocket` | Bridge WebSocket | Phase 5 |
-| `golang.org/x/text` | Thai encoding helpers | Phase 3 |
+| Item | Reason |
+|---|---|
+| `go` 1.27 / `toolchain go1.27.1` | Current stable on `go.dev/dl` (no `go1.27.2`) |
+| `github.com/ebfe/scard` pin | No newer tagged revision; binding audit P2–P6 / P10 still open. Do not switch libraries. |
+| Extra Go modules | None planned. Do not add Laser-id / NHSO stacks. |
 
 ## npm (`sdk/web`)
 

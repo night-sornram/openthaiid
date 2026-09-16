@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
+`v0.1.0-rc.5` is tagged and published as a GitHub prerelease.
+
+### Changed
+
+- Go module hygiene (`go mod tidy`) after bumping **direct** dependencies
+  already on a compatible major. Helper version stays `0.1.0-rc.5`. No
+  public SDK API change.
+  - `github.com/coder/websocket` `v1.8.12` → `v1.8.15` (1.8.x: handshake
+    after close, Origin scheme matching, single-frame compression, fewer
+    per-frame allocs). LICENSE file is now Coder ISC (was MIT / Anmol
+    Sethi); `THIRD_PARTY_NOTICES.md` matches.
+  - `golang.org/x/sys` `v0.34.0` → `v0.48.0` (Windows `svc` / event log)
+  - `golang.org/x/text` `v0.21.0` → `v0.42.0` (Windows-874 decoder only)
+
+### Held
+
+- `go` **1.27** / toolchain **go1.27.1** — current stable (`go.dev/dl`
+  has no `go1.27.2`). CI pin stays `1.27.1`. Not a Go major bump.
+- `github.com/ebfe/scard` remains
+  `v0.0.0-20241214075232-7af069cabc25` (`7af069cabc25`). No newer
+  tagged revision; binding audit P2–P6 / P10 still open. Do not switch
+  PC/SC libraries.
+- GitHub Actions stay disabled (minutes exhausted).
+- No Laser-id / NHSO. No extra Go modules.
+
+### Security
+
+- `govulncheck ./...` reports no known vulnerabilities on this module
+  graph (Go 1.27.1 toolchain).
 
 ## [0.1.0-rc.5] — software release candidate (unreleased tag)
 

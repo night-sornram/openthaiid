@@ -110,7 +110,7 @@ Preferred candidates (subject to actual license terms):
 | Dependency | Use | License |
 |---|---|---|
 | [ebfe/scard](https://github.com/ebfe/scard) @ `7af069cabc25c2ba8051ea6216c0eb0d376f95fb` | PC/SC bindings | BSD-2-Clause |
-| [coder/websocket](https://github.com/coder/websocket) | Loopback WebSocket | MIT-like permissive |
+| [coder/websocket](https://github.com/coder/websocket) `v1.8.15` | Loopback WebSocket | ISC |
 | [golang.org/x/text](https://pkg.go.dev/golang.org/x/text/encoding/charmap) | Windows-874 decoder for Thai name fields | BSD-3-Clause |
 
 Rejected:
