@@ -206,12 +206,14 @@ function setLang(next) {
     // ignore
   }
   applyStaticCopy();
+  if (els.testConnection) els.testConnection.textContent = t("testConnection");
   if (window.__helperOffline) {
     renderOffline();
-    if (els.testConnection) els.testConnection.textContent = t("testConnection");
+    refreshTestResultCopy();
     return;
   }
   if (window.__lastStatus) render(window.__lastStatus);
+  refreshTestResultCopy();
 }
 
 const els = {
@@ -329,6 +331,17 @@ function setTestResult(text) {
   }
   els.testResult.hidden = false;
   els.testResult.textContent = text;
+}
+
+function refreshTestResultCopy() {
+  if (!els.testResult || els.testResult.hidden) return;
+  if (window.__helperOffline) {
+    setTestResult(t("testFail"));
+    return;
+  }
+  if (window.__lastTestProbe) {
+    setTestResult(formatTestResult(window.__lastStatus || {}, window.__lastTestProbe));
+  }
 }
 
 function renderOffline() {
@@ -879,6 +892,7 @@ async function testConnection() {
       return;
     }
     const data = window.__lastStatus || {};
+    window.__lastTestProbe = probe;
     setTestResult(formatTestResult(data, probe));
   } finally {
     els.testConnection.disabled = false;

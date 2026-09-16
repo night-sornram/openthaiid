@@ -70,6 +70,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(js, "refreshCsrfFromPage") || !strings.Contains(js, "testConnection") {
 		t.Fatal("missing helper restart recovery or test-connection")
 	}
+	if !strings.Contains(js, "refreshTestResultCopy") {
+		t.Fatal("missing test-result language refresh")
+	}
 	if !strings.Contains(js, "helperLostHeadline") || !strings.Contains(js, "bridge.probe") {
 		t.Fatal("missing reconnect copy or WS probe test")
 	}
