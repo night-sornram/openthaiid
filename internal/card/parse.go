@@ -1,6 +1,7 @@
 package card
 
 import (
+	"encoding/base64"
 	"strings"
 	"unicode/utf8"
 
@@ -359,6 +360,58 @@ func parseAddressBlock(raw []byte) (*ThaiAddress, *Warning) {
 		return nil, &Warning{Field: FieldAddress, Code: "EMPTY", Message: "address empty"}
 	}
 	return addr, nil
+}
+
+// parsePortrait concatenates the 20 cited photo parts into a JPEG.
+// Hypothesis (community convention, confirmed by APDU.md part table but not
+// a government spec): the region is a JPEG starting at SOI FFD8; bytes after
+// EOI FFD9 are padding. Unrecognized payloads return null with a warning.
+func parsePortrait(raw []byte) (*Portrait, *Warning) {
+	if len(raw) == 0 {
+		return nil, &Warning{Field: FieldPortrait, Code: "EMPTY", Message: "portrait empty"}
+	}
+	jpeg, w := extractJPEG(raw)
+	if jpeg == nil {
+		if w == nil {
+			w = &Warning{Field: FieldPortrait, Code: "NOT_JPEG", Message: "portrait is not a jpeg"}
+		}
+		return nil, w
+	}
+	return &Portrait{
+		MimeType: PortraitMimeJPEG,
+		Encoding: PortraitEncodingBase64,
+		Data:     base64.StdEncoding.EncodeToString(jpeg),
+	}, w
+}
+
+func extractJPEG(raw []byte) ([]byte, *Warning) {
+	soi := indexMarker(raw, 0xD8)
+	if soi < 0 {
+		return nil, &Warning{Field: FieldPortrait, Code: "NOT_JPEG", Message: "portrait is not a jpeg"}
+	}
+	eoiRel := indexMarker(raw[soi+2:], 0xD9)
+	if eoiRel < 0 {
+		// Keep from SOI through last non-NUL. Trailing padding is hypothesized.
+		end := len(raw)
+		for end > soi+2 && raw[end-1] == 0x00 {
+			end--
+		}
+		if end <= soi+2 {
+			return nil, &Warning{Field: FieldPortrait, Code: "TRUNCATED", Message: "portrait jpeg truncated"}
+		}
+		return raw[soi:end], &Warning{Field: FieldPortrait, Code: "NO_EOI", Message: "portrait jpeg missing end marker"}
+	}
+	eoi := soi + 2 + eoiRel
+	return raw[soi : eoi+2], nil
+}
+
+func indexMarker(b []byte, second byte) int {
+	for i := 0; i+1 < len(b); i++ {
+		if b[i] == 0xFF && b[i+1] == second {
+			return i
+		}
+	}
+	return -1
 }
 
 // buildThaiName assembles a ThaiName and fullName.

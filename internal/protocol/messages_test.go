@@ -54,7 +54,7 @@ func TestProtocolMinorIsAdditive(t *testing.T) {
 	if Major != 1 {
 		t.Fatalf("major %d", Major)
 	}
-	if Minor != 2 {
-		t.Fatalf("minor %d want 2 (bridge.probe)", Minor)
+	if Minor != 3 {
+		t.Fatalf("minor %d want 3 (portrait field)", Minor)
 	}
 }

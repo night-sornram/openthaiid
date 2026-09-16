@@ -22,7 +22,7 @@ import {
 import { join, dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { chromium } from "playwright";
+import { chromium, firefox, webkit } from "playwright";
 import { spawn as ptySpawn } from "node-pty";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -56,10 +56,15 @@ const MIME = {
   ".json": "application/json",
 };
 
+// Unbundled SDK ESM: index.js imports ./autofill.js and ./probe.js.
+// Firefox (unlike Chrome) rejects ES modules with an empty MIME type, so a
+// 404 for those siblings is a hard fail — serve every dist .js with text/javascript.
 const SERVED = [
   "acceptance/page/index.html",
   "acceptance/page/app.js",
   "sdk/web/dist/index.js",
+  "sdk/web/dist/autofill.js",
+  "sdk/web/dist/probe.js",
 ];
 
 const results = [];
@@ -177,7 +182,7 @@ function startHTTPS() {
       "Content-Type": MIME[extname(file)] || "application/octet-stream",
       "Connection": "close",
       "Content-Security-Policy":
-        "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+        "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'",
     });
     res.end(readFileSync(file));
   });
@@ -311,13 +316,31 @@ function startBridge(policy) {
 }
 
 async function launchBrowser() {
+  const name = String(BROWSER_CHANNEL || "chrome").toLowerCase();
+  const headless = true;
+  if (name === "firefox") {
+    // Firefox treats ws:// from an https:// page as mixed active content.
+    // Clinic apps talking to 127.0.0.1 need the same exception (see docs/compatibility.md).
+    return firefox.launch({
+      headless,
+      firefoxUserPrefs: {
+        "network.websocket.allowInsecureFromHTTPS": true,
+        "security.mixed_content.block_active_content": false,
+        "dom.security.https_only_mode": false,
+      },
+    });
+  }
+  if (name === "webkit" || name === "safari") {
+    // Playwright WebKit. Real Safari UI is macOS-only; see docs/compatibility.md.
+    return webkit.launch({ headless });
+  }
   const opts = {
-    headless: true,
+    headless,
     args: ["--ignore-certificate-errors"],
   };
   // Playwright channel: chrome | msedge. Falls back to bundled Chromium.
-  if (BROWSER_CHANNEL && BROWSER_CHANNEL !== "chromium") {
-    opts.channel = BROWSER_CHANNEL;
+  if (name && name !== "chromium") {
+    opts.channel = name;
   }
   return chromium.launch(opts);
 }
@@ -384,7 +407,7 @@ async function runAllowScenarios(browser, httpsBase, wsURL) {
     } catch {
       throw new Error("default read output was not JSON");
     }
-    for (const leaked of ["englishName", "gender", "issuer", "issueDate", "expireDate", "address"]) {
+    for (const leaked of ["englishName", "gender", "issuer", "issueDate", "expireDate", "address", "portrait"]) {
       if (parsed.fields && Object.prototype.hasOwnProperty.call(parsed.fields, leaked)) {
         throw new Error(`unrequested ${leaked} returned under the default grant`);
       }
@@ -515,15 +538,67 @@ async function runAllowScenarios(browser, httpsBase, wsURL) {
       if (!f.address || f.address.houseNo !== "99" || f.address.province !== "จังหวัดนิทาน") {
         throw new Error("address mismatch on extra-fields grant");
       }
+      if (f.portrait) {
+        throw new Error("unrequested portrait returned on textual extra-fields grant");
+      }
     } finally {
       await extraPage.close();
+    }
+  });
+
+  await scenario("connect-approve-read-portrait", async () => {
+    const photoPage = await context.newPage();
+    photoPage.on("console", (msg) => {
+      diagnostics.push({ type: "console", level: msg.type(), text: redactPortrait(msg.text()).slice(0, 400) });
+    });
+    try {
+      await photoPage.goto(pageURL(httpsBase, wsURL, ["portrait"]), { waitUntil: "domcontentloaded" });
+      await photoPage.locator("#connect").click();
+      await photoPage.waitForFunction(
+        () => document.getElementById("status")?.textContent === "connected",
+        undefined,
+        { timeout: 20000 },
+      );
+      await photoPage.waitForFunction(
+        () => (document.getElementById("out")?.textContent || "").includes("readers"),
+        undefined,
+        { timeout: 10000 },
+      );
+      await photoPage.locator("#read").click();
+      await photoPage.waitForFunction(
+        () => {
+          const t = document.getElementById("out")?.textContent || "";
+          return t.includes("image/jpeg") && t.includes("base64");
+        },
+        undefined,
+        { timeout: 15000 },
+      );
+      const out = await photoPage.locator("#out").innerText();
+      let parsed;
+      try {
+        parsed = JSON.parse(out);
+      } catch {
+        throw new Error("portrait read output was not JSON");
+      }
+      const p = parsed.fields && parsed.fields.portrait;
+      if (!p || p.mimeType !== "image/jpeg" || p.encoding !== "base64") {
+        throw new Error("portrait metadata mismatch");
+      }
+      if (typeof p.data !== "string" || !p.data.startsWith("/9j/")) {
+        throw new Error("portrait data is not a jpeg base64 payload");
+      }
+      if (Object.prototype.hasOwnProperty.call(parsed.fields, "citizenId")) {
+        throw new Error("unrequested citizenId returned with portrait-only grant");
+      }
+    } finally {
+      await photoPage.close();
     }
   });
 
   await context.close();
 }
 
-const PERSONAL_SENTINELS = ["1234567890121", "สมชาย", "ใจดี", "Somchai", "Jaidee", "เทศบาลนครนิทาน"];
+const PERSONAL_SENTINELS = ["1234567890121", "สมชาย", "ใจดี", "Somchai", "Jaidee", "เทศบาลนครนิทาน", "FICTIONAL-OPENTHAIID-PORTRAIT"];
 
 function assertNoPersonalData(label, text) {
   for (const needle of PERSONAL_SENTINELS) {
@@ -672,9 +747,16 @@ async function runBridgeRestart(browser, httpsBase, wsURL, bridge, policy) {
   return next;
 }
 
+function redactPortrait(text) {
+  return String(text)
+    .replace(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g, "data:image/*;base64,[omitted]")
+    .replace(/"data":"[A-Za-z0-9+/=]{32,}"/g, '"data":"[portrait-omitted]"')
+    .replace(/\/9j\/[A-Za-z0-9+/=]+/g, "/9j/[omitted]");
+}
+
 function sanitize(obj) {
   return JSON.parse(
-    JSON.stringify(obj)
+    redactPortrait(JSON.stringify(obj))
       .replace(/1234567890121/g, "[citizenId]")
       .replace(/1101701234567/g, "[citizenId]")
       .replace(/สมชาย/g, "[givenName]")
@@ -707,7 +789,7 @@ function writeReports(commit, browserVersion) {
   writeFileSync(join(REPORT_DIR, "acceptance-report.json"), JSON.stringify(report, null, 2));
   writeFileSync(
     join(LOG_DIR, "harness.log"),
-    diagnostics.map((d) => `${d.type} ${d.level || ""} ${d.text}`).join("\n"),
+    diagnostics.map((d) => `${d.type} ${d.level || ""} ${redactPortrait(d.text || "")}`).join("\n"),
   );
 }
 

@@ -2,6 +2,7 @@ package card
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -140,7 +141,7 @@ func TestThaiProfileCommandPlanMatchesPublishedAPDU(t *testing.T) {
 		t.Fatalf("address %s want %s (offset 0x1579)", HexCommand(cmds[1]), wantAddrHex)
 	}
 
-	cmds, err = p.ReadCommands(SupportedFields)
+	cmds, err = p.ReadCommands(TextualFields)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +258,8 @@ func TestEngineOnlyRequestedFields(t *testing.T) {
 		t.Fatal("unrequested fields present")
 	}
 	if got.EnglishName != nil || got.Gender != nil || got.Issuer != nil ||
-		got.IssueDate != nil || got.ExpireDate != nil || got.Address != nil {
+		got.IssueDate != nil || got.ExpireDate != nil || got.Address != nil ||
+		got.Portrait != nil {
 		t.Fatal("unrequested extra textual fields present")
 	}
 	if len(conn.calls) != 2 {
@@ -573,7 +575,7 @@ func TestEngineTextualFields(t *testing.T) {
 	conn.responses[hexEncode([]byte{0x80, 0xB0, 0x01, 0x6F, 0x02, 0x00, 0x08})] = swOK([]byte("25700114"))
 	conn.responses[hexEncode([]byte{0x80, 0xB0, 0x15, 0x79, 0x02, 0x00, 0x64})] = swOK(pad(string(tis("99#หมู่ที่ 1##ถนนนิทาน#ตำบลบ้านใหม่#อำเภอเมือง#จังหวัดนิทาน")), 100))
 
-	got, warns, err := NewEngine(p).Execute(context.Background(), conn, SupportedFields)
+	got, warns, err := NewEngine(p).Execute(context.Background(), conn, TextualFields)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -632,9 +634,168 @@ func TestEngineDoesNotReadUnrequestedTextualFields(t *testing.T) {
 	if !strings.Contains(s, `"gender"`) {
 		t.Fatalf("missing gender in %s", s)
 	}
-	for _, leaked := range []string{"citizenId", "thaiName", "englishName", "birthDate", "issuer", "issueDate", "expireDate", "address"} {
+	for _, leaked := range []string{"citizenId", "thaiName", "englishName", "birthDate", "issuer", "issueDate", "expireDate", "address", "portrait"} {
 		if strings.Contains(s, leaked) {
 			t.Fatalf("unrequested %s leaked into JSON: %s", leaked, s)
 		}
 	}
+}
+
+// Published Photo_Part1/20 … Photo_Part20/20 from APDU.md @ 4d803243715254cc93efe9040d8b1ecd85f520aa.
+var wantPhotoHex = []string{
+	"80b0017b0200ff",
+	"80b0027a0200ff",
+	"80b003790200ff",
+	"80b004780200ff",
+	"80b005770200ff",
+	"80b006760200ff",
+	"80b007750200ff",
+	"80b008740200ff",
+	"80b009730200ff",
+	"80b00a720200ff",
+	"80b00b710200ff",
+	"80b00c700200ff",
+	"80b00d6f0200ff",
+	"80b00e6e0200ff",
+	"80b00f6d0200ff",
+	"80b0106c0200ff",
+	"80b0116b0200ff",
+	"80b0126a0200ff",
+	"80b013690200ff",
+	"80b014680200ff",
+}
+
+func TestThaiProfilePortraitAPDUMatchesPublishedTable(t *testing.T) {
+	p := ThaiCitizenMVP{}
+	cmds, err := p.ReadCommands([]Field{FieldPortrait})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cmds) != 1+portraitPartCount {
+		t.Fatalf("portrait should be SELECT + %d parts, got %d", portraitPartCount, len(cmds))
+	}
+	if HexCommand(cmds[0]) != wantSelectHex {
+		t.Fatalf("select %s", HexCommand(cmds[0]))
+	}
+	for i, want := range wantPhotoHex {
+		got := HexCommand(cmds[i+1])
+		if got != want {
+			t.Fatalf("photo part %d/20 %s want %s", i+1, got, want)
+		}
+	}
+}
+
+func TestEnginePortraitJPEG(t *testing.T) {
+	jpeg := FictionalPortraitJPEG()
+	region := PadPortraitRegion(jpeg)
+	p := ThaiCitizenMVP{}
+	conn := &fakeConn{responses: map[string][]byte{}}
+	conn.responses[hexEncode(p.SelectCommand())] = swOK(nil)
+	for i := 0; i < portraitPartCount; i++ {
+		off := portraitPartOffset(i)
+		cmd := []byte{0x80, 0xB0, byte(off >> 8), byte(off & 0xFF), 0x02, 0x00, 0xFF}
+		part := region[i*lenPortraitPart : (i+1)*lenPortraitPart]
+		conn.responses[hexEncode(cmd)] = swOK(part)
+	}
+
+	got, warns, err := NewEngine(p).Execute(context.Background(), conn, []Field{FieldPortrait})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(warns) != 0 {
+		t.Fatalf("warns %v", warns)
+	}
+	if got.Portrait == nil {
+		t.Fatal("portrait nil")
+	}
+	if got.Portrait.MimeType != PortraitMimeJPEG || got.Portrait.Encoding != PortraitEncodingBase64 {
+		t.Fatalf("portrait meta %+v", got.Portrait)
+	}
+	if got.Portrait.Data == "" {
+		t.Fatal("portrait data empty")
+	}
+	raw, err := json.Marshal(got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(raw)
+	if !strings.Contains(s, `"portrait"`) || !strings.Contains(s, `"image/jpeg"`) {
+		t.Fatalf("json %s", s)
+	}
+	if strings.Contains(s, "citizenId") {
+		t.Fatal("unrequested citizenId leaked")
+	}
+
+	back, err := base64.StdEncoding.DecodeString(got.Portrait.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytesHasPrefix(back, []byte{0xFF, 0xD8}) || !bytesHasSuffix(back, []byte{0xFF, 0xD9}) {
+		t.Fatal("decoded portrait is not a jpeg")
+	}
+	if !bytesContains(back, []byte(FictionalPortraitSentinel)) {
+		t.Fatal("fictional sentinel missing from synthetic jpeg")
+	}
+}
+
+func TestParsePortraitNotJPEG(t *testing.T) {
+	p, w := parsePortrait(bytesRepeat(0x00, 64))
+	if p != nil {
+		t.Fatal("expected nil portrait")
+	}
+	if w == nil || w.Code != "NOT_JPEG" {
+		t.Fatalf("warn %v", w)
+	}
+}
+
+func bytesHasPrefix(b, pfx []byte) bool {
+	if len(b) < len(pfx) {
+		return false
+	}
+	for i := range pfx {
+		if b[i] != pfx[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func bytesHasSuffix(b, sfx []byte) bool {
+	if len(b) < len(sfx) {
+		return false
+	}
+	off := len(b) - len(sfx)
+	for i := range sfx {
+		if b[off+i] != sfx[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func bytesContains(b, sub []byte) bool {
+	if len(sub) == 0 {
+		return true
+	}
+	for i := 0; i+len(sub) <= len(b); i++ {
+		ok := true
+		for j := range sub {
+			if b[i+j] != sub[j] {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+func bytesRepeat(c byte, n int) []byte {
+	out := make([]byte, n)
+	for i := range out {
+		out[i] = c
+	}
+	return out
 }

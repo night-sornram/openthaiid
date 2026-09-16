@@ -15,8 +15,8 @@ fillBtn.addEventListener("click", async () => {
 
 The flow stays **manual**: a user clicks **Fill from Thai ID**. The helper
 connects from that gesture. Origin + field Allow still happens on this PC
-(the page cannot approve itself). There is no silent background read and no
-portrait/photo.
+(the page cannot approve itself). There is no silent background read.
+Portrait is optional: add `"portrait"` to `request` and map it to an `<img>`.
 
 ## Integrator snippet
 
@@ -83,7 +83,9 @@ browser tests; localhost HTTP is development-only.
 
 With `-synthetic`, expect citizen ID `1234567890121`, given name `สมชาย`,
 family name `ใจดี`, birth `1990-04-12`, gender `male`, and the seeded
-fictional address. Phone and HN stay empty.
+fictional address. Phone and HN stay empty. To receive the fictional
+synthetic photo, add `"portrait"` to `request` and map `portrait` to an
+`<img>` (`data:image/jpeg;base64,…`) or call `portraitBlob()` on the result.
 
 Uncheck a field in **request** and fill again: that column is left alone and
 the grant does not include it.

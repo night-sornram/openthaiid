@@ -14,8 +14,8 @@ backend to deploy.
 
 A small local helper on the PC talks to a PC/SC reader and exposes selected
 Thai ID fields (`citizenId`, `thaiName`, `birthDate` by default; additional
-textual fields such as `englishName`, `gender`, `issuer`, `issueDate`,
-`expireDate`, and `address` when requested and granted) over a loopback
+fields such as `englishName`, `gender`, `issuer`, `issueDate`,
+`expireDate`, `address`, and optional `portrait` when requested and granted) over a loopback
 WebSocket — only after the operator Allows the website origin and field set.
 
 See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the

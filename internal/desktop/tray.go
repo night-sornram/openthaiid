@@ -21,6 +21,8 @@ type Host struct {
 	SetAutostart  func(enabled bool) error
 	Quit          func()
 	Log           *slog.Logger
+	CheckUpdate   func() string
+	ReleasesURL   string
 }
 
 // RunTray shows a notification-area icon when the OS supports it and blocks
@@ -51,7 +53,37 @@ func RunTray(ctx context.Context, host Host) error {
 	if host.Quit == nil {
 		host.Quit = func() {}
 	}
+	if host.CheckUpdate == nil {
+		host.CheckUpdate = func() string {
+			return "Check GitHub Releases for a newer unsigned package."
+		}
+	}
+	if host.ReleasesURL == "" {
+		host.ReleasesURL = "https://github.com/night-sornram/openthaiid/releases"
+	}
 	return runNativeTray(ctx, host)
+}
+
+func (h Host) checkUpdate() {
+	msg := "Check GitHub Releases for a newer unsigned package."
+	if h.CheckUpdate != nil {
+		msg = h.CheckUpdate()
+	}
+	h.alert("OpenThaiID update", msg)
+}
+
+func (h Host) openReleases() {
+	url := h.ReleasesURL
+	if url == "" {
+		return
+	}
+	if err := h.OpenURL(url); err != nil && h.Log != nil {
+		h.Log.Warn("open releases", "error", err)
+	}
+}
+
+func (h Host) alert(title, body string) {
+	showAlert(title, body)
 }
 
 func (h Host) openReady() {

@@ -53,7 +53,11 @@ mountThaiIDStatus(document.getElementById("reader-status"));
 
 3. On **Create Patient**, call `autofillThaiID(config)` from the click.
    Origin + field Allow still happens on the PC (helper page or terminal).
-   The library never silent-reads and never returns a portrait.
+   The library never silent-reads. Portrait is returned only when `portrait`
+   is in `request` **and** the helper Allows that field. Map `portrait` to
+   an `<img>` (data URL) or use `portraitBlob()` / `portraitDataUrl()` from
+   the read result. Do not `console.log` photo bytes. If the ERP sets a CSP,
+   allow `img-src data:` (or `blob:` when using `URL.createObjectURL`).
 
 `mountThaiIDStatus` defaults to clinic-staff copy (Ready / not ready). Pass
 `{ mode: "advanced" }` for technician details on the same page.

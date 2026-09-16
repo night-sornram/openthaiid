@@ -19,8 +19,8 @@ builds/acceptance and hung Windows jobs dominated the pool.
 
 | Lane | When | What runs |
 |---|---|---|
-| **PR** | `pull_request` (code changes) | Ubuntu: Go fmt/vet/test/race, bridge/reader `-count=5`, linux/amd64 build + version smoke, Web + React SDKs, Chrome acceptance (allow/deny/unanswered). **4 jobs.** |
-| **Full** | `push` to `main`/`dev`, `workflow_dispatch` | PR jobs with `-count=50`, plus linux/arm64, windows/amd64, darwin/arm64, darwin/amd64 builds; Chrome on macOS and Windows; Edge on Windows. **11 jobs.** |
+| **PR** | `pull_request` (code changes) | Ubuntu: Go fmt/vet/test/race, bridge/reader `-count=5`, linux/amd64 build + version smoke, Web + React SDKs, **Firefox** acceptance (allow/deny/unanswered). **4 jobs.** |
+| **Full** | `push` to `main`/`dev`, `workflow_dispatch` | PR jobs with `-count=50`, plus linux/arm64, windows/amd64, darwin/arm64, darwin/amd64 builds; Chrome on macOS and Windows; Edge on Windows; Linux stays Firefox. **11 jobs.** |
 
 Docs-only / `.cursor/`-only changes skip the workflow (`paths-ignore`).
 In-progress runs still cancel on a new SHA. Local `make test`,
@@ -57,7 +57,7 @@ workflow on `dev` for an on-demand full matrix.
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| C1 | `citizenId`, `thaiName`, `birthDate` plus remaining textual fields (`englishName`, `gender`, `issuer`, `issueDate`, `expireDate`, `address`) normalize correctly | Parser fixtures + APDU byte tests + `TestEngineTextualFields` | Done (synthetic) |
+| C1 | `citizenId`, `thaiName`, `birthDate` plus remaining textual fields and optional `portrait` | Parser fixtures + APDU byte tests + `TestEngineTextualFields` + `TestEnginePortraitJPEG` | Done (synthetic) |
 | C2 | Field selection limits returned data and necessary reads | Integration + APDU script; extra textual fields omitted unless granted (`TestIntegrationUngrantedTextualFieldRejected`) | Done |
 | C3 | Removal/replacement cannot produce stale results | Lifecycle tests | Done |
 | C4 | Unsupported/malformed cards yield typed errors and monitoring continues | Synthetic + engine tests | Done |
@@ -90,21 +90,26 @@ workflow on `dev` for an on-demand full matrix.
 
 ## Browser qualification (automated)
 
-Channels: Playwright `chrome` (Linux, macOS, Windows) and `msedge` (Windows).
-No browser-cache path guessing. Every GitHub Actions job has a hard
+Channels: Playwright `firefox` (Linux CI/cloud), `chrome` (macOS/Windows full
+lane), `msedge` (Windows). `webkit` (Safari engine) is **local / macOS**.
+Do not add Safari rows to GitHub Actions. Every GitHub Actions job has a hard
 `timeout-minutes` (acceptance 25m, 5m per policy step); the harness also
 exits via `process.exit` at 150s. A new push cancels in-progress runs.
 
-PR CI runs H1 + H5–H7 (ubuntu Chrome, three policies). H2–H4 (macOS Chrome,
+PR CI runs H1 + H5–H7 (ubuntu **Firefox**, three policies). H2–H4 (macOS Chrome,
 Windows Chrome, Windows Edge) run on the full lane only (merge to `dev`/`main`
-or `workflow_dispatch`).
+or `workflow_dispatch`). The workflow may be disabled to conserve minutes;
+run `make acceptance-firefox` locally.
 
 | # | Criterion | Status |
 |---|---|---|
-| H1 | Stable Chrome on ubuntu-24.04 | CI ready (PR + full) |
+| H1 | Stable Firefox on ubuntu-24.04 | CI ready (PR + full; workflow may be disabled) |
+| H1b | Stable Chrome on ubuntu-24.04 | Local `OPENTHAIID_BROWSER=chrome` |
 | H2 | Stable Chrome on macos-15 | CI ready (full lane) |
 | H3 | Stable Chrome on windows-2025 | CI ready (full lane) |
 | H4 | Stable Edge on windows-2025 | CI ready (full lane) |
+| H15 | Playwright WebKit (Safari engine) on macOS | Local `make acceptance-webkit`; not in CI |
+| H16 | Optional portrait on synthetic (allow policy; new grant; photo bytes redacted in reports) | Local / harness |
 | H5 | Approval + read (allow policy) | CI ready |
 | H6 | Terminal denial (deny policy) | CI ready |
 | H7 | Approval stays pending (unanswered policy) | CI ready |
@@ -187,7 +192,7 @@ Successful compilation alone does not close these checks.
 | G11 | PC/SC StateUnaware retention + recovery; stall + ownership | Done |
 | G12 | Shared synthetic demo card end-to-end | Done |
 | G13 | Green five-target CI with version smoke + npm ci | Done (PR #1); full lane after merge / dispatch |
-| G14 | Playwright browser acceptance (Chrome × 3 OS + Edge on Windows) | Done (PR #1); PRs re-check ubuntu Chrome; full matrix on merge / dispatch |
+| G14 | Playwright browser acceptance (Firefox on Linux; Chrome × macOS/Windows + Edge on Windows) | Code ready; run locally while Actions is disabled |
 | G15 | Hardware qualification evidence | Open |
 | G16 | node-pty cross-platform terminal approval harness | Done (local macOS); multi-OS CI ready |
 

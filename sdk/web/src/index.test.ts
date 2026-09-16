@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_FIELDS, SUPPORTED_FIELDS, ThaiID, ThaiIDError } from "../src/index";
+import { DEFAULT_FIELDS, SUPPORTED_FIELDS, TEXTUAL_FIELDS, ThaiID, ThaiIDError, portraitBlob, portraitDataUrl } from "../src/index";
 
 type FakeWS = {
   readyState: number;
@@ -114,8 +114,13 @@ describe("ThaiID", () => {
     expect(id.state()).toBe("disconnected");
   });
 
-  it("rejects unsupported fields", () => {
-    expect(() => new ThaiID({ fields: ["portrait" as never] })).toThrow(ThaiIDError);
+  it("rejects unknown fields", () => {
+    expect(() => new ThaiID({ fields: ["laserId" as never] })).toThrow(ThaiIDError);
+  });
+
+  it("accepts optional portrait", () => {
+    const id = new ThaiID({ fields: ["portrait"] });
+    expect(id.fields).toEqual(["portrait"]);
   });
 
   it("supports custom endpoint", () => {
@@ -145,8 +150,9 @@ describe("ThaiID", () => {
     }
   });
 
-  it("SUPPORTED_FIELDS lists textual fields and keeps MVP defaults", () => {
+  it("SUPPORTED_FIELDS lists textual fields plus optional portrait and keeps MVP defaults", () => {
     expect(DEFAULT_FIELDS).toEqual(["citizenId", "thaiName", "birthDate"]);
+    expect(TEXTUAL_FIELDS).not.toContain("portrait");
     expect([...SUPPORTED_FIELDS].sort()).toEqual(
       [
         "address",
@@ -157,9 +163,20 @@ describe("ThaiID", () => {
         "gender",
         "issueDate",
         "issuer",
+        "portrait",
         "thaiName",
       ].sort(),
     );
+  });
+
+  it("portrait helpers build data URLs and blobs", () => {
+    const p = { mimeType: "image/jpeg" as const, encoding: "base64" as const, data: "QQ==" };
+    expect(portraitDataUrl(p)).toBe("data:image/jpeg;base64,QQ==");
+    expect(portraitDataUrl(null)).toBeNull();
+    const blob = portraitBlob(p);
+    expect(blob).toBeTruthy();
+    expect(blob?.type).toBe("image/jpeg");
+    expect(blob?.size).toBe(1);
   });
 
   it("accepts extra textual fields in the constructor", () => {

@@ -17,10 +17,11 @@ export type Field =
   | "issuer"
   | "issueDate"
   | "expireDate"
-  | "address";
+  | "address"
+  | "portrait";
 
 export const DEFAULT_FIELDS: Field[] = ["citizenId", "thaiName", "birthDate"];
-export const SUPPORTED_FIELDS: Field[] = [
+export const TEXTUAL_FIELDS: Field[] = [
   "citizenId",
   "thaiName",
   "englishName",
@@ -31,6 +32,7 @@ export const SUPPORTED_FIELDS: Field[] = [
   "expireDate",
   "address",
 ];
+export const SUPPORTED_FIELDS: Field[] = [...TEXTUAL_FIELDS, "portrait"];
 
 export type CardDate = {
   year: number | null;
@@ -64,6 +66,12 @@ export type ThaiAddress = {
   fullAddress: string;
 };
 
+export type Portrait = {
+  mimeType: "image/jpeg" | string;
+  encoding: "base64";
+  data: string;
+};
+
 export type FieldValues = {
   citizenId?: string | null;
   thaiName?: ThaiName | null;
@@ -74,7 +82,26 @@ export type FieldValues = {
   issueDate?: CardDate | null;
   expireDate?: CardDate | null;
   address?: ThaiAddress | null;
+  portrait?: Portrait | null;
 };
+
+/** `data:<mime>;base64,<data>` for `<img src>` or CSS. Returns null if absent. */
+export function portraitDataUrl(portrait: Portrait | null | undefined): string | null {
+  if (!portrait?.data) return null;
+  const mime = portrait.mimeType || "image/jpeg";
+  return `data:${mime};base64,${portrait.data}`;
+}
+
+/** Browser Blob for `URL.createObjectURL`. Returns null if absent. */
+export function portraitBlob(portrait: Portrait | null | undefined): Blob | null {
+  if (!portrait?.data) return null;
+  const binary = atob(portrait.data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: portrait.mimeType || "image/jpeg" });
+}
 
 export type ThaiIDErrorCode =
   | "BRIDGE_UNAVAILABLE"
@@ -155,7 +182,7 @@ type Handler<T> = (payload: T) => void;
 export type ThaiIDOptions = {
   /** Default: ws://127.0.0.1:17891/v1/ws */
   endpoint?: string;
-  /** Default: citizenId, thaiName, birthDate (least privilege). Extra textual fields must be requested explicitly. */
+  /** Default: citizenId, thaiName, birthDate (least privilege). Extra fields, including portrait, must be requested explicitly. */
   fields?: Field[];
   /** Connect timeout ms (default 30000; approval wait included). */
   connectTimeoutMs?: number;

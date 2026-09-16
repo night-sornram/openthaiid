@@ -10,3 +10,8 @@ func runNativeTray(context.Context, Host) error {
 
 // HideConsole is a no-op off Windows.
 func HideConsole() {}
+
+func showAlert(title, body string) {
+	_ = title
+	_ = body
+}

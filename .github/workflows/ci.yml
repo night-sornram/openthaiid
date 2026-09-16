@@ -3,7 +3,7 @@ name: ci
 # CI lanes (GitHub Actions minutes)
 #
 # PR lane (`pull_request`) — cheap, ubuntu-only:
-#   Jobs: Go test, linux/amd64 build, Web + React SDKs, Chrome acceptance
+#   Jobs: Go test, linux/amd64 build, Web + React SDKs, Firefox acceptance
 #         (allow + deny + unanswered).
 #   Repeat formerly-flaky bridge/reader tests at -count=5 (not 50).
 #   Target: ~4 billed-job-minutes-equivalent vs ~11 jobs / ~70 billed
@@ -13,7 +13,7 @@ name: ci
 # Full lane (`push` to main/dev, `workflow_dispatch`):
 #   Same as PR, plus linux/arm64, windows/amd64, darwin/arm64,
 #   darwin/amd64 builds; Chrome on macOS and Windows; Edge on Windows;
-#   bridge/reader -count=50.
+#   Linux acceptance uses Firefox (Safari/WebKit is macOS-only, local).
 #   Windows/macOS coverage is not removed — it runs after merge (or on
 #   manual dispatch) so PR iteration does not pay OS multipliers on
 #   every push. Pick branch `dev` when dispatching until `main` tracks
@@ -220,9 +220,10 @@ jobs:
     name: Browser acceptance (${{ matrix.os }} / ${{ matrix.browser }})
     strategy:
       fail-fast: false
-      # PR: ubuntu Chrome only. Full: Chrome × Linux/macOS/Windows + Edge × Windows.
+      # PR: ubuntu Firefox only. Full: Firefox × Linux, Chrome × macOS/Windows, Edge × Windows.
+      # Do not add Safari/WebKit here (macOS-only; run locally with OPENTHAIID_BROWSER=webkit).
       matrix:
-        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"os":"ubuntu-24.04","browser":"chrome"}]') || fromJSON('[{"os":"ubuntu-24.04","browser":"chrome"},{"os":"macos-15","browser":"chrome"},{"os":"windows-2025","browser":"chrome"},{"os":"windows-2025","browser":"msedge"}]') }}
+        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"os":"ubuntu-24.04","browser":"firefox"}]') || fromJSON('[{"os":"ubuntu-24.04","browser":"firefox"},{"os":"macos-15","browser":"chrome"},{"os":"windows-2025","browser":"chrome"},{"os":"windows-2025","browser":"msedge"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     defaults:

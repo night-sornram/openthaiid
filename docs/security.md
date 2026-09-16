@@ -69,11 +69,14 @@ within browser security rules only.
 
 ## Privacy and logging
 
-- No telemetry or outbound network calls.
+- No telemetry. The helper does not phone home during card reads.
+- Operator-initiated `openthaiid update check|download|apply` (and the tray
+  “Check for updates” item) query GitHub Releases and may download an
+  **unsigned** asset. No origin, grant, token, or card field is sent.
 - No card-data files, databases, result caches, or diagnostic uploads.
 - Logs carry only error codes, durations, counts, and random request ids.
-- Never log citizen IDs, names, addresses, dates, portraits, raw APDUs, tokens,
-  or hashes of personal fields.
+- Never log citizen IDs, names, addresses, dates, portraits (including
+  Base64 / data URLs), raw APDUs, tokens, or hashes of personal fields.
 - The helper page and technician **Copy diagnostics** omit personal card
   field values. Last errors store protocol codes and generic messages only.
 - `GET /v1/helper/summary` (loopback) returns helper/reader/card lights for
@@ -96,7 +99,13 @@ within browser security rules only.
   denied.
 - Never require disabled browser security, public tunnels, bundled TLS private
   keys, or installed root certificates.
-- HTTP endpoints expose no cross-origin data interface and no wildcard CORS.
+- Firefox mixed-content: `ws://127.0.0.1` from an HTTPS origin is blocked
+  unless the browser allows insecure WebSockets from HTTPS (harness sets
+  `network.websocket.allowInsecureFromHTTPS`). This does not weaken origin
+  approval or loopback bind.
+- Portrait `<img>` data URLs need CSP `img-src data:` (or `blob:` with
+  `portraitBlob()`). That is display-only; grants and loopback bind are
+  unchanged. Never log photo bytes.
 - The local Manager (`GET /`, `GET/POST /v1/manager/*`) is loopback HTML and
   JSON for the operator on this PC. Mutating calls require the manager origin
   and a CSRF token embedded in the page (not a cookie). Personal card fields

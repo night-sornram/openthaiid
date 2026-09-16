@@ -51,16 +51,16 @@ func openthaiidTrayAction(item C.int) {
 	case 2:
 		h.openTechnician()
 	case 3:
-		title := C.CString("OpenThaiID status")
-		body := C.CString(h.Status())
-		C.openthaiidDarwinAlert(title, body)
-		C.free(unsafe.Pointer(title))
-		C.free(unsafe.Pointer(body))
+		h.alert("OpenThaiID status", h.Status())
 	case 4:
 		h.toggleAutostart()
 	case 5:
 		h.Quit()
 		C.openthaiidDarwinTrayQuit()
+	case 6:
+		h.checkUpdate()
+	case 7:
+		h.openReleases()
 	}
 }
 
@@ -73,4 +73,12 @@ func openthaiidTrayAutostartOn() C.int {
 		return 1
 	}
 	return 0
+}
+
+func showAlert(title, body string) {
+	t := C.CString(title)
+	b := C.CString(body)
+	C.openthaiidDarwinAlert(t, b)
+	C.free(unsafe.Pointer(t))
+	C.free(unsafe.Pointer(b))
 }

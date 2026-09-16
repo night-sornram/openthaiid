@@ -12,12 +12,17 @@ Other versions are unverified until tested.
 
 ## Browser targets (initial)
 
-| Browser | Platforms |
-|---|---|
-| Chrome | Windows, Linux, macOS |
-| Edge | Windows |
+| Browser | Platforms | How to run |
+|---|---|---|
+| Firefox | Linux (preferred in CI/cloud), also Windows/macOS | `OPENTHAIID_BROWSER=firefox` / `make acceptance-firefox` |
+| Chrome | Windows, Linux, macOS | `OPENTHAIID_BROWSER=chrome` (default local `make acceptance`) |
+| Edge | Windows | `OPENTHAIID_BROWSER=msedge` |
+| Safari / WebKit | **macOS only** for real Safari. Playwright `webkit` is the automatable engine (`OPENTHAIID_BROWSER=webkit` / `make acceptance-webkit`). Linux WebKit is not Safari. | Headed Safari remains a manual check |
 
-Firefox and Safari are out of MVP scope.
+The GitHub Actions matrix is **not** expanded: pull requests (when the
+workflow is enabled) run Firefox on ubuntu only; the full lane adds Chrome
+on macOS/Windows and Edge on Windows. Do not add Safari rows (macOS
+multiplier).
 
 ## Reader
 
@@ -72,6 +77,14 @@ Document distro-specific permissions if a user cannot access the PC/SC daemon.
 - Local-network permission may be required (see Chrome 147 notes in
   `docs/security.md`).
 - Application CSP must allow `connect-src` to the loopback WebSocket origin.
+- Firefox treats `ws://127.0.0.1` from an `https://` page as mixed active
+  content. The acceptance harness sets
+  `network.websocket.allowInsecureFromHTTPS`. Real Firefox users may need to
+  allow the loopback WebSocket (or serve the ERP from http://localhost in
+  development). Chrome is more lenient for localhost mixed content.
+- Firefox is strict about ES module MIME types (`text/javascript`). Serve SDK
+  `.js` with that type; an empty Content-Type (including a 404) is a hard
+  block. Chrome often still executes the graph.
 
 ## Versioning
 

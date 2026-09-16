@@ -81,6 +81,8 @@ const (
 	idStatus       = 1003
 	idAutostart    = 1004
 	idQuit         = 1005
+	idUpdate       = 1006
+	idReleases     = 1007
 	iconVer        = 0x00030000
 )
 
@@ -165,6 +167,10 @@ func runNativeTray(ctx context.Context, host Host) error {
 				showStatusDialog(host)
 			case idAutostart:
 				host.toggleAutostart()
+			case idUpdate:
+				host.checkUpdate()
+			case idReleases:
+				host.openReleases()
 			case idQuit:
 				host.Quit()
 				_, _, _ = procPostMessageW.Call(hwnd, wmQuitTray, 0, 0)
@@ -290,6 +296,9 @@ func showTrayMenu(hwnd uintptr, host Host) {
 	}
 	appendMenu(hMenu, autoFlags, idAutostart, "Start at login")
 	appendMenu(hMenu, mfSeparator, 0, "")
+	appendMenu(hMenu, mfString, idUpdate, "Check for updates")
+	appendMenu(hMenu, mfString, idReleases, "Open GitHub Releases")
+	appendMenu(hMenu, mfSeparator, 0, "")
 	appendMenu(hMenu, mfString, idQuit, "Quit")
 
 	var pt point
@@ -316,7 +325,11 @@ func appendMenu(hMenu uintptr, flags uintptr, id uint16, title string) {
 }
 
 func showStatusDialog(host Host) {
-	title, _ := syscall.UTF16PtrFromString("OpenThaiID status")
-	body, _ := syscall.UTF16PtrFromString(host.Status())
-	_, _, _ = procMessageBoxW.Call(0, uintptr(unsafe.Pointer(body)), uintptr(unsafe.Pointer(title)), uintptr(mbOK|mbIconInfo|mbTopmost))
+	showAlert("OpenThaiID status", host.Status())
+}
+
+func showAlert(title, body string) {
+	t, _ := syscall.UTF16PtrFromString(title)
+	b, _ := syscall.UTF16PtrFromString(body)
+	_, _, _ = procMessageBoxW.Call(0, uintptr(unsafe.Pointer(b)), uintptr(unsafe.Pointer(t)), uintptr(mbOK|mbIconInfo|mbTopmost))
 }

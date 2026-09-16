@@ -19,8 +19,9 @@ export const CLINIC_PATIENT_REQUEST = [
   "address",
 ];
 
-/** Extra textual fields a clinic may opt into; still no portrait. */
+/** Extra textual fields a clinic may opt into. Portrait is a separate opt-in. */
 export const OPTIONAL_PATIENT_REQUEST = ["englishName"];
+export const OPTIONAL_PORTRAIT_REQUEST = ["portrait"];
 
 export const CLINIC_PATIENT_MAP = {
   citizenId: "#patient-cid",

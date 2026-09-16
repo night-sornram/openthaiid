@@ -1,14 +1,16 @@
 # Not done
 
-Last updated after the React hooks package and extra-textual-field
-acceptance coverage (on top of the GitHub Actions PR/full split,
-remaining textual ID fields, pairing-only handshake, mixed-case revoke,
-H9 restart, H11 isolation, and green CI on PR #1).
+Last updated after the software RC items (portrait, Firefox/WebKit harness,
+unsigned GitHub Releases auto-update, go 1.27, laser/NHSO provenance block).
 
 Software ownership, cancellation, stall recovery, request saturation, the
-cross-platform acceptance harness, and remaining textual fields (synthetic)
-are implemented. This file lists everything that is **not** complete for a
-qualified MVP release candidate.
+cross-platform acceptance harness, remaining textual fields, and optional
+portrait (synthetic) are implemented. This file lists everything that is
+**not** complete for a **hardware-qualified** release.
+
+Do **not** treat GitHub Actions as green on this PR: the workflow stays
+disabled (included minutes exhausted). Run `make test` and
+`make acceptance-firefox` locally.
 
 ---
 
@@ -27,35 +29,26 @@ qualified MVP release candidate.
 | — | Linux physical qualification | Linux host + reader |
 | M1 | Headed manual check from a public HTTPS origin (local-network permission) | Operator HTTPS origin |
 | P2–P6, P10 | `ebfe/scard` binding audit items (layouts, WinSCard load, cgo stress) | Cross-build + review |
+| Safari | Real Safari UI (not Playwright WebKit) | macOS + Safari |
 
 **Order:** macOS + ACR39U first, then Windows/Linux. Untested configurations stay unverified.
 
 Physical-card confirmation is also still required for community hypotheses on
-this branch: gender `1`/`2` encoding, English-name `#` layout, and 7-part
-address `#` component order (see `docs/provenance.md`).
+this branch: gender `1`/`2` encoding, English-name `#` layout, 7-part
+address `#` component order, and portrait JPEG SOI/EOI trim
+(see `docs/provenance.md`).
 
 ---
 
-## Proven in CI (PR #1)
+## Explicitly out of this milestone (cannot fake)
 
-On `3ca134d` (PR #1, Actions run [35054867099](https://github.com/night-sornram/openthaiid/actions/runs/35054867099)): 11/11 jobs green, including five-target build + version smoke, `npm ci` SDK, Chrome × Linux/macOS/Windows + Edge × Windows (allow/deny/unanswered), artifact-style steps, node-pty Windows, and `go test -count=50`.
+- Apple notarization / Developer ID signing (no certificate)
+- Microsoft Authenticode / Store signing (no certificate)
+- Physical E1–E7 ACR39U qualification
+- Laser-id / NHSO / other DFs not in the cited APDU table (see provenance)
 
-After the CI split, **pull requests** only re-run the ubuntu lane (Go tests
-with `-count=5`, linux/amd64, SDK, Chrome × allow/deny/unanswered). Confirm
-the full 11-job matrix on merge to `dev`/`main` or via **workflow_dispatch**
-(select branch `dev` until `main` tracks releases).
-
----
-
-## Explicitly out of this milestone
-
-Do not treat these as MVP gaps:
-
-- Portrait / photo support
-- Signed store installers and auto-update
-- Official Firefox / Safari support
-- Published GitHub Release / release candidate tag
-- Laser-id / NHSO / other DFs not in the cited APDU table
+Unsigned packages + `docs/signing.md` are the path toward signed installers.
+Auto-update against GitHub Releases is implemented for **unsigned** assets.
 
 ---
 
@@ -63,24 +56,26 @@ Do not treat these as MVP gaps:
 
 | Item | Notes |
 |---|---|
-| `go.mod` still declares `go 1.22` | CI validates on 1.27.1; bump optional |
 | Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
+| Published GitHub Release / `v0.1.0-rc.1` tag | Prepare from this PR; a human should tag after review. Do not enable Actions to build the RC. |
 
 ---
 
 ## How to close the remaining work
 
-1. Push this branch and confirm PR CI (ubuntu Go + Chrome, 4 jobs) is green.
-   Confirm the full five-target + Chrome×3/Edge matrix on merge to `dev` or
-   via workflow_dispatch on `dev`.
-2. Run `make acceptance` on Windows (Chrome + Edge) and Linux.
-3. Connect an ACR39U on macOS; complete E1–E7 without logging field values.
-   While doing so, confirm gender encoding, English-name delimiters, and
-   address component order against a real card.
-4. Repeat physical checks on Windows and Linux.
-5. Complete the headed public-HTTPS local-network permission check (M1).
-6. Finish the binding audit checklist in `docs/dependency-audit.md` /
+1. Local: `make test` and `make acceptance-firefox` (Linux). On macOS,
+   `make acceptance-webkit` exercises Playwright WebKit; real Safari is
+   still a headed check.
+2. Connect an ACR39U on macOS; complete E1–E7 without logging field values
+   (including photo bytes). Confirm gender, English-name, address order,
+   and portrait JPEG on a real card.
+3. Repeat physical checks on Windows and Linux.
+4. Complete the headed public-HTTPS local-network permission check (M1).
+5. Finish the binding audit checklist in `docs/dependency-audit.md` /
    `docs/acceptance.md` (P2–P6, P10).
-7. Only then tag a release candidate.
+6. Human/coordinator: tag `v0.1.0-rc.1` from `dev` after review, attach
+   `scripts/package.sh` archives + SHA256SUMS as a GitHub **prerelease**.
+   Do not enable GitHub Actions until minutes are available.
 
 Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.1]`.

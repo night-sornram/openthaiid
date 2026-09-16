@@ -11,7 +11,7 @@ import (
 const Major = 1
 
 // Minor is the protocol minor version. Additive field expansions bump minor.
-const Minor = 2
+const Minor = 3
 
 // Subprotocol is the WebSocket subprotocol name.
 const Subprotocol = "openthaiid.v1"

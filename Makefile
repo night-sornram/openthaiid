@@ -1,6 +1,6 @@
 .PHONY: build test race vet fmt doctor sdk sdk-test tidy package clean check acceptance test-repeat smoke-helper
 
-VERSION ?= 0.0.1-dev
+VERSION ?= 0.1.0-rc.1
 
 build:
 	mkdir -p dist
@@ -53,6 +53,13 @@ test-repeat:
 
 acceptance: build sdk
 	cd acceptance && npm ci && npm run test:all
+
+# Linux / this cloud: Playwright Firefox (first-class). Safari/WebKit is macOS-only.
+acceptance-firefox: build sdk
+	cd acceptance && npm ci && npx playwright install --with-deps firefox && OPENTHAIID_BROWSER=firefox npm run test:all
+
+acceptance-webkit: build sdk
+	cd acceptance && npm ci && npx playwright install --with-deps webkit && OPENTHAIID_BROWSER=webkit npm run test:all
 
 clean:
 	rm -rf dist sdk/web/dist sdk/react/dist acceptance/node_modules

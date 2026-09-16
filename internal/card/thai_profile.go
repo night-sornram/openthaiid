@@ -26,8 +26,10 @@ import (
 //	issueDate    0x0167  8 bytes, YYYYMMDD Buddhist Era
 //	expireDate   0x016F  8 bytes, YYYYMMDD Buddhist Era
 //	address      0x1579  100 bytes, Windows-874 / TIS-620, '#'-delimited
+//	portrait     0x017B  20 × 255-byte JPEG parts (Photo_Part1/20 … 20/20)
 //
-// Portrait/photo blocks are intentionally not implemented.
+// Portrait is optional and must be requested and granted. It is not in the
+// default field set.
 type ThaiCitizenMVP struct{}
 
 // Profile ID constants.
@@ -67,6 +69,7 @@ const (
 	lenExpireDate  = 0x08
 	offAddress     = 0x1579
 	lenAddress     = 0x64
+	// Portrait offsets live in portrait.go (cited Photo_Part1/20 … 20/20).
 )
 
 // Command names produced by readBinary (Name@offset). Must stay in sync with Parse.
@@ -80,6 +83,7 @@ const (
 	cmdIssue   = "ISSUE@0x0167"
 	cmdExpire  = "EXPIRE@0x016F"
 	cmdAddress = "ADDRESS@0x1579"
+	cmdPhoto   = "PHOTO"
 )
 
 // MaxReadLe is the maximum Le for a single READ BINARY.
@@ -154,6 +158,9 @@ func (ThaiCitizenMVP) ReadCommands(fields []Field) ([]APDU, error) {
 	}
 	if want[FieldAddress] {
 		cmds = append(cmds, readBinary("ADDRESS", offAddress, lenAddress)...)
+	}
+	if want[FieldPortrait] {
+		cmds = append(cmds, readBinary(cmdPhoto, offPortrait, lenPortrait)...)
 	}
 	return cmds, nil
 }
@@ -345,7 +352,44 @@ func (ThaiCitizenMVP) Parse(fields []Field, responses [][]byte) (*FieldValues, [
 		}
 	}
 
+	if containsField(fields, FieldPortrait) {
+		raw, w := collectPortraitParts(bodies)
+		if w != nil {
+			warns = append(warns, *w)
+		}
+		if raw != nil {
+			p, pw := parsePortrait(raw)
+			if pw != nil {
+				warns = append(warns, *pw)
+			}
+			if p != nil {
+				vals.Portrait = p
+			}
+		}
+	}
+
 	return vals, warns, nil
+}
+
+func collectPortraitParts(bodies map[string][]byte) ([]byte, *Warning) {
+	out := make([]byte, 0, lenPortrait)
+	missing := 0
+	for i := 0; i < portraitPartCount; i++ {
+		off := portraitPartOffset(i)
+		raw, ok := bodies[portraitCommandName(off)]
+		if !ok {
+			missing++
+			continue
+		}
+		out = append(out, raw...)
+	}
+	if len(out) == 0 {
+		return nil, &Warning{Field: FieldPortrait, Code: "EMPTY", Message: "portrait empty"}
+	}
+	if missing > 0 {
+		return out, &Warning{Field: FieldPortrait, Code: "TRUNCATED", Message: "portrait part missing"}
+	}
+	return out, nil
 }
 
 func containsField(fields []Field, f Field) bool {
