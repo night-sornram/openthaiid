@@ -65,6 +65,12 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, "ทดสอบการเชื่อมต่อ") {
 		t.Fatal("missing Thai test-connection label")
 	}
+	if !strings.Contains(page, `id="check-update"`) {
+		t.Fatal("missing check-update button")
+	}
+	if !strings.Contains(page, "ตรวจเวอร์ชัน") {
+		t.Fatal("missing Thai check-update label")
+	}
 	if !strings.Contains(page, `id="staff-readers"`) {
 		t.Fatal("missing staff multi-reader list")
 	}
@@ -83,6 +89,12 @@ func TestManagerPageAndStatus(t *testing.T) {
 	}
 	if !strings.Contains(js, "refreshCsrfFromPage") || !strings.Contains(js, "testConnection") {
 		t.Fatal("missing helper restart recovery or test-connection")
+	}
+	if !strings.Contains(js, "checkGitHubReleases") || !strings.Contains(js, "/v1/manager/update/check") {
+		t.Fatal("missing operator GitHub Releases check")
+	}
+	if strings.Contains(js, "api.github.com") {
+		t.Fatal("Ready page must not call GitHub from the browser")
 	}
 	if !strings.Contains(js, "refreshTestResultCopy") {
 		t.Fatal("missing test-result language refresh")

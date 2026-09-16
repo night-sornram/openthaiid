@@ -74,7 +74,8 @@ Loopback and Allow/Deny are unchanged. See [user.md](user.md) and
   `Uninstall-OpenThaiID-Service.ps1`. Task Scheduler fallback:
   `Register-OpenThaiID-Task.ps1` (see always-on table above).
 - SmartScreen may warn on an unsigned exe. That is expected. Signing
-  checklist: [signing.md](signing.md). Auto-update: `openthaiid update check`.
+  checklist: [signing.md](signing.md). Version check (no download):
+  Ready **ตรวจเวอร์ชัน** or `openthaiid update check`.
 
 ### Linux (clinic)
 

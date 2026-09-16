@@ -712,6 +712,14 @@ func (s *Server) SetRuntime(version string, synthetic bool) {
 	s.synthetic = synthetic
 }
 
+// SetUpdateCheck overrides GitHub Releases lookup (tests). Production leaves
+// this nil and uses update.Check. Ready/summary never call it.
+func (s *Server) SetUpdateCheck(fn UpdateCheckFunc) {
+	s.mu.Lock()
+	s.updateCheck = fn
+	s.mu.Unlock()
+}
+
 // ManagerURL is the loopback HTML manager.
 func (s *Server) ManagerURL() string {
 	return "http://" + s.Addr() + "/"

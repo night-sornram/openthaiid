@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 
+### Added
+
+- Operator-initiated GitHub Releases **version check** (no auto-download or
+  install): Ready page **ตรวจเวอร์ชัน**, technician **Check GitHub Releases**,
+  tray **ตรวจเวอร์ชัน**, and `openthaiid update check`. Compares the running
+  helper to `night-sornram/openthaiid` (override `OPENTHAIID_UPDATE_REPO`).
+  Shows up to date vs a newer prerelease/release plus the release URL.
+  Offline and GitHub rate limits fail soft — Ready / Fill never wait on
+  GitHub. `POST /v1/manager/update/check` is CSRF + manager origin, not
+  called on page load or `GET /v1/helper/summary`.
+
+### Changed
+
+- Check copy is Thai for staff (and English fallback). It does not tell
+  clinics to `update apply`. Existing `update download` / `update apply --yes`
+  stay technician CLI only.
+
 ## [0.1.0-rc.4] — software release candidate (unreleased tag)
 
 Software RC against `dev` while ACR39U hardware is in transit. **Do not

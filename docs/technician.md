@@ -63,6 +63,7 @@ make friday-dry-run       # ซ้อมก่อนได้เครื่อ�
 ./openthaiid doctor       # card service only; never reads personal fields
 ./openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
 ./openthaiid audit        # redacted operator trail JSON
+./openthaiid update check # GitHub Releases lookup; no download
 ```
 
 ### 2. No reader / card service down
@@ -117,6 +118,26 @@ Grant is for a different site than the page staff opened
 
 The helper started with `-synthetic` shows **practice reader**. Fill still
 needs Allow. For a real card, restart without `-synthetic`.
+
+## Version check (no auto-install)
+
+Clinic PCs stay on the installed unsigned package until a technician
+replaces it. To see if GitHub has a newer Release:
+
+- Ready page **ตรวจเวอร์ชัน** (English: **Check version**)
+- Technician tools **Check GitHub Releases**
+- Tray **ตรวจเวอร์ชัน**
+- `openthaiid update check`
+
+The helper compares the running version to
+[GitHub Releases](https://github.com/night-sornram/openthaiid/releases)
+(`OPENTHAIID_UPDATE_REPO=owner/name` to fork). It prints up to date vs a
+newer prerelease/release and the release URL. It does **not** download or
+install. If the PC is offline or GitHub rate-limits the request, the
+message says so and **กรอกข้อมูล / Fill still works**.
+
+Do not enable GitHub Actions for this. Store-signed auto-update is not
+implemented ([signing.md](signing.md)).
 
 ## Copy diagnostics
 

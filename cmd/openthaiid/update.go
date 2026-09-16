@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/night-sornram/openthaiid/internal/config"
+	"github.com/night-sornram/openthaiid/internal/desktop"
 	"github.com/night-sornram/openthaiid/internal/update"
 )
 
@@ -35,14 +36,19 @@ func runUpdate(args []string) int {
 	}
 }
 
-const updateUsage = `openthaiid update — check GitHub Releases for a newer unsigned package
+const updateUsage = `openthaiid update — look up GitHub Releases (no auto-install)
 
 Usage:
   openthaiid update check [--stable]
   openthaiid update download [--stable] [--dir path]
   openthaiid update apply [--stable] [--yes]
 
-Packages are unsigned. This talks to GitHub only (no card data).
+check asks GitHub whether a newer unsigned package exists and prints the
+release URL. It does not download. Offline / rate-limited checks fail soft
+(Fill still works). download/apply stay explicit technician steps.
+
+Packages are unsigned. No card data is sent.
+Repo: night-sornram/openthaiid (override with OPENTHAIID_UPDATE_REPO=owner/name)
 Future Store/code-signing steps: docs/signing.md
 `
 
@@ -55,7 +61,7 @@ func updateOptionsFromArgs(args []string) (update.Options, string, bool, error) 
 	if err := fs.Parse(args); err != nil {
 		return update.Options{}, "", false, err
 	}
-	return update.Options{StableOnly: *stable}, *dir, *yes, nil
+	return update.Options{StableOnly: *stable}.WithEnv(), *dir, *yes, nil
 }
 
 func updateCheck(args []string) int {
@@ -67,10 +73,9 @@ func updateCheck(args []string) int {
 	defer cancel()
 	res, err := update.Check(ctx, version, opts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "update check: %v\n", err)
-		return 1
+		res = update.Unavailable(version, update.ReasonOffline, update.ReleasesPage)
 	}
-	fmt.Println(res.Message)
+	fmt.Println(res.StaffMessage(string(desktop.StaffLang())))
 	return 0
 }
 
