@@ -56,7 +56,9 @@ address `#` component order, and portrait JPEG SOI/EOI trim
 - Laser-id / NHSO / other DFs not in the cited APDU table (see provenance)
 
 Unsigned packages + `docs/signing.md` are the path toward signed installers.
-Auto-update against GitHub Releases is implemented for **unsigned** assets.
+A technician can **check** GitHub Releases (`openthaiid update check`, Ready
+**ตรวจเวอร์ชัน**) without auto-download. CLI `update apply --yes` stays
+explicit and unsigned. There is no Store-signed auto-update.
 
 ---
 

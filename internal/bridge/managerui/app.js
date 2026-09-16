@@ -70,6 +70,10 @@ const I18N = {
     testServiceOff: "ตัวช่วยทำงาน แต่บริการอ่านบัตรยังไม่พร้อม — ไม่ได้อ่านข้อมูลบนบัตร",
     testServiceStalled: "ตัวช่วยทำงาน แต่บริการอ่านบัตรไม่ตอบสนอง — ไม่ได้อ่านข้อมูลบนบัตร",
     testWsFail: "หน้านี้ติดต่อช่องทางเดียวกับหน้าคลินิกไม่ได้",
+    checkUpdate: "ตรวจเวอร์ชัน",
+    checkingUpdate: "กำลังตรวจเวอร์ชัน…",
+    updateFail: "ตรวจเวอร์ชันจาก GitHub ไม่ได้ — กรอกข้อมูลได้ตามปกติ คำสั่งนี้ไม่ดาวน์โหลดและไม่ติดตั้ง",
+    updateOpenRelease: "เปิดหน้า GitHub Release",
     trainingTitle: "ฝึกใช้ก่อนได้เครื่องจริง",
     trainingHelp:
       "ใช้ตัวช่วยโหมดฝึกซ้อม ไม่ต้องมีเครื่องอ่านจริง ครั้งแรกยังต้องกดอนุญาต ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต",
@@ -153,6 +157,10 @@ const I18N = {
     testServiceOff: "The helper is running, but the card service is not ready — no personal card fields were read.",
     testServiceStalled: "The helper is running, but the card service is not responding — no personal card fields were read.",
     testWsFail: "This page could not reach the same channel the clinic page uses.",
+    checkUpdate: "Check version",
+    checkingUpdate: "Checking GitHub Releases…",
+    updateFail: "Could not check GitHub Releases — Fill still works. This check does not download or install.",
+    updateOpenRelease: "Open the GitHub Release",
     trainingTitle: "Practice before the real reader arrives",
     trainingHelp:
       "Use the practice helper. No physical reader required. The first Fill still needs Allow. Do not send screenshots or field values in tickets.",
@@ -235,13 +243,16 @@ function setLang(next) {
   }
   applyStaticCopy();
   if (els.testConnection) els.testConnection.textContent = t("testConnection");
+  if (els.checkUpdate) els.checkUpdate.textContent = t("checkUpdate");
   if (window.__helperOffline) {
     renderOffline();
     refreshTestResultCopy();
+    refreshUpdateResultCopy();
     return;
   }
   if (window.__lastStatus) render(window.__lastStatus);
   refreshTestResultCopy();
+  refreshUpdateResultCopy();
 }
 
 const els = {
@@ -281,6 +292,12 @@ const els = {
   auditEvents: document.getElementById("audit-events"),
   testConnection: document.getElementById("test-connection"),
   testResult: document.getElementById("test-result"),
+  checkUpdate: document.getElementById("check-update"),
+  updateResult: document.getElementById("update-result"),
+  updateLinkWrap: document.getElementById("update-link-wrap"),
+  updateLink: document.getElementById("update-link"),
+  techCheckUpdate: document.getElementById("tech-check-update"),
+  techUpdateResult: document.getElementById("tech-update-result"),
   liveNote: document.getElementById("live-note"),
   staffReadersCard: document.getElementById("staff-readers-card"),
   staffReaders: document.getElementById("staff-readers"),
@@ -372,6 +389,51 @@ function refreshTestResultCopy() {
   if (window.__lastTestProbe) {
     setTestResult(formatTestResult(window.__lastStatus || {}, window.__lastTestProbe));
   }
+}
+
+function setUpdateResult(text, url) {
+  if (els.updateResult) {
+    if (!text) {
+      els.updateResult.hidden = true;
+      els.updateResult.textContent = "";
+    } else {
+      els.updateResult.hidden = false;
+      els.updateResult.textContent = text;
+    }
+  }
+  if (els.techUpdateResult) {
+    if (!text) {
+      els.techUpdateResult.hidden = true;
+      els.techUpdateResult.textContent = "";
+    } else {
+      els.techUpdateResult.hidden = false;
+      els.techUpdateResult.textContent = text;
+    }
+  }
+  if (els.updateLinkWrap && els.updateLink) {
+    if (!url) {
+      els.updateLinkWrap.hidden = true;
+      els.updateLink.removeAttribute("href");
+      els.updateLink.textContent = "";
+    } else {
+      els.updateLinkWrap.hidden = false;
+      els.updateLink.href = url;
+      els.updateLink.textContent = t("updateOpenRelease");
+    }
+  }
+}
+
+function refreshUpdateResultCopy() {
+  const body = window.__lastUpdateBody;
+  if (!body) return;
+  setUpdateResult(formatUpdateMessage(body), body.htmlUrl || body.releasesPage || "");
+  if (els.checkUpdate) els.checkUpdate.textContent = t("checkUpdate");
+}
+
+function formatUpdateMessage(body) {
+  if (!body) return t("updateFail");
+  const msg = lang === "en" ? body.message : body.messageTh || body.message;
+  return msg || t("updateFail");
 }
 
 function renderOffline() {
@@ -992,6 +1054,36 @@ async function load() {
   }
 }
 
+async function checkGitHubReleases() {
+  const buttons = [els.checkUpdate, els.techCheckUpdate].filter(Boolean);
+  buttons.forEach((b) => {
+    b.disabled = true;
+  });
+  if (els.checkUpdate) els.checkUpdate.textContent = t("checkingUpdate");
+  if (els.techCheckUpdate) els.techCheckUpdate.textContent = t("checkingUpdate");
+  try {
+    try {
+      await refreshCsrfFromPage();
+    } catch {
+      window.__lastUpdateBody = null;
+      setUpdateResult(t("updateFail"), "");
+      return;
+    }
+    const body = await api("/v1/manager/update/check", { method: "POST" });
+    window.__lastUpdateBody = body;
+    setUpdateResult(formatUpdateMessage(body), (body && (body.htmlUrl || body.releasesPage)) || "");
+  } catch {
+    window.__lastUpdateBody = null;
+    setUpdateResult(t("updateFail"), "");
+  } finally {
+    buttons.forEach((b) => {
+      b.disabled = false;
+    });
+    if (els.checkUpdate) els.checkUpdate.textContent = t("checkUpdate");
+    if (els.techCheckUpdate) els.techCheckUpdate.textContent = "Check GitHub Releases";
+  }
+}
+
 async function testConnection() {
   if (!els.testConnection) return;
   els.testConnection.disabled = true;
@@ -1178,6 +1270,8 @@ window.addEventListener("hashchange", () => {
 els.refresh.addEventListener("click", () => void refresh());
 els.reconnect.addEventListener("click", () => void reconnect());
 els.testConnection?.addEventListener("click", () => void testConnection());
+els.checkUpdate?.addEventListener("click", () => void checkGitHubReleases());
+els.techCheckUpdate?.addEventListener("click", () => void checkGitHubReleases());
 els.revokeAll.addEventListener("click", () => void revokeAll());
 els.copyDiag.addEventListener("click", () => void copyDiagnostics());
 els.copyAudit?.addEventListener("click", () => void copyAuditJSON());

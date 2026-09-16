@@ -58,7 +58,14 @@
           <button type="button" id="test-connection" class="btn btn-staff" data-i18n="testConnection">
             ทดสอบการเชื่อมต่อ
           </button>
+          <button type="button" id="check-update" class="btn btn-staff" data-i18n="checkUpdate">
+            ตรวจเวอร์ชัน
+          </button>
           <p id="test-result" class="test-result" hidden></p>
+          <p id="update-result" class="test-result" hidden></p>
+          <p id="update-link-wrap" class="update-link-wrap" hidden>
+            <a id="update-link" href="#" rel="noopener noreferrer" target="_blank"></a>
+          </p>
         </div>
         <p id="live-note" class="live-note" hidden></p>
       </section>
@@ -134,6 +141,13 @@
             <div>
               <dt>Version</dt>
               <dd id="version">…</dd>
+            </div>
+            <div>
+              <dt>GitHub Releases</dt>
+              <dd>
+                <button type="button" id="tech-check-update" class="btn">Check GitHub Releases</button>
+                <p id="tech-update-result" class="help" hidden></p>
+              </dd>
             </div>
             <div>
               <dt>OS</dt>

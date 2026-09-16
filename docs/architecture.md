@@ -37,7 +37,7 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
 - Persistent trust across bridge restarts.
 - A hosted multi-tenant OpenThaiID backend.
 
-Portrait JPEG, unsigned GitHub Releases auto-update, and Firefox/WebKit
+Portrait JPEG, unsigned GitHub Releases version check, and Firefox/WebKit
 harness support are in this candidate.
 
 ## Process model
@@ -93,7 +93,7 @@ flowchart LR
 | `internal/protocol` | Versioned browser messages and validation |
 | `internal/bridge` | Loopback listener, Manager HTML, WebSocket connections, dispatch |
 | `internal/config` | Typed configuration and validation |
-| `internal/update` | GitHub Releases version check / unsigned download / apply |
+| `internal/update` | GitHub Releases version check (unsigned lookup; CLI download/apply stay explicit) |
 | `internal/qualify` | Friday E1–E7 / M1 kit (`openthaiid qualify`; redacted JSON report) |
 | `sdk/web` | `@openthaiid/web` (includes clinic JSON Schema + `parseAutofillClinicConfig`) |
 | `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |

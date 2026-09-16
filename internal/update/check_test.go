@@ -51,17 +51,33 @@ func TestCheckPicksNewerPrerelease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !res.Newer || res.Tag != "v0.1.0-rc.1" {
+	if !res.Newer || res.Tag != "v0.1.0-rc.1" || res.State != StateNewer {
 		t.Fatalf("%+v", res)
 	}
 	if res.AssetName != "openthaiid-0.1.0-rc.1-linux-amd64.tar.gz" {
 		t.Fatalf("asset %s", res.AssetName)
 	}
-	if strings.Contains(res.Message, "1234567890121") {
+	if strings.Contains(res.Message, "1234567890121") || strings.Contains(res.MessageTH, "1234567890121") {
 		t.Fatal("update message leaked a personal sentinel")
 	}
 	if !strings.Contains(res.Message, "unsigned") {
 		t.Fatalf("expected unsigned notice: %s", res.Message)
+	}
+	if !strings.Contains(res.Message, "does not download") {
+		t.Fatalf("check must not auto-install: %s", res.Message)
+	}
+	if strings.Contains(res.Message, "update apply") || strings.Contains(res.MessageTH, "update apply") {
+		t.Fatalf("staff/check copy must not push apply: %s", res.Message)
+	}
+	if !strings.Contains(res.MessageTH, "มีเวอร์ชันใหม่") {
+		t.Fatalf("thai newer copy: %s", res.MessageTH)
+	}
+	pub := res.Public()
+	if pub.HTMLURL == "" {
+		t.Fatal("public JSON needs the release URL")
+	}
+	if strings.Contains(pub.Message, "example.test/dl") || strings.Contains(pub.MessageTH, "example.test/dl") {
+		t.Fatalf("public JSON must omit asset download URL: %+v", pub)
 	}
 }
 
@@ -83,8 +99,110 @@ func TestCheckStableOnlySkipsPrerelease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Tag != "v0.0.2" || res.Prerelease {
+	if res.Tag != "v0.0.2" || res.Prerelease || res.State != StateNewer {
 		t.Fatalf("%+v", res)
+	}
+}
+
+func TestCheckUpToDate(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode([]ghRelease{
+			{TagName: "v0.1.0-rc.4", Prerelease: true, HTMLURL: "https://example.test/r/v0.1.0-rc.4"},
+		})
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.4", Options{API: srv.URL, HTTPClient: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Newer || res.State != StateUpToDate {
+		t.Fatalf("%+v", res)
+	}
+	if !strings.Contains(res.Message, "up to date") {
+		t.Fatalf("%s", res.Message)
+	}
+	if !strings.Contains(res.MessageTH, "ใช้เวอร์ชันล่าสุดแล้ว") {
+		t.Fatalf("%s", res.MessageTH)
+	}
+}
+
+func TestCheckNoReleases(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode([]ghRelease{})
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.4", Options{API: srv.URL, HTTPClient: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != StateNone || res.Newer {
+		t.Fatalf("%+v", res)
+	}
+}
+
+func TestCheckSoftFailOffline(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	cli := srv.Client()
+	srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.4", Options{API: srv.URL, HTTPClient: cli})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != StateUnavailable || res.Reason != ReasonOffline {
+		t.Fatalf("%+v", res)
+	}
+	if !strings.Contains(res.MessageTH, "กรอกข้อมูลได้ตามปกติ") {
+		t.Fatalf("%s", res.MessageTH)
+	}
+}
+
+func TestCheckSoftFailRateLimit(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"message":"API rate limit exceeded"}`))
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.4", Options{API: srv.URL, HTTPClient: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != StateUnavailable || res.Reason != ReasonRateLimited {
+		t.Fatalf("%+v", res)
+	}
+	if !strings.Contains(res.Message, "rate limited") {
+		t.Fatalf("%s", res.Message)
+	}
+}
+
+func TestCheckSoftFailHTTPServerError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer srv.Close()
+	res, err := Check(context.Background(), "0.1.0-rc.4", Options{API: srv.URL, HTTPClient: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.State != StateUnavailable || res.Reason != ReasonHTTP {
+		t.Fatalf("%+v", res)
+	}
+}
+
+func TestOptionsOwnerRepo(t *testing.T) {
+	o := Options{Owner: "acme", Repo: "fork"}
+	if got := o.api(); got != "https://api.github.com/repos/acme/fork/releases" {
+		t.Fatalf("api %s", got)
+	}
+	if got := o.releasesPage(); got != "https://github.com/acme/fork/releases" {
+		t.Fatalf("page %s", got)
+	}
+	t.Setenv("OPENTHAIID_UPDATE_REPO", "other/tree")
+	fromEnv := Options{}.WithEnv()
+	owner, repo := fromEnv.ownerRepo()
+	if owner != "other" || repo != "tree" {
+		t.Fatalf("env %s/%s", owner, repo)
 	}
 }
 

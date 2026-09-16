@@ -310,11 +310,12 @@ func runHelperCtx(parent context.Context, args []string) {
 			CheckUpdate: func() string {
 				ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 				defer cancel()
-				res, err := update.Check(ctx, version, update.Options{})
+				res, err := update.Check(ctx, version, update.DefaultOptions())
+				lang := string(desktop.StaffLang())
 				if err != nil {
-					return "Could not check GitHub Releases.\n" + err.Error() + "\nPackages are unsigned.\n" + update.ReleasesPage
+					return update.Unavailable(version, update.ReasonOffline, update.ReleasesPage).StaffMessage(lang)
 				}
-				return res.Message
+				return res.StaffMessage(lang)
 			},
 			ReleasesURL: update.ReleasesPage,
 		}
@@ -496,7 +497,7 @@ Usage:
   openthaiid autostart       enable | disable | status   (opt-in start at login)
   openthaiid service         install | uninstall | start | stop | status   (always-on, no tray)
   openthaiid audit           Print the redacted operator audit trail JSON (no personal fields)
-  openthaiid update          check | download | apply   (GitHub Releases; unsigned)
+  openthaiid update          check | download | apply   (GitHub Releases lookup; unsigned; check does not install)
   openthaiid doctor          Check the card service (no personal fields)
   openthaiid qualify         Friday kit: E1–E3 + E4–E7/M1 prompts; one JSON report (no personal fields)
                              default report: ./openthaiid-qualify.json

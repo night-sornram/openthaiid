@@ -211,7 +211,7 @@ Browser (HTTPS ERP page)
 | `internal/protocol` | Protocol v1 envelopes |
 | `internal/bridge` | Loopback HTTP + WebSocket dispatch |
 | `internal/qualify` | Friday E1–E7 / M1 kit (redacted JSON report) |
-| `internal/update` | GitHub Releases unsigned auto-update |
+| `internal/update` | GitHub Releases version check (unsigned; no auto-install) |
 | `sdk/web` | `@openthaiid/web` |
 | `sdk/react` | `@openthaiid/react` hooks wrapping the web SDK |
 

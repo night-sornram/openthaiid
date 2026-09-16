@@ -240,12 +240,32 @@ main {
 
 .hero-actions {
   margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.65rem;
+  align-items: center;
 }
 
 .test-result,
 .live-note {
   margin: 0.45rem 0 0;
   font-size: 0.95rem;
+  flex-basis: 100%;
+}
+
+.update-link-wrap {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.update-link-wrap a {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+#update-result,
+#tech-update-result {
+  white-space: pre-wrap;
 }
 
 .live-note {

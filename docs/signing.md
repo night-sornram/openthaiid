@@ -14,10 +14,11 @@ this repository or in CI secrets.
 SmartScreen, Gatekeeper, and “unidentified developer” warnings are
 **expected** until a human with certificates signs the bits.
 
-Auto-update (`openthaiid update check|download|apply`) reads **GitHub
-Releases** only. It does not claim the asset is signed. Prefer
-`SHA256SUMS` inside the archive; `update apply --yes` verifies that
-file when present.
+`openthaiid update check` (Ready **ตรวจเวอร์ชัน**) reads **GitHub
+Releases** only and does not download. `update download` /
+`update apply --yes` are explicit technician steps and do not claim the
+asset is signed. Prefer `SHA256SUMS` inside the archive; apply verifies
+that file when present.
 
 ## Checklist when certificates exist
 

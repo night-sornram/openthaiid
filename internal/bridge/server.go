@@ -20,6 +20,7 @@ import (
 	"github.com/night-sornram/openthaiid/internal/config"
 	"github.com/night-sornram/openthaiid/internal/protocol"
 	"github.com/night-sornram/openthaiid/internal/reader"
+	"github.com/night-sornram/openthaiid/internal/update"
 )
 
 // maxAsyncOpsPerConn bounds concurrent asynchronous operations per WebSocket
@@ -65,7 +66,17 @@ type Server struct {
 	deviceMu    sync.Mutex
 	deviceBusy  bool
 	deviceStamp []time.Time
+
+	// updateGate bounds operator GitHub Releases checks (never on Ready load).
+	updateCheck UpdateCheckFunc
+	updateMu    sync.Mutex
+	updateBusy  bool
+	updateStamp []time.Time
 }
+
+// UpdateCheckFunc looks up GitHub Releases. Tests inject a mock so unit tests
+// never call the live API. A nil error with StateUnavailable is a soft fail.
+type UpdateCheckFunc func(ctx context.Context, current string) (*update.CheckResult, error)
 
 type clientConn struct {
 	id     string
@@ -197,6 +208,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /v1/manager/trust/revoke-all", s.handleManagerRevokeAll)
 	mux.HandleFunc("POST /v1/manager/log-level", s.handleManagerLogLevel)
 	mux.HandleFunc("POST /v1/manager/reconnect", s.handleManagerReconnect)
+	mux.HandleFunc("POST /v1/manager/update/check", s.handleManagerUpdateCheck)
 	mux.HandleFunc("GET /v1/manager/audit", s.handleManagerAudit)
 	s.httpSrv = &http.Server{
 		Handler:           s.securityMiddleware(mux),

@@ -21,6 +21,7 @@ import (
 	"github.com/night-sornram/openthaiid/internal/pcsc"
 	"github.com/night-sornram/openthaiid/internal/protocol"
 	"github.com/night-sornram/openthaiid/internal/reader"
+	"github.com/night-sornram/openthaiid/internal/update"
 )
 
 // testBridge is a running synthetic bridge with shared device state.
@@ -83,6 +84,9 @@ func startTestBridgeSeed(t *testing.T, autoAllow bool, seed func(mon, rdb *pcsc.
 		t.Fatal(err)
 	}
 	s := New(cfg, log, authMgr, mgr)
+	s.SetUpdateCheck(func(ctx context.Context, current string) (*update.CheckResult, error) {
+		return update.Unavailable(current, update.ReasonOffline, update.ReleasesPage), nil
+	})
 	if err := s.Start(ctx); err != nil {
 		t.Fatal(err)
 	}

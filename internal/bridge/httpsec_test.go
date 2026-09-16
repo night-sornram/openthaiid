@@ -35,6 +35,7 @@ func TestLoopbackMutationsRejectForeignOrigin(t *testing.T) {
 		{http.MethodPost, "/v1/manager/log-level", []byte(`{"level":"info"}`)},
 		{http.MethodPost, "/v1/helper/shutdown", nil},
 		{http.MethodGet, "/v1/helper/summary", nil},
+		{http.MethodPost, "/v1/manager/update/check", nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -75,6 +76,7 @@ func TestLoopbackMutationsRejectCrossSiteFetch(t *testing.T) {
 		{http.MethodGet, "/v1/manager/audit", nil},
 		{http.MethodPost, "/v1/helper/shutdown", nil},
 		{http.MethodGet, "/v1/helper/summary", nil},
+		{http.MethodPost, "/v1/manager/update/check", nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -107,6 +109,7 @@ func TestManagerPOSTRejectsMissingOrigin(t *testing.T) {
 		"/v1/manager/reconnect",
 		"/v1/manager/reader/select",
 		"/v1/manager/trust/revoke-all",
+		"/v1/manager/update/check",
 	} {
 		resp := loopbackDo(t, tb, http.MethodPost, path, token, nil, nil)
 		defer resp.Body.Close()

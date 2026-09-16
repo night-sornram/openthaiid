@@ -73,9 +73,12 @@ within browser security rules only.
 ## Privacy and logging
 
 - No telemetry. The helper does not phone home during card reads.
-- Operator-initiated `openthaiid update check|download|apply` (and the tray
-  “Check for updates” item) query GitHub Releases and may download an
-  **unsigned** asset. No origin, grant, token, or card field is sent.
+- Operator-initiated GitHub Releases **check** (`openthaiid update check`,
+  Ready **ตรวจเวอร์ชัน**, tray **ตรวจเวอร์ชัน**,
+  `POST /v1/manager/update/check`) queries the GitHub API only. It does not
+  download. Offline / rate-limit fails soft. `update download` /
+  `update apply --yes` remain explicit technician CLI. No origin, grant,
+  token, or card field is sent.
 - No card-data files, databases, result caches, or diagnostic uploads.
 - Logs carry only error codes, durations, counts, and random request ids.
 - Never log citizen IDs, names, addresses, dates, portraits (including
@@ -121,7 +124,9 @@ within browser security rules only.
   JSON for the operator on this PC. Mutating calls require the manager origin
   and a CSRF token embedded in the page (not a cookie). `Sec-Fetch-Site:
   cross-site` is rejected. Refresh/reconnect are bounded (one in flight, four
-  per two seconds). Personal card fields are not included in Manager responses.
+  per two seconds). GitHub Releases **check** is a separate operator POST
+  (one in flight, two per 20 seconds) and is never invoked from Ready load
+  or Fill. Personal card fields are not included in Manager responses.
 
 ## Loopback HTTP on `127.0.0.1`
 
@@ -146,6 +151,7 @@ Endpoints:
 | `POST /v1/manager/approvals/{id}/allow\|deny` | operator | yes | CSRF + manager origin; ERP cannot allow itself |
 | `POST /v1/manager/trust/revoke` `revoke-all` | operator | yes | CSRF + manager origin |
 | `POST /v1/manager/log-level` | technician | yes | CSRF + manager origin |
+| `POST /v1/manager/update/check` | Ready / technician / tray-adjacent | no (lookup only) | CSRF + manager origin; rate-limited; never on page load; no download |
 | `GET /v1/ws` | ERP JavaScript | via protocol | eligible `Origin`; approval before card fields |
 
 ## Residual risk
