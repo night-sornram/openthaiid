@@ -342,6 +342,10 @@ dd {
   gap: 0.9rem;
 }
 
+.tech[hidden] {
+  display: none;
+}
+
 .tech-title {
   margin: 0.4rem 0 0;
   font-size: 0.82rem;

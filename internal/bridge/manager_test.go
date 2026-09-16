@@ -38,6 +38,10 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, "OpenThaiID on this computer") {
 		t.Fatal("missing user-mode helper light")
 	}
+	css := getBody(t, tb, "/manager/style.css")
+	if !strings.Contains(css, ".tech[hidden]") {
+		t.Fatal("technician section must stay display:none while hidden")
+	}
 	if strings.Contains(page, "1234567890121") || strings.Contains(page, "สมชาย") {
 		t.Fatal("manager HTML must not embed card field values")
 	}
