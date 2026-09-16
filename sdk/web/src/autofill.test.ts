@@ -66,10 +66,13 @@ type FakeWS = {
   respondTo: (s: string) => void;
 };
 
-function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number } = {}) {
+function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number; probeReaders?: Array<Record<string, unknown>> } = {}) {
   const sockets: FakeWS[] = [];
   const cardFields = opts.fields ?? SYNTHETIC_FIELDS;
   let remainingFails = opts.failFirst ?? 0;
+  const probeReaders = opts.probeReaders ?? [
+    { readerId: "r1", name: "ACR39U", presence: "present", selected: true },
+  ];
   class Fake {
     static OPEN = 1;
     static CONNECTING = 0;
@@ -116,7 +119,7 @@ function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number }
               instanceId: "bridge-x",
               synthetic: true,
               backend: { name: "synthetic", status: "available" },
-              readers: [{ readerId: "r1", name: "ACR39U", presence: "present", selected: true }],
+              readers: probeReaders,
               managerUrl: "http://127.0.0.1:17891/",
             },
           }),
@@ -172,7 +175,7 @@ function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number }
             v: 1,
             id: msg.id,
             result: {
-              readerId: "r1",
+              readerId: msg.payload?.readerId ?? "r1",
               cardSessionId: "cs_1",
               fields,
               warnings: [],
@@ -408,6 +411,43 @@ describe("autofillThaiID", () => {
       expect(closed).toBe(true);
       expect(allSent(fake).some((m) => m.type === "bridge.probe")).toBe(true);
       expect(allSent(fake).filter((m) => m.type === "card.read")).toHaveLength(1);
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("uses the selected reader from probe", async () => {
+    const fake = installFakeWebSocket({
+      probeReaders: [
+        { readerId: "r1", name: "Reader One", presence: "present", selected: false },
+        { readerId: "r2", name: "Reader Two", presence: "present", selected: true },
+      ],
+    });
+    document.body.innerHTML = `<input data-openthaiid="citizenId" />`;
+    try {
+      await autofillThaiID({ root: document.body });
+      const reads = allSent(fake).filter((m) => m.type === "card.read");
+      expect(reads).toHaveLength(1);
+      expect(reads[0].payload.readerId).toBe("r2");
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("fails Fill when two readers are present and none is selected", async () => {
+    const fake = installFakeWebSocket({
+      probeReaders: [
+        { readerId: "r1", name: "Reader One", presence: "present" },
+        { readerId: "r2", name: "Reader Two", presence: "present" },
+      ],
+    });
+    document.body.innerHTML = `<input data-openthaiid="citizenId" />`;
+    try {
+      await expect(autofillThaiID({ root: document.body })).rejects.toMatchObject({
+        code: "READER_SELECTION_REQUIRED",
+      });
+      expect(allSent(fake).some((m) => m.type === "session.open")).toBe(false);
+      expect(allSent(fake).some((m) => m.type === "card.read")).toBe(false);
     } finally {
       fake.restore();
     }

@@ -291,6 +291,8 @@ func (s *SyntheticBackend) SetScriptResponse(cmd string, resp []byte) {
 
 // SeedDemoCard installs one clearly labeled fictional reader + Thai ID card
 // with independently specified command responses for every supported textual field.
+// A second reader can be added with AddReader for multi-reader tests; the
+// default `-synthetic` CLI path stays the single-reader auto-select flow.
 func (s *SyntheticBackend) SeedDemoCard() {
 	seedDemoCard(s.state)
 	s.notifyAll()

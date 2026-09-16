@@ -231,6 +231,19 @@ func (s *Server) handleManagerSelectReader(w http.ResponseWriter, r *http.Reques
 		s.writeJSON(w, http.StatusConflict, map[string]any{"error": ce.Message, "code": ce.Code})
 		return
 	}
+	name := body.ReaderID
+	for _, r := range s.readers.Snapshot().Readers {
+		if r.ID == body.ReaderID {
+			name = r.Name
+			break
+		}
+	}
+	s.recordAudit(audit.Event{
+		Kind:     audit.KindReaderSelected,
+		Reader:   name,
+		ReaderID: body.ReaderID,
+	})
+	s.broadcastStatusSnapshot()
 	s.writeJSON(w, http.StatusOK, map[string]any{"ok": true, "status": s.managerStatus()})
 }
 
@@ -380,6 +393,15 @@ func (s *Server) deviceView() (managerBackend, []managerReader) {
 		backendName = s.readers.BackendName()
 	}
 	return managerBackend{Name: backendName, Status: snap.Backend}, readers
+}
+
+func selectedManagerReader(readers []managerReader) *managerReader {
+	for i := range readers {
+		if readers[i].Selected {
+			return &readers[i]
+		}
+	}
+	return nil
 }
 
 func (s *Server) managerStatus() managerStatus {

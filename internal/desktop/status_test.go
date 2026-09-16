@@ -90,6 +90,22 @@ func TestSummarizePracticeAndNoReader(t *testing.T) {
 	if !strings.Contains(thStall.ReaderText, "ไม่ตอบสนอง") {
 		t.Fatalf("%+v", thStall)
 	}
+	needPick := Summarize(Lights{
+		Helper:        true,
+		Reader:        true,
+		Card:          true,
+		NeedSelection: true,
+		Backend:       "available",
+		ReaderName:    "Reader A",
+		Lang:          LangTH,
+	})
+	if needPick.Card || needPick.Headline != "ยังไม่พร้อม" {
+		t.Fatalf("multi-reader must not be Ready: %+v", needPick)
+	}
+	if !strings.Contains(needPick.Next, "เลือกเครื่อง") {
+		t.Fatalf("next %q", needPick.Next)
+	}
+	assertNoPII(t, Format(needPick))
 }
 
 func TestParseLang(t *testing.T) {

@@ -78,6 +78,40 @@ func TestSyntheticReestablishAfterRelease(t *testing.T) {
 	}
 }
 
+func TestSyntheticTwoReaders(t *testing.T) {
+	ctx := context.Background()
+	sb := NewSynthetic()
+	if err := sb.Establish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sb.Release(ctx) }()
+
+	sb.AddReader("r1", "SYNTHETIC ACR39U (fictional demo)")
+	sb.AddReader("r2", "SYNTHETIC second reader (fictional)")
+	sb.InsertCard("r2")
+
+	readers, err := sb.Readers(ctx)
+	if err != nil || len(readers) != 2 {
+		t.Fatalf("readers=%v err=%v", readers, err)
+	}
+	present1, err := sb.CardPresent(ctx, "r1")
+	if err != nil || present1 {
+		t.Fatalf("r1 present=%v err=%v", present1, err)
+	}
+	present2, err := sb.CardPresent(ctx, "r2")
+	if err != nil || !present2 {
+		t.Fatalf("r2 present=%v err=%v", present2, err)
+	}
+	if _, err := sb.Open(ctx, "r1"); err == nil {
+		t.Fatal("open r1 without a card must fail")
+	}
+	conn, err := sb.Open(ctx, "r2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = conn.Close()
+}
+
 func TestSyntheticStalled(t *testing.T) {
 	ctx := context.Background()
 	sb := NewSynthetic()

@@ -200,6 +200,31 @@ describe("summarizeProbe", () => {
     expect(ready.headline).toContain("Ready");
     expect(ready.next).toContain("Fill");
   });
+
+  it("waits for a Ready-page choice when two readers are unselected", () => {
+    const two = summarizeProbe({
+      reachable: true,
+      backend: { name: "synthetic", status: "available" },
+      readers: [
+        { readerId: "r1", name: "Reader One", presence: "present" },
+        { readerId: "r2", name: "Reader Two", presence: "present" },
+      ],
+    });
+    expect(two.ready).toBe(false);
+    expect(two.next).toContain("เลือกเครื่อง");
+    expect(JSON.stringify(two)).not.toMatch(/PC\/SC|WebSocket|bridge/i);
+
+    const picked = summarizeProbe({
+      reachable: true,
+      backend: { name: "synthetic", status: "available" },
+      readers: [
+        { readerId: "r1", name: "Reader One", presence: "present" },
+        { readerId: "r2", name: "Reader Two", presence: "present", selected: true },
+      ],
+    });
+    expect(picked.ready).toBe(true);
+    expect(picked.reader).toContain("Reader Two");
+  });
 });
 
 describe("mountThaiIDStatus", () => {

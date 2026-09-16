@@ -17,6 +17,7 @@ type Lights struct {
 	Practice       bool
 	Backend        string
 	ReaderName     string
+	NeedSelection  bool
 	ReadyPage      string
 	TechnicianPage string
 	Lang           Lang // empty → StaffLang() (Thai default)
@@ -111,6 +112,13 @@ func Summarize(l Lights) Summary {
 		}
 	}
 	s.ReaderText = fmt.Sprintf(c.ReaderConnected, name)
+	if l.NeedSelection {
+		s.Headline = c.NotReady
+		s.Card = false
+		s.CardText = c.InsertAfterReader
+		s.Next = c.ChooseReader
+		return s
+	}
 	if !l.Card {
 		s.Headline = c.NotReady
 		s.CardText = c.InsertCard

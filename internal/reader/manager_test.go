@@ -114,6 +114,54 @@ func TestSelectReader(t *testing.T) {
 	}
 }
 
+func TestSelectReaderTwoReadersOneCardStillRequiresChoice(t *testing.T) {
+	ctx := context.Background()
+	m, mon, _, _ := startPair(t)
+	mon.AddReader("r1", "A")
+	mon.AddReader("r2", "B")
+	mon.InsertCard("r1")
+	if err := m.resync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.SelectReader(""); err == nil {
+		t.Fatal("two readers must require selection even if only one has a card")
+	}
+	id, err := m.SelectReader("r1")
+	if err != nil || id != "r1" {
+		t.Fatalf("id=%q err=%v", id, err)
+	}
+}
+
+func TestSelectReaderSoloAuto(t *testing.T) {
+	ctx := context.Background()
+	m, mon, _, _ := startPair(t)
+	mon.AddReader("r1", "A")
+	mon.InsertCard("r1")
+	if err := m.resync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	id, err := m.SelectReader("")
+	if err != nil || id != "r1" {
+		t.Fatalf("solo auto: id=%q err=%v", id, err)
+	}
+}
+
+func TestSelectReaderSoloNoCard(t *testing.T) {
+	ctx := context.Background()
+	m, mon, _, _ := startPair(t)
+	mon.AddReader("r1", "A")
+	if err := m.resync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, err := m.SelectReader("")
+	if err == nil {
+		t.Fatal("solo empty reader must be NO_CARD")
+	}
+	if ce := card.AsError(err); ce.Code != card.ErrNoCard {
+		t.Fatalf("code=%s err=%v", ce.Code, err)
+	}
+}
+
 func TestReconnectKeepsInventory(t *testing.T) {
 	ctx := context.Background()
 	m, mon, _, _ := startPair(t)

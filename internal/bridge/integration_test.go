@@ -592,8 +592,119 @@ func TestIntegrationProbeMetadataOnly(t *testing.T) {
 	if r0["presence"] != "present" {
 		t.Fatalf("presence=%v", r0["presence"])
 	}
+	if r0["selected"] != true {
+		t.Fatalf("solo probe reader should be selected: %v", r0)
+	}
 	if _, ok := r0["cardSessionId"]; ok {
 		t.Fatal("probe must not include cardSessionId")
+	}
+}
+
+func TestIntegrationMultiReaderProbeStatusAndRead(t *testing.T) {
+	tb := startTestBridgeSeed(t, true, func(mon, rdb *pcsc.SyntheticBackend) {
+		mon.AddReader("r1", "Reader One")
+		mon.AddReader("r2", "Reader Two")
+		mon.InsertCard("r1")
+		mon.InsertCard("r2")
+		scriptThaiCard(rdb)
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	tb.waitCardReady(t, "r1")
+	tb.waitCardReady(t, "r2")
+
+	conn, _ := dial(t, ctx, tb.wsURL, "https://clinic.example.com")
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+
+	writeReq(t, ctx, conn, 1, "bridge.probe", "", nil)
+	probe := readByID(t, ctx, conn, 1)
+	if probe["error"] != nil {
+		t.Fatalf("probe error %v", probe["error"])
+	}
+	raw, _ := json.Marshal(probe["result"])
+	if bytes.Contains(raw, []byte("1101701234567")) || bytes.Contains(raw, []byte("สมชาย")) {
+		t.Fatalf("probe leaked personal fields: %s", raw)
+	}
+	readers := probe["result"].(map[string]any)["readers"].([]any)
+	if len(readers) != 2 {
+		t.Fatalf("readers=%v", readers)
+	}
+	for _, item := range readers {
+		r := item.(map[string]any)
+		if r["selected"] == true {
+			t.Fatalf("no reader should be selected yet: %v", readers)
+		}
+		if _, ok := r["cardSessionId"]; ok {
+			t.Fatal("probe must not include cardSessionId")
+		}
+	}
+
+	writeReq(t, ctx, conn, 2, "session.open", "", protocol.SessionOpenPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	token := readToken(t, ctx, conn, 2)
+
+	writeReq(t, ctx, conn, 3, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	msg := readByID(t, ctx, conn, 3)
+	errObj, _ := msg["error"].(map[string]any)
+	if errObj == nil || errObj["code"] != "READER_SELECTION_REQUIRED" {
+		t.Fatalf("expected READER_SELECTION_REQUIRED, got %v", msg)
+	}
+
+	if err := tb.mgr.SetPreferredReader("r2"); err != nil {
+		t.Fatal(err)
+	}
+
+	writeReq(t, ctx, conn, 4, "bridge.status", token, nil)
+	st := readByID(t, ctx, conn, 4)
+	if st["error"] != nil {
+		t.Fatalf("status error %v", st["error"])
+	}
+	statusReaders, _ := st["result"].(map[string]any)["readers"].([]any)
+	selected := false
+	for _, item := range statusReaders {
+		r := item.(map[string]any)
+		if r["readerId"] == "r2" && r["selected"] == true {
+			selected = true
+		}
+		if r["readerId"] == "r1" && r["selected"] == true {
+			t.Fatalf("r1 still selected: %v", statusReaders)
+		}
+	}
+	if !selected {
+		t.Fatalf("status missing selected r2: %v", statusReaders)
+	}
+
+	writeReq(t, ctx, conn, 5, "bridge.probe", "", nil)
+	probe = readByID(t, ctx, conn, 5)
+	probeReaders := probe["result"].(map[string]any)["readers"].([]any)
+	probeSelected := false
+	for _, item := range probeReaders {
+		r := item.(map[string]any)
+		if r["readerId"] == "r2" && r["selected"] == true {
+			probeSelected = true
+		}
+	}
+	if !probeSelected {
+		t.Fatalf("probe missing selected r2: %v", probeReaders)
+	}
+
+	writeReq(t, ctx, conn, 6, "card.read", token, protocol.CardReadPayload{
+		Fields: []card.Field{card.FieldCitizenID},
+	})
+	msg = readByID(t, ctx, conn, 6)
+	if msg["error"] != nil {
+		t.Fatalf("read after select: %v", msg["error"])
+	}
+	result := msg["result"].(map[string]any)
+	if result["readerId"] != "r2" {
+		t.Fatalf("autofill path must use selected reader, got %v", result["readerId"])
+	}
+	fields := result["fields"].(map[string]any)
+	if fields["citizenId"] != "1101701234567" {
+		t.Fatalf("citizenId %v", fields["citizenId"])
 	}
 }
 

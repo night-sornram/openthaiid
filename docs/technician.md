@@ -11,7 +11,8 @@ includes citizen ID, names, dates, or address values.
 
 ERP pages can pass `mountThaiIDStatus(el, { mode: "advanced" })` for the
 same technician details in-page. Approval security is unchanged: the ERP
-cannot allow itself.
+cannot allow itself. Reader selection also stays on this PC (Ready page or
+the **Readers** list below) — the ERP cannot choose a reader over CORS.
 
 ## When Fill fails
 
@@ -53,7 +54,9 @@ Lights: helper running, reader not connected.
 - Unplug/replug the reader, then **Refresh readers**.
 - **Reconnect card service** if the status is stalled or unavailable.
 - Linux: `pcscd` running. Windows: Smart Card service. macOS: built-in PC/SC.
-- Two readers and none selected: **Use this reader**.
+- Two readers and none selected: **Use this reader** (Ready page for staff,
+  English **Readers** list here). Probe, status, and Fill then use that reader.
+  Audit events may include `readerId` (device id, not card data).
 
 ### 3. Approval pending
 
@@ -110,7 +113,8 @@ the same payload as `openthaiid audit`.
 Recorded:
 
 - helper start / stop (mode: console, tray, or serve)
-- reader connected / disconnected (device name, not card contents)
+- reader connected / disconnected (device name + opaque `readerId`, not card contents)
+- reader selected (which PC/SC reader Fill will use)
 - card present / absent
 - approval allow / deny / revoke (website origin + field *tokens* only)
 - Fill failures by **error code only** (`NO_CARD`, `CARD_REMOVED`, …)
@@ -122,6 +126,18 @@ Use this JSON with Copy diagnostics on Friday tickets, next to the
 redacted `openthaiid qualify` report. See
 [friday-checklist.md](friday-checklist.md) and
 [hardware-qualification.md](hardware-qualification.md).
+
+## Multi-reader desks
+
+One reader stays automatic. When PC/SC lists two or more:
+
+1. Ready page (Thai): **เลือกเครื่องอ่าน** → **ใช้เครื่องนี้**.
+2. Technician tools (English): **Readers** → **Use this reader** (shows opaque `id`).
+3. Confirm Ready / `probeThaiID()` names the selected reader, then Fill.
+
+Selection is in-memory on this helper (cleared if that reader is unplugged or
+the helper restarts). The ERP cannot select a reader. Synthetic tests add a
+second reader with `AddReader`; `openthaiid -synthetic` still seeds one.
 
 ## Friday qualify
 

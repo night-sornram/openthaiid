@@ -27,6 +27,7 @@ export type StaffCopy = {
   insertAfterReader: string;
   plugReader: string;
   readerConnected: (name: string) => string;
+  chooseReader: string;
   insertCard: string;
   insertThenFill: string;
   cardInserted: string;
@@ -69,6 +70,7 @@ const TH: Omit<StaffCopy, "lang" | "readerConnected" | "technicianLine"> & {
   insertAfterReader: "เสียบบัตรหลังจากต่อเครื่องอ่านแล้ว",
   plugReader: "เสียบเครื่องอ่านบัตรเข้าเครื่องนี้",
   readerConnectedPrefix: "ต่อเครื่องอ่านแล้ว: ",
+  chooseReader: "มีเครื่องอ่านมากกว่าหนึ่งเครื่อง เลือกเครื่องบนหน้า พร้อม",
   insertCard: "เสียบบัตรประชาชนไทย",
   insertThenFill: "เสียบบัตรประชาชนของผู้ป่วย แล้วกด กรอกข้อมูล",
   cardInserted: "เสียบบัตรแล้ว",
@@ -108,6 +110,7 @@ const EN: typeof TH = {
   insertAfterReader: "Insert the card after the reader is connected.",
   plugReader: "Plug the card reader into this computer.",
   readerConnectedPrefix: "Reader connected: ",
+  chooseReader: "More than one reader is connected. Choose one on the Ready page.",
   insertCard: "Insert the Thai ID card.",
   insertThenFill: "Insert the patient’s Thai ID card, then click Fill.",
   cardInserted: "Card is inserted.",
@@ -198,7 +201,7 @@ const TH_ERRORS: Record<string, ErrorPack> = {
   },
   READER_SELECTION_REQUIRED: {
     message: "มีเครื่องอ่านมากกว่าหนึ่งเครื่อง",
-    next: "ให้ช่างเทคนิคเลือกเครื่องอ่านใน Technician tools",
+    next: "เลือกเครื่องอ่านบนหน้า พร้อม แล้วกด กรอกข้อมูล อีกครั้ง",
   },
   NO_CARD: {
     message: "ยังไม่ได้เสียบบัตรประชาชน",
@@ -293,7 +296,7 @@ const EN_ERRORS: Record<string, ErrorPack> = {
   },
   READER_SELECTION_REQUIRED: {
     message: "More than one card reader is connected.",
-    next: "Ask a technician to choose a reader in Technician tools.",
+    next: "Choose the reader on the Ready page, then click Fill again.",
   },
   NO_CARD: {
     message: "No Thai ID card is inserted.",

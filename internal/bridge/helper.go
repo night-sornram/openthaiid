@@ -50,23 +50,19 @@ func (s *Server) HelperSummary() desktop.Summary {
 
 func (s *Server) staffLights() desktop.Lights {
 	backend, readers := s.deviceView()
-	cardPresent := false
+	selected := selectedManagerReader(readers)
+	needSelection := len(readers) > 1 && selected == nil
 	readerName := ""
-	for _, r := range readers {
-		if r.Selected && r.Name != "" {
-			readerName = r.Name
-		}
-		if r.Presence == string(pcsc.PresencePresent) {
-			cardPresent = true
-		}
-	}
-	if readerName == "" && len(readers) > 0 {
-		readerName = readers[0].Name
+	cardPresent := false
+	if selected != nil {
+		readerName = selected.Name
+		cardPresent = selected.Presence == string(pcsc.PresencePresent)
 	}
 	return desktop.Lights{
 		Helper:         true,
 		Reader:         len(readers) > 0 && backend.Status == "available",
-		Card:           cardPresent && backend.Status == "available",
+		Card:           cardPresent && backend.Status == "available" && !needSelection,
+		NeedSelection:  needSelection,
 		Practice:       s.synthetic || backend.Name == "synthetic",
 		Backend:        backend.Status,
 		ReaderName:     readerName,

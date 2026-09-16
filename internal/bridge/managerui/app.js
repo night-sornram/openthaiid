@@ -42,7 +42,13 @@ const I18N = {
     fixService: "ให้ช่างเทคนิคแก้ไขบริการอ่านบัตร",
     insertThenFill: "เสียบบัตรประชาชนของผู้ป่วย แล้วกด กรอกข้อมูล ในหน้าคลินิก",
     pendingAllow: "หน้าคลินิกกำลังรอ — กดอนุญาตด้านล่าง แล้วกด กรอกข้อมูล",
-    multiReader: "เสียบเครื่องอ่านมากกว่าหนึ่งเครื่อง เปิด Technician tools เพื่อเลือกเครื่อง",
+    multiReader: "มีเครื่องอ่านมากกว่าหนึ่งเครื่อง เลือกเครื่องด้านล่าง",
+    usingThisReader: "กำลังใช้",
+    useThisReader: "ใช้เครื่องนี้",
+    readersHeading: "เลือกเครื่องอ่าน",
+    readersHelp: "เสียบเครื่องอ่านมากกว่าหนึ่งเครื่อง กดใช้เครื่องที่เสียบบัตรผู้ป่วย",
+    staffCardPresent: "มีบัตร",
+    staffNoCard: "ยังไม่มีบัตร",
     practiceNext: "โหมดฝึกซ้อม: กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
     bannerPractice:
       "โหมดฝึกซ้อม: เครื่องอ่านและบัตรจำลอง ไม่มีข้อมูลบุคคล กรอกข้อมูลครั้งแรกยังต้องกดอนุญาต",
@@ -111,7 +117,13 @@ const I18N = {
     fixService: "Ask a technician to fix the card service.",
     insertThenFill: "Insert the patient’s Thai ID card, then click Fill in the clinic page.",
     pendingAllow: "A clinic page is waiting — Allow it below, then click Fill.",
-    multiReader: "More than one reader is plugged in. Open Technician tools and choose which one to use.",
+    multiReader: "More than one reader is plugged in. Choose one below.",
+    usingThisReader: "Using this reader",
+    useThisReader: "Use this reader",
+    readersHeading: "Choose a reader",
+    readersHelp: "More than one reader is plugged in. Use the reader that has the patient’s card.",
+    staffCardPresent: "Card inserted",
+    staffNoCard: "No card",
     practiceNext: "Practice mode: Fill in the clinic page still needs Allow the first time.",
     bannerPractice:
       "Practice mode: fictional reader and card. No personal data. Fill in the clinic page still needs Allow the first time.",
@@ -254,6 +266,8 @@ const els = {
   testConnection: document.getElementById("test-connection"),
   testResult: document.getElementById("test-result"),
   liveNote: document.getElementById("live-note"),
+  staffReadersCard: document.getElementById("staff-readers-card"),
+  staffReaders: document.getElementById("staff-readers"),
 };
 
 function pill(text, kind) {
@@ -354,6 +368,7 @@ function renderOffline() {
   setLight(els.lightReader, "", t("readerUnknown"));
   setLight(els.lightCard, "", t("cardUnknown"));
   if (els.userPendingCard) els.userPendingCard.hidden = true;
+  if (els.staffReadersCard) els.staffReadersCard.hidden = true;
   if (!wasOnline) {
     setLiveNote("");
   }
@@ -437,10 +452,12 @@ function probeHelper() {
 function formatTestResult(data, probe) {
   const backend = (probe && probe.backend && probe.backend.status) || (data.backend && data.backend.status) || "";
   const readers = (probe && probe.readers) || data.readers || [];
-  const present = readers.some((r) => r.presence === "present");
+  const selected = activeReader(readers);
+  const present = selected ? selected.presence === "present" : readers.some((r) => r.presence === "present");
   if (backend === "stalled") return `${t("testOk")} · ${t("serviceStalled")}`;
   if (backend === "unavailable") return `${t("testOk")} · ${t("serviceOff")}`;
   if (!readers.length) return `${t("testOk")} · ${t("plugReader")}`;
+  if (needsReaderChoice(readers)) return `${t("testOk")} · ${t("multiReader")}`;
   if (present) return `${t("testOk")} · ${t("cardInserted")}`;
   return `${t("testOk")} · ${t("insertCard")}`;
 }
@@ -502,15 +519,28 @@ function presenceKind(p) {
   return "";
 }
 
+function activeReader(readers) {
+  if (!Array.isArray(readers) || !readers.length) return null;
+  const selected = readers.find((r) => r.selected);
+  if (selected) return selected;
+  if (readers.length === 1) return readers[0];
+  return null;
+}
+
+function needsReaderChoice(readers) {
+  return Array.isArray(readers) && readers.length > 1 && !readers.some((r) => r.selected);
+}
+
 function summarize(data) {
   const readers = data.readers || [];
   const backend = (data.backend && data.backend.status) || "unavailable";
   const helperOk = Boolean(data.running);
   const serviceOk = backend === "available";
   const readerOk = readers.length > 0;
-  const present = readers.some((r) => r.presence === "present");
-  const unsupported = readers.some((r) => r.presence === "unsupported");
-  const selected = readers.find((r) => r.selected) || readers[0];
+  const selected = activeReader(readers);
+  const needChoice = needsReaderChoice(readers);
+  const present = selected ? selected.presence === "present" : false;
+  const unsupported = selected ? selected.presence === "unsupported" : readers.some((r) => r.presence === "unsupported");
   const readerName = selected ? selected.name : "";
   const pending = (data.pending || []).length;
 
@@ -528,6 +558,8 @@ function summarize(data) {
   let cardKind = "";
   if (!readerOk || !serviceOk) {
     cardText = t("insertAfterReader");
+  } else if (needChoice) {
+    cardText = t("insertAfterReader");
   } else if (unsupported && !present) {
     cardText = t("unsupportedCard");
     cardKind = "warn";
@@ -536,7 +568,7 @@ function summarize(data) {
     cardKind = "ok";
   }
 
-  const ready = helperOk && serviceOk && readerOk && present;
+  const ready = helperOk && serviceOk && readerOk && present && !needChoice;
   let headline = ready ? t("ready") : t("notReady");
   if (ready && data.synthetic) headline = t("readyPractice");
 
@@ -544,11 +576,10 @@ function summarize(data) {
   if (!helperOk) next = t("startHelper");
   else if (!serviceOk) next = t("fixService");
   else if (!readerOk) next = t("plugReader");
+  else if (needChoice) next = t("multiReader");
   else if (!present) next = t("insertThenFill");
   else if (pending) next = t("pendingAllow");
-  else if (readers.length > 1 && !readers.some((r) => r.selected)) {
-    next = t("multiReader");
-  } else if (ready && data.synthetic) {
+  else if (ready && data.synthetic) {
     next = t("practiceNext");
   }
 
@@ -622,6 +653,46 @@ function renderUserPending(data) {
   }
 }
 
+function renderStaffReaders(data) {
+  const readers = data.readers || [];
+  if (!els.staffReadersCard || !els.staffReaders) return;
+  if (readers.length <= 1) {
+    els.staffReadersCard.hidden = true;
+    els.staffReaders.replaceChildren();
+    return;
+  }
+  els.staffReadersCard.hidden = false;
+  els.staffReaders.replaceChildren();
+  for (const r of readers) {
+    const li = document.createElement("li");
+    const row = document.createElement("div");
+    row.className = "row";
+    const left = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = r.name || r.readerId;
+    left.append(name);
+    const bits = document.createElement("div");
+    bits.className = "actions";
+    bits.style.marginTop = "0.35rem";
+    bits.append(pill(r.presence === "present" ? t("staffCardPresent") : t("staffNoCard"), presenceKind(r.presence)));
+    if (r.selected) bits.append(pill(t("usingThisReader"), "ok"));
+    left.append(bits);
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = r.selected ? "btn" : "btn btn-ok";
+    btn.textContent = r.selected ? t("usingThisReader") : t("useThisReader");
+    btn.disabled = Boolean(r.selected);
+    btn.addEventListener("click", () => selectReader(r.readerId));
+    actions.append(btn);
+    row.append(left, actions);
+    li.append(row);
+    els.staffReaders.append(li);
+  }
+}
+
 function renderReaders(data) {
   const readers = data.readers || [];
   els.readers.replaceChildren();
@@ -636,6 +707,7 @@ function renderReaders(data) {
     return;
   }
   els.readersEmpty.hidden = true;
+  const showSelect = readers.length > 1;
   for (const r of readers) {
     const li = document.createElement("li");
     const row = document.createElement("div");
@@ -645,6 +717,10 @@ function renderReaders(data) {
     name.className = "name";
     name.textContent = r.name || r.readerId;
     left.append(name);
+    const idLine = document.createElement("p");
+    idLine.className = "fields";
+    idLine.textContent = `id: ${r.readerId}`;
+    left.append(idLine);
     const bits = document.createElement("div");
     bits.className = "actions";
     bits.style.marginTop = "0.35rem";
@@ -653,13 +729,15 @@ function renderReaders(data) {
     left.append(bits);
     const actions = document.createElement("div");
     actions.className = "actions";
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = r.selected ? "btn" : "btn btn-ok";
-    btn.textContent = r.selected ? "Selected" : "Use this reader";
-    btn.disabled = r.selected;
-    btn.addEventListener("click", () => selectReader(r.readerId));
-    actions.append(btn);
+    if (showSelect) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = r.selected ? "btn" : "btn btn-ok";
+      btn.textContent = r.selected ? "Selected" : "Use this reader";
+      btn.disabled = Boolean(r.selected);
+      btn.addEventListener("click", () => selectReader(r.readerId));
+      actions.append(btn);
+    }
     row.append(left, actions);
     li.append(row);
     els.readers.append(li);
@@ -749,7 +827,7 @@ function renderAudit(data) {
   els.auditEvents.replaceChildren();
   for (const ev of events) {
     const li = document.createElement("li");
-    const bits = [ev.at || "", ev.kind || "", ev.code || "", ev.origin || "", ev.reader || ""]
+    const bits = [ev.at || "", ev.kind || "", ev.code || "", ev.origin || "", ev.readerId || "", ev.reader || ""]
       .map((s) => String(s).trim())
       .filter(Boolean);
     if (Array.isArray(ev.fields) && ev.fields.length) {
@@ -780,7 +858,7 @@ function diagnosticsText(data) {
     `readers: ${readers.length}`,
   ];
   for (const r of readers) {
-    lines.push(`  - ${r.name || r.readerId} presence=${r.presence}${r.selected ? " selected" : ""}`);
+    lines.push(`  - ${r.name || r.readerId} id=${r.readerId} presence=${r.presence}${r.selected ? " selected" : ""}`);
   }
   lines.push(`pending: ${pending.length}`);
   for (const p of pending) {
@@ -802,6 +880,7 @@ function diagnosticsText(data) {
     const extra = [];
     if (ev.code) extra.push(ev.code);
     if (ev.origin) extra.push(ev.origin);
+    if (ev.readerId) extra.push(`id=${ev.readerId}`);
     if (ev.reader) extra.push(ev.reader);
     if (Array.isArray(ev.fields) && ev.fields.length) extra.push("fields=" + ev.fields.join(","));
     lines.push(`  - ${ev.at || ""} ${ev.kind || ""} ${extra.join(" ")}`.trim());
@@ -812,6 +891,7 @@ function diagnosticsText(data) {
 function render(data) {
   window.__lastStatus = data;
   renderHero(data);
+  renderStaffReaders(data);
   renderUserPending(data);
 
   setText(els.version, data.version ? `v${data.version}` : "");

@@ -154,6 +154,7 @@ export type ReaderView = {
   name: string;
   presence: "absent" | "present" | "unsupported";
   cardSessionId?: string;
+  selected?: boolean;
 };
 
 export type BridgeStatus = {
@@ -783,15 +784,23 @@ export class ThaiID {
     let readerId = options.readerId;
     let cardSessionId = options.cardSessionId;
     if (!readerId) {
-      const present = this.#status.readers.filter((r) => r.presence === "present");
-      if (present.length === 0) {
-        throw new ThaiIDError("NO_CARD", "no card present");
+      const chosen = this.#status.readers.find((r) => r.selected);
+      if (chosen) {
+        if (chosen.presence !== "present") {
+          throw new ThaiIDError("NO_CARD", "no card present");
+        }
+        readerId = chosen.readerId;
+        cardSessionId = cardSessionId ?? chosen.cardSessionId;
+      } else if (this.#status.readers.length > 1) {
+        throw new ThaiIDError("READER_SELECTION_REQUIRED", "multiple readers; choose a reader on the Ready page");
+      } else {
+        const present = this.#status.readers.filter((r) => r.presence === "present");
+        if (present.length === 0) {
+          throw new ThaiIDError("NO_CARD", "no card present");
+        }
+        readerId = present[0]!.readerId;
+        cardSessionId = cardSessionId ?? present[0]!.cardSessionId;
       }
-      if (present.length > 1) {
-        throw new ThaiIDError("READER_SELECTION_REQUIRED", "multiple readers; pass readerId");
-      }
-      readerId = present[0]!.readerId;
-      cardSessionId = cardSessionId ?? present[0]!.cardSessionId;
     }
 
     // Allocate the wire id so abort can cancel the real request.

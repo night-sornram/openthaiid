@@ -25,6 +25,9 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
 - Opt-in always-on helper without a logged-in tray (`openthaiid serve` /
   `openthaiid service install`).
 - Redacted operator audit trail in technician tools (error codes, not PII).
+- Multi-reader desks: staff pick the active PC/SC reader on the Ready page
+  (auto when only one reader is present). Probe, status, and Fill use that
+  reader. Audit may record opaque `readerId`.
 
 ## Non-goals (this candidate)
 
