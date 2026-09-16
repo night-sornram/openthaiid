@@ -228,7 +228,7 @@ export function summarizeProbe(probe: ProbeResult): StatusSummary {
   const selected = readers.find((r) => r.selected) ?? readers[0];
   const present = readers.some((r) => r.presence === "present");
   const unsupported = readers.some((r) => r.presence === "unsupported");
-  const readerLine = `Reader connected: ${selected.name}`;
+  const readerLine = `Reader connected: ${selected?.name ?? "card reader"}`;
   if (unsupported && !present) {
     return {
       ready: false,
