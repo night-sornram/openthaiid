@@ -43,11 +43,15 @@
 หรือ `PCSC_UNAVAILABLE` — ไม่ต้องรีสตาร์ทเครื่อง กด **ทดสอบการเชื่อมต่อ**
 แล้วรอ **พร้อม** (ช่างเทคนิคกด **Reconnect card service** ได้ถ้าบริการอ่านบัตรดับ)
 โหมดฝึกซ้อมจำลองบริการอ่านบัตรดับในชุดทดสอบ ไม่จำลอง sleep ของเครื่อง
+วันศุกร์ E5/E6: [friday-checklist.md](friday-checklist.md) ·
+ช่างเทคนิค: [technician.md](technician.md)
 
 ถ้าถอดบัตรหรือถอดเครื่องอ่านระหว่างกรอก หน้าคลินิกต้องบอกว่าเกิดอะไร
 (`CARD_REMOVED` / `READER_REMOVED`) ให้เสียบใหม่ รอ **พร้อม** แล้วกด กรอกข้อมูล
 อีกครั้ง — อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ
 โหมดฝึกซ้อมไม่มีเครื่องจริงให้ถอด แต่ชุดทดสอบสังเคราะห์ครอบคลุมเส้นนี้แล้ว
+วันศุกร์ E4: [friday-checklist.md](friday-checklist.md) ·
+เจ้าหน้าที่: [user.md](user.md)
 
 ## เมื่อได้เครื่องจริง
 
@@ -68,3 +72,5 @@ values in tickets — diagnostics, `openthaiid audit` JSON, and error
 **codes** only.
 Pass `{ lang: "en" }` / `?lang=en` for English staff banners.
 When the ACR39U arrives, restart the helper without `-synthetic`.
+Friday one-page (multi-reader, E4–E6): [friday-checklist.md](friday-checklist.md).
+Technicians: [technician.md](technician.md).

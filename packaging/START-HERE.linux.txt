@@ -16,7 +16,8 @@ Happy path
 3. GNOME/KDE often have no notification-area icon without extra extensions.
    The helper still runs in the background. Use the Ready page:
    http://127.0.0.1:17891/
-4. Plug in the reader (pcscd). Open the clinic ERP. Click Fill (กรอกข้อมูล).
+4. Plug in the reader (pcscd). If two readers are listed, pick **ใช้เครื่องนี้**
+   on the Ready page before Fill. Open the clinic ERP. Click Fill (กรอกข้อมูล).
 5. The first time, Allow the clinic page on the Ready page.
 
 Friday hardware qualification (when the ACR39U arrives)
@@ -63,6 +64,8 @@ Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).
 
 Technicians: ./openthaiid in a terminal. See docs/technician.md.
+Staff recovery (two readers, card pulled, sleep/wake): docs/user.md and
+docs/friday-checklist.md.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.

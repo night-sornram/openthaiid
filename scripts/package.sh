@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${VERSION:-0.1.0-rc.2}"
+VERSION="${VERSION:-0.1.0-rc.3}"
 OS="${OS:-}"
 ARCH="${ARCH:-}"
 if [ -z "$OS" ] || [ -z "$ARCH" ]; then

@@ -17,7 +17,8 @@ Happy path
    then open it).
    Fallback: ./start-openthaiid.sh   or   ./openthaiid tray -open
 2. The helper runs without a Dock icon (menu-bar / extra item).
-3. Plug in the card reader. Open the clinic ERP. Click Fill (กรอกข้อมูล).
+3. Plug in the card reader. If two readers are listed, pick **ใช้เครื่องนี้**
+   on the Ready page before Fill. Open the clinic ERP. Click Fill (กรอกข้อมูล).
 4. The first time, Allow the clinic page on the Ready page
    (http://127.0.0.1:17891/). Staff lights default to Thai (พร้อม);
    use the ไทย / English toggle if you need English. Technician tools
@@ -55,7 +56,8 @@ Technicians
 ./openthaiid qualify -operator -report ./openthaiid-qualify.json
                              same, and record pass/fail/skip from the keyboard
                              (never type citizen ID, names, address, or photo)
-See docs/technician.md, docs/friday-checklist.md, and
+See docs/technician.md, docs/friday-checklist.md, docs/user.md
+(multi-reader, CARD_REMOVED / sleep-wake / PC/SC recovery), and
 docs/hardware-qualification.md. Always-on without a menu-bar session:
 docs/installation.md (`openthaiid service install`). Technician audit JSON:
 ./openthaiid audit (or Technician tools → Copy JSON). Practice without a
