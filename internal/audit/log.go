@@ -31,6 +31,7 @@ const (
 	KindHelperStop         = "helper.stop"
 	KindReaderConnected    = "reader.connected"
 	KindReaderDisconnected = "reader.disconnected"
+	KindReaderSelected     = "reader.selected"
 	KindCardPresent        = "card.present"
 	KindCardAbsent         = "card.absent"
 	KindCardUnsupported    = "card.unsupported"
@@ -49,6 +50,7 @@ type Event struct {
 	Origin   string   `json:"origin,omitempty"`
 	Fields   []string `json:"fields,omitempty"`
 	Reader   string   `json:"reader,omitempty"`
+	ReaderID string   `json:"readerId,omitempty"`
 	Presence string   `json:"presence,omitempty"`
 	Mode     string   `json:"mode,omitempty"`
 }
@@ -252,6 +254,7 @@ func sanitize(ev Event) (Event, bool) {
 	ev.Code = sanitizeCode(ev.Code)
 	ev.Origin = sanitizeOrigin(ev.Origin)
 	ev.Reader = sanitizeReader(ev.Reader)
+	ev.ReaderID = sanitizeReader(ev.ReaderID)
 	ev.Presence = sanitizePresence(ev.Presence)
 	ev.Mode = sanitizeMode(ev.Mode)
 	ev.Fields = sanitizeFields(ev.Fields)
@@ -264,7 +267,7 @@ func sanitize(ev Event) (Event, bool) {
 func allowedKind(k string) bool {
 	switch k {
 	case KindHelperStart, KindHelperStop,
-		KindReaderConnected, KindReaderDisconnected,
+		KindReaderConnected, KindReaderDisconnected, KindReaderSelected,
 		KindCardPresent, KindCardAbsent, KindCardUnsupported,
 		KindApprovalAllow, KindApprovalDeny, KindApprovalRevoke,
 		KindFillFailure:

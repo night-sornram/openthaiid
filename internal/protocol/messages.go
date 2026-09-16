@@ -11,7 +11,7 @@ import (
 const Major = 1
 
 // Minor is the protocol minor version. Additive field expansions bump minor.
-const Minor = 3
+const Minor = 4
 
 // Subprotocol is the WebSocket subprotocol name.
 const Subprotocol = "openthaiid.v1"
@@ -114,6 +114,8 @@ type ReaderView struct {
 	Name          string `json:"name"`
 	Presence      string `json:"presence"`
 	CardSessionID string `json:"cardSessionId,omitempty"`
+	// Selected is true for the operator-chosen reader, or the only reader.
+	Selected bool `json:"selected"`
 }
 
 // ApprovalRequiredPayload is the approval.required event body.

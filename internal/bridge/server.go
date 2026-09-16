@@ -672,21 +672,41 @@ func tokenFrom(cc *clientConn, req protocol.Request) string {
 }
 
 func (s *Server) buildStatus() protocol.StatusSnapshot {
+	_, readers := s.deviceView()
 	snap := s.readers.Snapshot()
 	out := protocol.StatusSnapshot{
 		Connection: "connected",
 		Backend:    snap.Backend,
-		Readers:    make([]protocol.ReaderView, 0, len(snap.Readers)),
+		Readers:    make([]protocol.ReaderView, 0, len(readers)),
 	}
+	sessions := map[string]string{}
 	for _, r := range snap.Readers {
+		sessions[r.ID] = r.CardSessionID
+	}
+	for _, r := range readers {
 		out.Readers = append(out.Readers, protocol.ReaderView{
 			ID:            r.ID,
 			Name:          r.Name,
-			Presence:      string(r.Presence),
-			CardSessionID: r.CardSessionID,
+			Presence:      r.Presence,
+			CardSessionID: sessions[r.ID],
+			Selected:      r.Selected,
 		})
 	}
 	return out
+}
+
+func (s *Server) broadcastStatusSnapshot() {
+	s.clientsMu.Lock()
+	targets := make([]*clientConn, 0, len(s.clients))
+	for _, cc := range s.clients {
+		if cc.hasSession() {
+			targets = append(targets, cc)
+		}
+	}
+	s.clientsMu.Unlock()
+	for _, cc := range targets {
+		s.sendStatusSnapshot(cc, protocol.TypeStatusSnapshot)
+	}
 }
 
 func (s *Server) sendStatusSnapshot(cc *clientConn, t protocol.Type) {
@@ -760,15 +780,22 @@ func (s *Server) recordReaderAudit(ev reader.ChangeEvent) {
 	if name == "" {
 		name = ev.ReaderID
 	}
+	base := audit.Event{Reader: name, ReaderID: ev.ReaderID}
 	switch ev.Kind {
 	case "reader.connected":
-		s.recordAudit(audit.Event{Kind: audit.KindReaderConnected, Reader: name})
+		base.Kind = audit.KindReaderConnected
+		s.recordAudit(base)
 	case "reader.disconnected":
-		s.recordAudit(audit.Event{Kind: audit.KindReaderDisconnected, Reader: name})
+		base.Kind = audit.KindReaderDisconnected
+		s.recordAudit(base)
 	case "card.inserted":
-		s.recordAudit(audit.Event{Kind: audit.KindCardPresent, Reader: name, Presence: "present"})
+		base.Kind = audit.KindCardPresent
+		base.Presence = "present"
+		s.recordAudit(base)
 	case "card.removed":
-		s.recordAudit(audit.Event{Kind: audit.KindCardAbsent, Reader: name, Presence: "absent"})
+		base.Kind = audit.KindCardAbsent
+		base.Presence = "absent"
+		s.recordAudit(base)
 	}
 }
 
@@ -779,12 +806,12 @@ func (s *Server) auditCurrentReaders() {
 		if name == "" {
 			name = r.ID
 		}
-		s.recordAudit(audit.Event{Kind: audit.KindReaderConnected, Reader: name})
+		s.recordAudit(audit.Event{Kind: audit.KindReaderConnected, Reader: name, ReaderID: r.ID})
 		switch string(r.Presence) {
 		case "present":
-			s.recordAudit(audit.Event{Kind: audit.KindCardPresent, Reader: name, Presence: "present"})
+			s.recordAudit(audit.Event{Kind: audit.KindCardPresent, Reader: name, ReaderID: r.ID, Presence: "present"})
 		case "unsupported":
-			s.recordAudit(audit.Event{Kind: audit.KindCardUnsupported, Reader: name, Presence: "unsupported"})
+			s.recordAudit(audit.Event{Kind: audit.KindCardUnsupported, Reader: name, ReaderID: r.ID, Presence: "unsupported"})
 		}
 	}
 }
@@ -927,9 +954,10 @@ func (s *Server) writeErrorKind(cc *clientConn, id int64, e *card.Error, fill bo
 			// Not a Fill failure to paste into a ticket.
 		default:
 			s.recordAudit(audit.Event{
-				Kind:   audit.KindFillFailure,
-				Code:   string(e.Code),
-				Origin: string(cc.origin),
+				Kind:     audit.KindFillFailure,
+				Code:     string(e.Code),
+				Origin:   string(cc.origin),
+				ReaderID: s.auditReaderID(),
 			})
 		}
 	}
@@ -942,6 +970,17 @@ func (s *Server) writeErrorKind(cc *clientConn, id int64, e *card.Error, fill bo
 		return
 	}
 	cc.enqueue(body)
+}
+
+func (s *Server) auditReaderID() string {
+	if id := s.readers.PreferredReader(); id != "" {
+		return id
+	}
+	snap := s.readers.Snapshot()
+	if len(snap.Readers) == 1 {
+		return snap.Readers[0].ID
+	}
+	return ""
 }
 
 // enqueue queues a frame. If the client is too slow, the connection is closed

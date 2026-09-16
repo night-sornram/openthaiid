@@ -90,8 +90,8 @@ func TestSyntheticDemoReadTextualFields(t *testing.T) {
 		t.Fatal("missing token")
 	}
 	proto, _ := openResult["protocol"].(map[string]any)
-	if proto["major"] != 1.0 || proto["minor"] != 3.0 {
-		t.Fatalf("protocol %+v want major=1 minor=3", proto)
+	if proto["major"] != 1.0 || proto["minor"] != 4.0 {
+		t.Fatalf("protocol %+v want major=1 minor=4", proto)
 	}
 	supported, _ := openResult["fieldsSupported"].([]any)
 	if len(supported) != len(card.SupportedFields) {

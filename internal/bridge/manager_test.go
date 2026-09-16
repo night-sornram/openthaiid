@@ -63,6 +63,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, "ทดสอบการเชื่อมต่อ") {
 		t.Fatal("missing Thai test-connection label")
 	}
+	if !strings.Contains(page, `id="staff-readers"`) {
+		t.Fatal("missing staff multi-reader list")
+	}
 	js := getBody(t, tb, "/manager/app.js")
 	if !strings.Contains(js, "trainingTitle") || !strings.Contains(js, "Practice before the real reader arrives") {
 		t.Fatal("missing training i18n")
@@ -75,6 +78,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	}
 	if !strings.Contains(js, "helperLostHeadline") || !strings.Contains(js, "bridge.probe") {
 		t.Fatal("missing reconnect copy or WS probe test")
+	}
+	if !strings.Contains(js, "useThisReader") || !strings.Contains(js, "renderStaffReaders") {
+		t.Fatal("missing staff multi-reader picker")
 	}
 	if strings.Contains(js, "card.read") {
 		t.Fatal("Ready-page test connection must not issue card.read")
@@ -267,9 +273,26 @@ func TestManagerRefreshAndSelectReader(t *testing.T) {
 		if r["readerId"] == "r2" && r["selected"] == true && r["presence"] == "present" {
 			found = true
 		}
+		if r["readerId"] == "r1" && r["selected"] == true {
+			t.Fatalf("r1 must not stay selected: %v", st["readers"])
+		}
 	}
 	if !found {
 		t.Fatalf("expected r2 selected: %v", st["readers"])
+	}
+	kinds := auditKinds(st)
+	if !containsKind(kinds, "reader.selected") {
+		t.Fatalf("audit missing reader.selected: %v", kinds)
+	}
+	foundID := false
+	for _, item := range st["audit"].([]any) {
+		ev := item.(map[string]any)
+		if ev["kind"] == "reader.selected" && ev["readerId"] == "r2" {
+			foundID = true
+		}
+	}
+	if !foundID {
+		t.Fatalf("reader.selected must note readerId: %v", st["audit"])
 	}
 }
 

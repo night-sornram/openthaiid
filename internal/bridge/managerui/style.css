@@ -393,7 +393,8 @@ dd {
   gap: 0.9rem;
 }
 
-.tech[hidden] {
+.tech[hidden],
+#staff-readers-card[hidden] {
   display: none;
 }
 

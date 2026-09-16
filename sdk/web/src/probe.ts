@@ -257,11 +257,26 @@ export function summarizeProbe(probe: ProbeResult, lang?: StaffLang | string | n
       next: c.plugReader,
     };
   }
-  const selected = readers.find((r) => r.selected) ?? readers[0];
-  const present = readers.some((r) => r.presence === "present");
-  const unsupported = readers.some((r) => r.presence === "unsupported");
+  const selected = readers.find((r) => r.selected) ?? (readers.length === 1 ? readers[0] : undefined);
+  const needChoice = readers.length > 1 && !readers.some((r) => r.selected);
+  const present = selected?.presence === "present";
+  const unsupported = selected?.presence === "unsupported";
   const defaultName = c.lang === "th" ? "เครื่องอ่านบัตร" : "card reader";
-  const readerLine = c.readerConnected(selected?.name ?? defaultName);
+  const readerLine = selected
+    ? c.readerConnected(selected.name ?? defaultName)
+    : needChoice
+      ? c.chooseReader
+      : c.readerConnected(defaultName);
+  if (needChoice) {
+    return {
+      ready: false,
+      headline: c.notReady,
+      helper: c.helperOn,
+      reader: readerLine,
+      card: c.insertAfterReader,
+      next: c.chooseReader,
+    };
+  }
   if (unsupported && !present) {
     return {
       ready: false,
@@ -547,6 +562,24 @@ export function mountThaiIDStatus(root: Element, options: MountThaiIDStatusOptio
       ul.append(li);
     }
     box.append(ul);
+
+    const readers = probe.readers ?? [];
+    if (readers.length > 1) {
+      const list = document.createElement("ul");
+      list.setAttribute("data-openthaiid-readers", "1");
+      list.style.margin = "0.45rem 0 0";
+      list.style.paddingLeft = "1.15rem";
+      list.style.fontSize = "0.9rem";
+      for (const r of readers) {
+        const li = document.createElement("li");
+        const using = r.selected ? (lang === "th" ? " · กำลังใช้" : " · selected") : "";
+        const card = r.presence === "present" ? (lang === "th" ? " · มีบัตร" : " · card") : "";
+        li.textContent = `${r.name || r.readerId}${using}${card}`;
+        if (r.selected) li.style.fontWeight = "650";
+        list.append(li);
+      }
+      box.append(list);
+    }
 
     if (showTest) {
       const actions = document.createElement("div");

@@ -423,4 +423,78 @@ describe("ThaiID", () => {
       fake.restore();
     }
   });
+
+  it("read uses the selected reader from status", async () => {
+    const fake = installFakeWebSocket({ autoRespond: true });
+    const id = new ThaiID();
+    try {
+      await id.connect();
+      const ws = fake.sockets[0]!;
+      ws.onmessage?.({
+        data: JSON.stringify({
+          v: 1,
+          type: "status.snapshot",
+          instanceId: "bridge-x",
+          sequence: 3,
+          payload: {
+            connection: "connected",
+            backend: "available",
+            readers: [
+              { readerId: "r1", name: "Reader One", presence: "present", cardSessionId: "cs_1" },
+              { readerId: "r2", name: "Reader Two", presence: "present", cardSessionId: "cs_2", selected: true },
+            ],
+          },
+        }),
+      });
+      const p = id.read({ fields: ["citizenId"] });
+      await new Promise((r) => setTimeout(r, 0));
+      const reads = ws.sent.map((s) => JSON.parse(s)).filter((m) => m.type === "card.read");
+      expect(reads.at(-1)?.payload.readerId).toBe("r2");
+      const last = reads.at(-1);
+      ws.onmessage?.({
+        data: JSON.stringify({
+          v: 1,
+          id: last.id,
+          result: { readerId: "r2", cardSessionId: "cs_2", fields: { citizenId: "1234567890121" }, warnings: [] },
+        }),
+      });
+      await expect(p).resolves.toMatchObject({ readerId: "r2" });
+    } finally {
+      await id.disconnect();
+      fake.restore();
+    }
+  });
+
+  it("read requires a Ready-page choice when two readers are unselected", async () => {
+    const fake = installFakeWebSocket({ autoRespond: true });
+    const id = new ThaiID();
+    try {
+      await id.connect();
+      const ws = fake.sockets[0]!;
+      ws.onmessage?.({
+        data: JSON.stringify({
+          v: 1,
+          type: "status.snapshot",
+          instanceId: "bridge-x",
+          sequence: 3,
+          payload: {
+            connection: "connected",
+            backend: "available",
+            readers: [
+              { readerId: "r1", name: "Reader One", presence: "present", cardSessionId: "cs_1" },
+              { readerId: "r2", name: "Reader Two", presence: "present", cardSessionId: "cs_2" },
+            ],
+          },
+        }),
+      });
+      await expect(id.read({ fields: ["citizenId"] })).rejects.toMatchObject({
+        code: "READER_SELECTION_REQUIRED",
+      });
+      const reads = ws.sent.map((s) => JSON.parse(s)).filter((m) => m.type === "card.read");
+      expect(reads).toHaveLength(0);
+    } finally {
+      await id.disconnect();
+      fake.restore();
+    }
+  });
 });

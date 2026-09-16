@@ -521,46 +521,42 @@ func (m *Manager) WaitCardSession(readerID string, deadline time.Time) (string, 
 	return m.CardSession(readerID)
 }
 
-// SelectReader picks a reader when exactly one exists, or the preferred
-// reader when the operator has selected one in the local manager.
+// SelectReader picks a reader for a read.
+//
+// An explicit requested id always wins. Otherwise the operator-selected
+// (preferred) reader is used. When the inventory has exactly one reader,
+// that reader is used automatically. Two or more readers with no selection
+// return READER_SELECTION_REQUIRED — even if only one currently has a card.
 func (m *Manager) SelectReader(requested string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if requested != "" {
-		st, ok := m.readers[requested]
-		if !ok {
-			return "", card.NewError(card.ErrNoReader, "reader not found")
-		}
-		if st.Presence != pcsc.PresencePresent {
-			return "", card.NewError(card.ErrNoCard, "no card")
-		}
-		return requested, nil
+		return m.requirePresentLocked(requested, "reader not found")
 	}
 	if m.preferredID != "" {
-		st, ok := m.readers[m.preferredID]
-		if !ok {
-			return "", card.NewError(card.ErrNoReader, "selected reader not found")
-		}
-		if st.Presence != pcsc.PresencePresent {
-			return "", card.NewError(card.ErrNoCard, "no card")
-		}
-		return m.preferredID, nil
+		return m.requirePresentLocked(m.preferredID, "selected reader not found")
 	}
-	var only string
-	n := 0
-	for id, st := range m.readers {
-		if st.Presence == pcsc.PresencePresent {
-			only = id
-			n++
-		}
+	if len(m.readers) == 0 {
+		return "", card.NewError(card.ErrNoReader, "no reader")
 	}
-	if n == 0 {
-		return "", card.NewError(card.ErrNoReader, "no reader with a card")
-	}
-	if n > 1 {
+	if len(m.readers) > 1 {
 		return "", card.NewError(card.ErrReaderSelectionRequired, "multiple readers")
 	}
-	return only, nil
+	for id := range m.readers {
+		return m.requirePresentLocked(id, "reader not found")
+	}
+	return "", card.NewError(card.ErrNoReader, "no reader")
+}
+
+func (m *Manager) requirePresentLocked(id, missing string) (string, error) {
+	st, ok := m.readers[id]
+	if !ok {
+		return "", card.NewError(card.ErrNoReader, missing)
+	}
+	if st.Presence != pcsc.PresencePresent {
+		return "", card.NewError(card.ErrNoCard, "no card")
+	}
+	return id, nil
 }
 
 // ReadRequest is a coordinated single-field-set read.

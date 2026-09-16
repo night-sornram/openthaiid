@@ -53,7 +53,9 @@ Rules:
 - Historical events and read responses are not replayed or cached.
 - Card results are unicast to the requester only.
 - Supported fields and capabilities are advertised after authentication.
-- Protocol **minor 3** adds optional `portrait` (JPEG Base64) to `fieldsSupported`.
+- Protocol **minor 4** adds `selected` on reader views in `bridge.probe`,
+  `bridge.status`, and `status.snapshot` (operator-chosen reader, or the only
+  reader). Protocol **minor 3** adds optional `portrait` (JPEG Base64) to `fieldsSupported`.
   Protocol **minor 2** added `bridge.probe` without changing the envelope.
 - Unknown operations and unsupported protocol majors are rejected.
 - Each connection allows at most **eight** concurrent asynchronous operations
@@ -73,7 +75,7 @@ Rules:
 | `session.renew` | client | Refresh an active session token |
 | `session.close` | client | End the session |
 | `bridge.status` | client | Request current status snapshot (authenticated) |
-| `bridge.probe` | client | Metadata only, no session: helper version, PC/SC, readers, card present/absent. No personal fields. Used by `probeThaiID()` |
+| `bridge.probe` | client | Metadata only, no session: helper version, PC/SC, readers (`selected` when the operator chose one, or when only one reader exists), card present/absent. No personal fields. Used by `probeThaiID()` |
 | `card.read` | client | Read selected fields from the current card session |
 | `request.cancel` | client | Cancel an in-flight operation by request id |
 
@@ -136,13 +138,15 @@ Success result:
 - Invalid or unavailable individual fields become `null` plus a
   field-specific warning. Unrequested fields are omitted.
 - Transport loss, unsupported card, or generation change fails the whole read.
+- Omit `readerId` to use the operator-selected reader (or the only reader).
+  Two or more readers with no selection return `READER_SELECTION_REQUIRED`.
 
 ## Events
 
 | Type | Payload sketch |
 |---|---|
 | `approval.required` | `approvalId`, requested fields, comparison code (metadata only) |
-| `status.snapshot` | connection/backend/reader/card view |
+| `status.snapshot` | connection/backend/reader/card view (`readers[].selected`) |
 | `reader.connected` | `readerId`, label |
 | `reader.disconnected` | `readerId` |
 | `card.inserted` | `readerId`, `cardSessionId` |

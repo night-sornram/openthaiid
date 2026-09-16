@@ -49,6 +49,7 @@ type Copy struct {
 	InsertAfterReader string
 	PlugReader        string
 	ReaderConnected   string // %s = device name
+	ChooseReader      string
 	InsertCard        string
 	InsertThenFill    string
 	CardInserted      string
@@ -94,6 +95,7 @@ func thaiCopy() Copy {
 		InsertAfterReader: "เสียบบัตรหลังจากต่อเครื่องอ่านแล้ว",
 		PlugReader:        "เสียบเครื่องอ่านบัตรเข้าเครื่องนี้",
 		ReaderConnected:   "ต่อเครื่องอ่านแล้ว: %s",
+		ChooseReader:      "มีเครื่องอ่านมากกว่าหนึ่งเครื่อง เลือกเครื่องบนหน้า พร้อม",
 		InsertCard:        "เสียบบัตรประชาชนไทย",
 		InsertThenFill:    "เสียบบัตรประชาชนของผู้ป่วย แล้วกด กรอกข้อมูล",
 		CardInserted:      "เสียบบัตรแล้ว",
@@ -132,6 +134,7 @@ func englishCopy() Copy {
 		InsertAfterReader: "Insert the card after the reader is connected.",
 		PlugReader:        "Plug the card reader into this computer.",
 		ReaderConnected:   "Reader connected: %s",
+		ChooseReader:      "More than one reader is connected. Choose one on the Ready page.",
 		InsertCard:        "Insert the Thai ID card.",
 		InsertThenFill:    "Insert the patient’s Thai ID card, then click Fill.",
 		CardInserted:      "Card is inserted.",

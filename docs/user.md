@@ -15,6 +15,7 @@
      [installation.md](installation.md))
    - Linux: เมนูแอป **OpenThaiID** หรือ `openthaiid tray`
 2. **เสียบเครื่องอ่านบัตร**
+   ถ้ามีมากกว่าหนึ่งเครื่อง กด **ใช้เครื่องนี้** บนหน้า พร้อม
 3. **เปิดหน้าคลินิกตามปกติ**
 4. สถานะควรขึ้น **พร้อม** (ตัวช่วยทำงาน เครื่องอ่านต่อแล้ว เสียบบัตรแล้ว)
    เมนู **แสดงสถานะ** ใช้ไฟสามดวงเดียวกัน และไม่แสดงข้อมูลบนบัตร
@@ -56,6 +57,7 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 | ทดสอบการเชื่อมต่อ | บนหน้า พร้อม กด **ทดสอบการเชื่อมต่อ** (ไม่อ่านข้อมูลบนบัตร) |
 | ไม่พบเครื่องอ่านบัตร | ถอดแล้วเสียบเครื่องอ่านใหม่ |
 | เสียบบัตรประชาชนไทย | เสียบบัตรให้สุด |
+| มีเครื่องอ่านมากกว่าหนึ่งเครื่อง | กด **ใช้เครื่องนี้** บนหน้า พร้อม |
 | เว็บไซต์ต้องการอ่านบัตร | กดอนุญาตหน้าคลินิก (ให้รหัสตรงกัน) |
 | ยังติด | เรียกช่างเทคนิค — **Technician tools** จากถาด หรือ `#technician` |
 
@@ -92,7 +94,8 @@ Technician tools stay English.
 2. **Plug in the card reader.**
 3. **Open the clinic ERP** as usual.
 4. Status should say **พร้อม / Ready** (helper running, reader plugged in,
-   card inserted). Tray **แสดงสถานะ** uses the same three lights and never
+   card inserted). If two readers are plugged in, choose one with **ใช้เครื่องนี้ /
+   Use this reader** on the Ready page. Tray **แสดงสถานะ** uses the same three lights and never
    shows personal card data. On the Ready page, **ทดสอบการเชื่อมต่อ / Test
    connection** runs a safe probe (no personal fields). If the helper
    restarts, leave the page open — it detects the helper coming back.

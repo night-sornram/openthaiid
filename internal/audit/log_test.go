@@ -127,9 +127,14 @@ func TestSanitizeModePresenceReader(t *testing.T) {
 		Mode:     "serve",
 		Presence: "present",
 		Reader:   "ACS ACR39U ICC Reader 0",
+		ReaderID: "synthetic-acr39u",
 	})
-	if !ok || ev.Mode != "serve" || ev.Reader == "" {
+	if !ok || ev.Mode != "serve" || ev.Reader == "" || ev.ReaderID != "synthetic-acr39u" {
 		t.Fatalf("%v %+v", ok, ev)
+	}
+	ev, ok = sanitize(Event{Kind: KindReaderSelected, ReaderID: "r2", Reader: "Reader Two"})
+	if !ok || ev.Kind != KindReaderSelected || ev.ReaderID != "r2" {
+		t.Fatalf("reader.selected: %v %+v", ok, ev)
 	}
 	ev, ok = sanitize(Event{Kind: KindHelperStart, Mode: "rootkit"})
 	if !ok || ev.Mode != "" {

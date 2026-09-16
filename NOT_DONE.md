@@ -1,16 +1,16 @@
 # Not done
 
-Last updated after **v0.1.0-rc.2**: clinic-day reconnect / test-connection
-UX is in software (helper restart on the Ready page + SDK probe/autofill).
-Physical ACR39U execution is still blocked on hardware. Do **not** tag
+Last updated after **multi-reader select**: software can list, select, and
+display the active PC/SC reader (Ready page + technician tools + probe/status/
+Fill). Physical ACR39U execution is still blocked on hardware. Do **not** tag
 from this working tree unless a coordinator is cutting a new RC.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
 portrait (synthetic), the qualification *kit*, unsigned macOS packaging
-instructions, and reconnect/test-connection staff UX are implemented. This
-file lists everything that is **not** complete for a **hardware-qualified**
-release.
+instructions, reconnect/test-connection staff UX, and multi-reader select
+are implemented. This file lists everything that is **not** complete for a
+**hardware-qualified** release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,

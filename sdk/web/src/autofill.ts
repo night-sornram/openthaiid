@@ -21,7 +21,7 @@ import {
   type ThaiAddress,
   type ThaiIDOptions,
 } from "./index.js";
-import { staffLang, type StaffLang } from "./staffCopy.js";
+import { formatStaffError, staffLang, type StaffLang } from "./staffCopy.js";
 import { localizeThaiIDError } from "./staffError.js";
 import { waitForThaiID } from "./probe.js";
 
@@ -635,6 +635,7 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
     }
 
     const shouldDisconnect = options.disconnect ?? ownsClient;
+    let selectedReaderId = options.readerId;
     try {
       if (ownsClient || client.state() !== "connected") {
         options.onConnectionChanged?.("connecting");
@@ -647,11 +648,19 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
         if (!helper.reachable) {
           throw helper.error ?? new ThaiIDError("BRIDGE_UNAVAILABLE", "helper is not reachable", true);
         }
+        const readers = helper.readers ?? [];
+        if (!selectedReaderId && readers.length > 1 && !readers.some((r) => r.selected)) {
+          throw new ThaiIDError(
+            "READER_SELECTION_REQUIRED",
+            formatStaffError({ code: "READER_SELECTION_REQUIRED" }, options.lang),
+          );
+        }
+        selectedReaderId = selectedReaderId ?? readers.find((r) => r.selected)?.readerId;
       }
       await client.connect({ signal: options.signal });
       const result = await client.read({
         fields: requested,
-        readerId: options.readerId,
+        readerId: selectedReaderId,
         cardSessionId: options.cardSessionId,
         signal: options.signal,
       });

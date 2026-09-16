@@ -30,8 +30,9 @@ import { probeThaiID, mountThaiIDStatus } from "@openthaiid/web";
 mountThaiIDStatus(document.getElementById("reader-status"));
 
 const probe = await probeThaiID();
-// probe.reachable, probe.backend.status, probe.readers[].presence
+// probe.reachable, probe.backend.status, probe.readers[].presence, probe.readers[].selected
 // summarizeProbe(probe) → พร้อม / ยังไม่พร้อม (Thai default; pass "en" for English)
+// Two readers with none selected: not Ready until staff pick on the Ready page.
 ```
 
 This talks to the local helper with `bridge.probe`. It never returns citizen

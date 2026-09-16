@@ -56,6 +56,10 @@ describe("staffErrorGuidance", () => {
     expect(g.code).toBe("BRIDGE_UNAVAILABLE");
     expect(g.message).toContain("not running");
     expect(formatStaffError({ code: "NO_CARD" }, "en")).toContain("Insert");
+    const pick = staffErrorGuidance({ code: "READER_SELECTION_REQUIRED" });
+    expect(pick.code).toBe("READER_SELECTION_REQUIRED");
+    expect(pick.next).toContain("หน้า พร้อม");
+    expect(staffErrorGuidance({ code: "READER_SELECTION_REQUIRED" }, "en").next).toContain("Ready page");
   });
 
   it("unknown codes stay unknown and still get guidance", () => {
