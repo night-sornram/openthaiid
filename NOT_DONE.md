@@ -1,16 +1,18 @@
 # Not done
 
-Last updated after **multi-reader select**: software can list, select, and
-display the active PC/SC reader (Ready page + technician tools + probe/status/
-Fill). Physical ACR39U execution is still blocked on hardware. Do **not** tag
-from this working tree unless a coordinator is cutting a new RC.
+Last updated after **card-removed / mid-op recovery**: software surfaces Thai
+staff guidance for `CARD_REMOVED` / `READER_REMOVED` during Fill, updates
+Ready/status when the card or reader leaves, and covers those paths with
+synthetic tests. Physical ACR39U execution (including Friday E4 on hardware)
+is still blocked. Do **not** tag from this working tree unless a coordinator
+is cutting a new RC.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
 portrait (synthetic), the qualification *kit*, unsigned macOS packaging
-instructions, reconnect/test-connection staff UX, and multi-reader select
-are implemented. This file lists everything that is **not** complete for a
-**hardware-qualified** release.
+instructions, reconnect/test-connection staff UX, multi-reader select, and
+card-removed / unplug clinic UX are implemented. This file lists everything
+that is **not** complete for a **hardware-qualified** release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,

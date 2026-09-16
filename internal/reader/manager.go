@@ -572,11 +572,13 @@ type ReadRequest struct {
 //
 // One native worker owns open → transaction → transmit → end → close.
 // Cancellation and timeout return promptly (CANCELLED / READ_TIMEOUT) without
-// waiting for blocked native cleanup. The global read slot stays occupied
-// until that worker finishes; late results are discarded. Overlapping reads
-// are rejected with BUSY. If native work is still blocked two seconds after
-// cancellation, the backend is marked stalled until the worker finishes and
-// recovery completes.
+// waiting for blocked native cleanup. Card removal and reader unplug also
+// return promptly (CARD_REMOVED / READER_REMOVED) when inventory changes
+// mid-read; a successful payload is never returned for a gone session.
+// The global read slot stays occupied until that worker finishes; late
+// results are discarded. Overlapping reads are rejected with BUSY. If native
+// work is still blocked two seconds after cancellation, the backend is
+// marked stalled until the worker finishes and recovery completes.
 func (m *Manager) Read(ctx context.Context, req ReadRequest) (*card.ReadResult, error) {
 	fields, err := card.NormalizeFields(req.Fields)
 	if err != nil {
@@ -620,29 +622,61 @@ func (m *Manager) Read(ctx context.Context, req ReadRequest) (*card.ReadResult, 
 	// Worker owns the entire native lifecycle. It is not cancelled by ctx.
 	go m.runNativeWorker(w, readerID, sid, fields, req.Execute)
 
-	select {
-	case <-w.done:
-		m.finishWorker(w)
-		return w.result, w.err
-	case <-ctx.Done():
-		// Prompt client-visible failure. Do not wait for blocked native cleanup.
-		// After StallGrace, if the worker is still outstanding, mark the
-		// backend stalled and keep ownership until the worker finishes.
-		err := cancelError(ctx)
-		go func() {
-			stall := time.NewTimer(StallGrace)
-			defer stall.Stop()
-			select {
-			case <-w.done:
-				m.finishWorker(w)
-			case <-stall.C:
-				m.markStalled()
-				<-w.done
-				m.finishWorker(w)
+	tick := time.NewTicker(25 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-w.done:
+			m.finishWorker(w)
+			if inv := m.sessionLossError(readerID, sid); inv != nil && w.err == nil {
+				// Card left or reader unplugged after APDUs: never return
+				// a successful payload for a session that is already gone.
+				return nil, inv
 			}
-		}()
-		return nil, err
+			return w.result, w.err
+		case <-ctx.Done():
+			// Prompt client-visible failure. Do not wait for blocked native cleanup.
+			// After StallGrace, if the worker is still outstanding, mark the
+			// backend stalled and keep ownership until the worker finishes.
+			m.abandonWorker(w)
+			return nil, cancelError(ctx)
+		case <-tick.C:
+			if inv := m.sessionLossError(readerID, sid); inv != nil {
+				m.abandonWorker(w)
+				return nil, inv
+			}
+		}
 	}
+}
+
+// sessionLossError is non-nil when readerID no longer holds sid.
+// Distinguishes unplug (READER_REMOVED) from a pulled card (CARD_REMOVED).
+func (m *Manager) sessionLossError(readerID, sid string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	st, ok := m.readers[readerID]
+	if !ok {
+		return card.NewError(card.ErrReaderRemoved, "reader unplugged")
+	}
+	if st.Presence != pcsc.PresencePresent || st.CardSessionID == "" || st.CardSessionID != sid {
+		return card.NewError(card.ErrCardRemoved, "card session changed")
+	}
+	return nil
+}
+
+func (m *Manager) abandonWorker(w *readWorker) {
+	go func() {
+		stall := time.NewTimer(StallGrace)
+		defer stall.Stop()
+		select {
+		case <-w.done:
+			m.finishWorker(w)
+		case <-stall.C:
+			m.markStalled()
+			<-w.done
+			m.finishWorker(w)
+		}
+	}()
 }
 
 func cancelError(ctx context.Context) *card.Error {
@@ -695,6 +729,10 @@ func (m *Manager) runNativeWorker(w *readWorker, readerID, sid string, fields []
 
 	conn, err := m.readerBackend.Open(ctx, readerID)
 	if err != nil {
+		if inv := m.sessionLossError(readerID, sid); inv != nil {
+			w.err = inv
+			return
+		}
 		w.err = err
 		return
 	}
@@ -702,6 +740,10 @@ func (m *Manager) runNativeWorker(w *readWorker, readerID, sid string, fields []
 	if err := conn.BeginTransaction(ctx); err != nil {
 		_ = conn.Close()
 		w.cleanups++
+		if inv := m.sessionLossError(readerID, sid); inv != nil {
+			w.err = inv
+			return
+		}
 		w.err = err
 		return
 	}
@@ -714,8 +756,8 @@ func (m *Manager) runNativeWorker(w *readWorker, readerID, sid string, fields []
 		w.cleanups++
 	}()
 
-	if cur, ok := m.CardSession(readerID); !ok || cur != sid {
-		w.err = card.NewError(card.ErrCardRemoved, "card session changed")
+	if err := m.sessionLossError(readerID, sid); err != nil {
+		w.err = err
 		return
 	}
 
@@ -725,11 +767,15 @@ func (m *Manager) runNativeWorker(w *readWorker, readerID, sid string, fields []
 	defer cancelExec()
 	vals, warns, err := execute(execCtx, conn, fields)
 	if err != nil {
+		if inv := m.sessionLossError(readerID, sid); inv != nil {
+			w.err = inv
+			return
+		}
 		w.err = err
 		return
 	}
-	if cur, ok := m.CardSession(readerID); !ok || cur != sid {
-		w.err = card.NewError(card.ErrCardRemoved, "card session changed")
+	if err := m.sessionLossError(readerID, sid); err != nil {
+		w.err = err
 		return
 	}
 	if vals == nil {

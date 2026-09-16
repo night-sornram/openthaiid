@@ -3,6 +3,7 @@ import { ThaiIDError } from "./index";
 import { localizeThaiIDError } from "./staffError";
 import {
   formatStaffError,
+  isMidReadAbort,
   staffApprovalGuidance,
   staffCopy,
   staffErrorCode,
@@ -60,6 +61,12 @@ describe("staffErrorGuidance", () => {
     expect(pick.code).toBe("READER_SELECTION_REQUIRED");
     expect(pick.next).toContain("หน้า พร้อม");
     expect(staffErrorGuidance({ code: "READER_SELECTION_REQUIRED" }, "en").next).toContain("Ready page");
+    expect(staffErrorGuidance({ code: "CARD_REMOVED" }).next).toContain("พร้อม");
+    expect(staffErrorGuidance({ code: "CARD_REMOVED" }).next).toContain("กรอกข้อมูล");
+    expect(staffErrorGuidance({ code: "READER_REMOVED" }).message).toContain("ถอด");
+    expect(formatStaffError({ code: "CARD_REMOVED" }, "en")).toMatch(/Ready/i);
+    expect(isMidReadAbort({ code: "CARD_REMOVED" })).toBe(true);
+    expect(isMidReadAbort({ code: "NO_CARD" })).toBe(false);
   });
 
   it("unknown codes stay unknown and still get guidance", () => {
@@ -92,6 +99,7 @@ describe("staffErrorGuidance", () => {
       "INVALID_REQUEST",
       "UNSUPPORTED_FIELD",
       "READ_FAILED",
+      "READ_TIMEOUT",
     ];
     for (const code of codes) {
       assertNoPII(formatStaffError({ code }));

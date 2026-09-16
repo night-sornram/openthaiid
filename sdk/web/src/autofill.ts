@@ -21,7 +21,7 @@ import {
   type ThaiAddress,
   type ThaiIDOptions,
 } from "./index.js";
-import { formatStaffError, staffLang, type StaffLang } from "./staffCopy.js";
+import { formatStaffError, isMidReadAbort, staffLang, type StaffLang } from "./staffCopy.js";
 import { localizeThaiIDError } from "./staffError.js";
 import { waitForThaiID } from "./probe.js";
 
@@ -557,35 +557,126 @@ function dispatchChange(el: Element) {
   el.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
+function snapshotControlValue(el: Element): string | boolean | null {
+  if (el instanceof HTMLImageElement) {
+    return el.getAttribute("src");
+  }
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "file") return null;
+    if (el.type === "checkbox" || el.type === "radio") return el.checked;
+    return el.value;
+  }
+  if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    return el.value;
+  }
+  return null;
+}
+
+function restoreControlValue(el: Element, value: string | boolean | null): void {
+  if (value == null) return;
+  if (el instanceof HTMLImageElement) {
+    if (value) el.src = String(value);
+    else el.removeAttribute("src");
+    return;
+  }
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "file") return;
+    if (el.type === "checkbox" || el.type === "radio") {
+      el.checked = Boolean(value);
+      dispatchChange(el);
+      return;
+    }
+    el.value = String(value);
+    dispatchChange(el);
+    return;
+  }
+  if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    el.value = String(value);
+    dispatchChange(el);
+  }
+}
+
+function clearControlValue(el: Element): boolean {
+  if (el instanceof HTMLImageElement) {
+    el.removeAttribute("src");
+    return true;
+  }
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "file") return false;
+    if (el.type === "checkbox" || el.type === "radio") {
+      el.checked = false;
+      dispatchChange(el);
+      return true;
+    }
+    el.value = "";
+    dispatchChange(el);
+    return true;
+  }
+  if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    el.value = "";
+    dispatchChange(el);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Clear mapped autofill targets. Used when a mid-read abort would otherwise
+ * leave a previous patient's values mixed with an incomplete Fill.
+ * Phone / HN and other unmapped fields are left alone.
+ */
+export function clearAutofillValues(targets: AutofillTargetList): void {
+  for (const { elements } of targets) {
+    for (const el of elements) {
+      clearControlValue(el);
+    }
+  }
+}
+
 /**
  * Write formatted values into resolved targets. Empty values are skipped so
- * missing card fields do not wipe user input.
+ * missing card fields do not wipe user input. Callers must only invoke this
+ * after a complete successful `card.read` — never with a partial payload.
  */
 export function applyAutofillValues(
   targets: AutofillTargetList,
   fields: FieldValues,
   options: AutofillFormatOptions = {},
 ): { values: Record<string, string>; filled: AutofillFilled[]; missing: string[] } {
-  const values: Record<string, string> = {};
-  const filled: AutofillFilled[] = [];
-  const missing: string[] = [];
-
-  for (const { slot, elements } of targets) {
-    if (elements.length === 0) {
-      missing.push(slot);
-      continue;
-    }
+  const previous = new Map<Element, string | boolean | null>();
+  for (const { elements } of targets) {
     for (const el of elements) {
-      const value = formatAutofillValue(fields, slot, options, el);
-      if (!value) continue;
-      values[slot] = value;
-      if (setControlValue(el, value)) {
-        filled.push({ slot, element: el, value });
-      }
+      if (!previous.has(el)) previous.set(el, snapshotControlValue(el));
     }
   }
 
-  return { values, filled, missing };
+  try {
+    const values: Record<string, string> = {};
+    const filled: AutofillFilled[] = [];
+    const missing: string[] = [];
+
+    for (const { slot, elements } of targets) {
+      if (elements.length === 0) {
+        missing.push(slot);
+        continue;
+      }
+      for (const el of elements) {
+        const value = formatAutofillValue(fields, slot, options, el);
+        if (!value) continue;
+        values[slot] = value;
+        if (setControlValue(el, value)) {
+          filled.push({ slot, element: el, value });
+        }
+      }
+    }
+
+    return { values, filled, missing };
+  } catch (err) {
+    for (const [el, value] of previous) {
+      restoreControlValue(el, value);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -673,6 +764,14 @@ export async function autofillThaiID(options: AutofillThaiIDOptions = {}): Promi
       }
     }
   } catch (err) {
+    if (isMidReadAbort(err)) {
+      try {
+        const targets = collectAutofillTargets(options);
+        clearAutofillValues(targets);
+      } catch {
+        // Keep the original Fill error if target collection fails.
+      }
+    }
     const localized = localizeThaiIDError(err, staffLang(options.lang));
     options.onError?.(localized);
     throw localized;

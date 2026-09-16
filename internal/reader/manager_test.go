@@ -483,6 +483,131 @@ func TestStopRefusesReleaseWhileWorkerBlocked(t *testing.T) {
 	rdb.UnblockPhase("transmit")
 }
 
+func TestReadCardRemovedDuringTransmit(t *testing.T) {
+	m, mon, rdb, _ := startPair(t)
+	mon.AddReader("r1", "A")
+	mon.InsertCard("r1")
+	if err := m.resync(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	sid, _ := m.CardSession("r1")
+	rdb.BlockPhase("transmit")
+
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := m.Read(context.Background(), ReadRequest{
+			ReaderID:      "r1",
+			CardSessionID: sid,
+			Fields:        []card.Field{card.FieldCitizenID},
+			Execute: func(ctx context.Context, conn card.Transmitter, fields []card.Field) (*card.FieldValues, []card.Warning, error) {
+				_, err := conn.Transmit(context.Background(), []byte("CMD"), 8)
+				id := "must-not-return"
+				return &card.FieldValues{CitizenID: &id}, nil, err
+			},
+		})
+		errCh <- err
+	}()
+	waitReading(t, m)
+
+	mon.RemoveCard("r1")
+	if err := m.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	err := <-errCh
+	if time.Since(start) > 500*time.Millisecond {
+		t.Fatalf("CARD_REMOVED not prompt: %s", time.Since(start))
+	}
+	if err == nil || card.AsError(err).Code != card.ErrCardRemoved {
+		t.Fatalf("expected CARD_REMOVED, got %v", err)
+	}
+	snap := m.Snapshot()
+	if len(snap.Readers) != 1 || snap.Readers[0].Presence == pcsc.PresencePresent {
+		t.Fatalf("stale present after remove: %+v", snap)
+	}
+	if _, ok := m.CardSession("r1"); ok {
+		t.Fatal("session must be gone")
+	}
+	rdb.UnblockPhase("transmit")
+	waitIdle(t, m)
+}
+
+func TestReadReaderUnpluggedDuringTransmit(t *testing.T) {
+	m, mon, rdb, _ := startPair(t)
+	mon.AddReader("r1", "A")
+	mon.InsertCard("r1")
+	if err := m.resync(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	sid, _ := m.CardSession("r1")
+	rdb.BlockPhase("transmit")
+
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := m.Read(context.Background(), ReadRequest{
+			ReaderID:      "r1",
+			CardSessionID: sid,
+			Fields:        []card.Field{card.FieldCitizenID},
+			Execute: func(ctx context.Context, conn card.Transmitter, fields []card.Field) (*card.FieldValues, []card.Warning, error) {
+				_, err := conn.Transmit(context.Background(), []byte("CMD"), 8)
+				id := "must-not-return"
+				return &card.FieldValues{CitizenID: &id}, nil, err
+			},
+		})
+		errCh <- err
+	}()
+	waitReading(t, m)
+
+	mon.RemoveReader("r1")
+	if err := m.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	err := <-errCh
+	if time.Since(start) > 500*time.Millisecond {
+		t.Fatalf("READER_REMOVED not prompt: %s", time.Since(start))
+	}
+	if err == nil || card.AsError(err).Code != card.ErrReaderRemoved {
+		t.Fatalf("expected READER_REMOVED, got %v", err)
+	}
+	snap := m.Snapshot()
+	if len(snap.Readers) != 0 {
+		t.Fatalf("stale readers after unplug: %+v", snap)
+	}
+	rdb.UnblockPhase("transmit")
+	waitIdle(t, m)
+}
+
+func waitReading(t *testing.T, m *Manager) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		m.mu.RLock()
+		reading := m.reading
+		m.mu.RUnlock()
+		if reading {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatal("read did not start")
+}
+
+func waitIdle(t *testing.T, m *Manager) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		m.mu.RLock()
+		reading := m.reading
+		m.mu.RUnlock()
+		if !reading {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("worker did not finish")
+}
+
 func waitEvent(t *testing.T, ch chan ChangeEvent, kind string) ChangeEvent {
 	t.Helper()
 	deadline := time.After(2 * time.Second)

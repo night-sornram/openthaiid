@@ -25,6 +25,16 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   the helper coming back after a restart, with Thai staff copy
   (**ตัวช่วยหลุดการเชื่อมต่อ** / **ตัวช่วยกลับมาแล้ว**). Faster poll while
   waiting. `waitForThaiID()` is the same loop without DOM.
+- Mid-read recovery: pulling the card or unplugging the reader during Fill
+  returns promptly with stable `CARD_REMOVED` / `READER_REMOVED` (or
+  `READ_FAILED` when native I/O cannot tell). Thai staff copy tells them
+  what happened, to reinsert, wait for **พร้อม**, and Fill again.
+  Ready / `watchThaiID` poll faster while Ready so **พร้อม** cannot linger
+  after `card.removed` / reader gone. `autofillThaiID` clears mapped
+  sensitive fields on those aborts (phone / HN stay). Technician English
+  remains on `{ lang: "en" }` and qualify prompts. Friday E4 maps to these
+  codes in [friday-checklist.md](docs/friday-checklist.md) and
+  [hardware-qualification.md](docs/hardware-qualification.md).
 - `autofillThaiID` waits for the helper before `session.open`. It still
   never auto-repeats a card read.
 - Ready page **ทดสอบการเชื่อมต่อ** (and the SDK status widget button):

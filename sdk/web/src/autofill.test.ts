@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   applyAutofillValues,
   autofillThaiID,
+  clearAutofillValues,
   collectAutofillTargets,
   discoverAutofillTargets,
   filterTargetsByRequest,
@@ -66,7 +67,7 @@ type FakeWS = {
   respondTo: (s: string) => void;
 };
 
-function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number; probeReaders?: Array<Record<string, unknown>> } = {}) {
+function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number; failRead?: string; probeReaders?: Array<Record<string, unknown>> } = {}) {
   const sockets: FakeWS[] = [];
   const cardFields = opts.fields ?? SYNTHETIC_FIELDS;
   let remainingFails = opts.failFirst ?? 0;
@@ -165,6 +166,16 @@ function installFakeWebSocket(opts: { fields?: FieldValues; failFirst?: number; 
         }, 0);
       }
       if (msg.type === "card.read") {
+        if (opts.failRead) {
+          this.onmessage({
+            data: JSON.stringify({
+              v: 1,
+              id: msg.id,
+              error: { code: opts.failRead, message: "card session changed", retryable: false },
+            }),
+          });
+          return;
+        }
         const requested: string[] = msg.payload?.fields ?? [];
         const fields: Record<string, unknown> = {};
         for (const f of requested) {
@@ -512,6 +523,58 @@ describe("autofillThaiID", () => {
     const err = await autofillThaiID({ client, lang: "en" }).catch((e) => e);
     expect(err).toMatchObject({ code: "FIELD_NOT_ALLOWED" });
     expect(err.message).toMatch(/field that is not allowed/i);
+  });
+
+  it("CARD_REMOVED fails cleanly, localizes Thai, and clears mapped fields", async () => {
+    const fake = installFakeWebSocket({ failRead: "CARD_REMOVED" });
+    document.body.innerHTML = `
+      <input data-openthaiid="citizenId" value="old-id" />
+      <input data-openthaiid="thaiName" value="old-name" />
+      <input id="phone" value="keep-phone" />
+    `;
+    try {
+      const err = await autofillThaiID({ root: document.body }).catch((e) => e);
+      expect(err).toMatchObject({ code: "CARD_REMOVED" });
+      expect(err.message).toContain("ถอด");
+      expect(err.message).toContain("พร้อม");
+      expect(err.message).toContain("กรอกข้อมูล");
+      expect(err.message).not.toContain("card session changed");
+      expect((document.querySelector("[data-openthaiid=citizenId]") as HTMLInputElement).value).toBe("");
+      expect((document.querySelector("[data-openthaiid=thaiName]") as HTMLInputElement).value).toBe("");
+      expect((document.getElementById("phone") as HTMLInputElement).value).toBe("keep-phone");
+      expect(allSent(fake).filter((m) => m.type === "card.read")).toHaveLength(1);
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("READER_REMOVED English keeps the code and clears mapped fields", async () => {
+    const fake = installFakeWebSocket({ failRead: "READER_REMOVED" });
+    document.body.innerHTML = `<input data-openthaiid="citizenId" value="old-id" />`;
+    try {
+      const err = await autofillThaiID({ root: document.body, lang: "en" }).catch((e) => e);
+      expect(err).toMatchObject({ code: "READER_REMOVED" });
+      expect(err.message).toMatch(/unplugged/i);
+      expect(err.message).toMatch(/Ready/);
+      expect((document.querySelector("[data-openthaiid=citizenId]") as HTMLInputElement).value).toBe("");
+    } finally {
+      fake.restore();
+    }
+  });
+
+  it("clearAutofillValues leaves unmapped controls alone", () => {
+    document.body.innerHTML = `
+      <input id="cid" value="123" />
+      <input id="phone" value="08" />
+      <img id="photo" src="data:image/jpeg;base64,QQ==" />
+    `;
+    clearAutofillValues([
+      { slot: "citizenId", elements: [document.getElementById("cid")!] },
+      { slot: "portrait", elements: [document.getElementById("photo")!] },
+    ]);
+    expect((document.getElementById("cid") as HTMLInputElement).value).toBe("");
+    expect((document.getElementById("phone") as HTMLInputElement).value).toBe("08");
+    expect((document.getElementById("photo") as HTMLImageElement).getAttribute("src")).toBeNull();
   });
 
   it("uses map + request allowlist (ERP config)", async () => {

@@ -209,11 +209,11 @@ const TH_ERRORS: Record<string, ErrorPack> = {
   },
   CARD_REMOVED: {
     message: "บัตรถูกถอดระหว่างอ่าน",
-    next: "เสียบบัตรให้สุด แล้วกด กรอกข้อมูล อีกครั้ง",
+    next: "เสียบบัตรให้สุด รอให้สถานะขึ้น พร้อม แล้วกด กรอกข้อมูล อีกครั้ง — อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ",
   },
   READER_REMOVED: {
-    message: "เครื่องอ่านถูกถอด",
-    next: "เสียบเครื่องอ่าน แล้วลองอีกครั้ง",
+    message: "เครื่องอ่านถูกถอดระหว่างอ่าน",
+    next: "เสียบเครื่องอ่าน เสียบบัตรให้สุด รอ พร้อม แล้วกด กรอกข้อมูล อีกครั้ง — อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ",
   },
   BUSY: {
     message: "กำลังอ่านบัตรอยู่",
@@ -225,11 +225,11 @@ const TH_ERRORS: Record<string, ErrorPack> = {
   },
   READ_FAILED: {
     message: "อ่านบัตรไม่สำเร็จ",
-    next: "เสียบบัตรให้สุด แล้วลองอีกครั้ง หรือเรียกช่างเทคนิค",
+    next: "เสียบบัตรให้สุด รอ พร้อม แล้วกด กรอกข้อมูล อีกครั้ง หรือเรียกช่างเทคนิค — อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ",
   },
   READ_TIMEOUT: {
     message: "อ่านบัตรหมดเวลา",
-    next: "เสียบบัตรให้สุด แล้วกด กรอกข้อมูล อีกครั้ง",
+    next: "เสียบบัตรให้สุด รอ พร้อม แล้วกด กรอกข้อมูล อีกครั้ง — อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ",
   },
   CANCELLED: {
     message: "ยกเลิกแล้ว",
@@ -304,11 +304,11 @@ const EN_ERRORS: Record<string, ErrorPack> = {
   },
   CARD_REMOVED: {
     message: "The card was removed while reading.",
-    next: "Insert the card fully, then click Fill again.",
+    next: "Insert the card fully, wait until status says Ready, then click Fill again. Do not use values in the form if this Fill did not succeed.",
   },
   READER_REMOVED: {
-    message: "The card reader was unplugged.",
-    next: "Plug the reader in, then try again.",
+    message: "The card reader was unplugged while reading.",
+    next: "Plug the reader in, insert the card fully, wait until Ready, then click Fill again. Do not use values in the form if this Fill did not succeed.",
   },
   BUSY: {
     message: "A card read is already in progress.",
@@ -320,11 +320,11 @@ const EN_ERRORS: Record<string, ErrorPack> = {
   },
   READ_FAILED: {
     message: "The card could not be read.",
-    next: "Insert the card fully and try again, or ask a technician.",
+    next: "Insert the card fully, wait until Ready, then click Fill again, or ask a technician. Do not use values in the form if this Fill did not succeed.",
   },
   READ_TIMEOUT: {
     message: "Reading the card timed out.",
-    next: "Insert the card fully, then click Fill again.",
+    next: "Insert the card fully, wait until Ready, then click Fill again. Do not use values in the form if this Fill did not succeed.",
   },
   CANCELLED: {
     message: "Cancelled.",
@@ -355,8 +355,15 @@ const TH_ERROR_FALLBACK: ErrorPack = {
 
 const EN_ERROR_FALLBACK: ErrorPack = {
   message: "Fill did not succeed.",
-  next: "Check the status lights, try again, or ask a technician.",
+  next: "Check the status lights, wait until Ready, try Fill again, or ask a technician.",
 };
+
+/** Protocol codes for a Fill/read that stopped mid-operation. Codes stay stable. */
+export const MID_READ_ABORT_CODES = ["CARD_REMOVED", "READER_REMOVED", "READ_FAILED", "READ_TIMEOUT"] as const;
+
+export function isMidReadAbort(err: unknown): boolean {
+  return (MID_READ_ABORT_CODES as readonly string[]).includes(staffErrorCode(err));
+}
 
 /** Pull a stable protocol code off a thrown error, wire object, or raw code. */
 export function staffErrorCode(err: unknown): string {

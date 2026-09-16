@@ -52,6 +52,15 @@ func TestOperatorPromptsHaveNoPII(t *testing.T) {
 			t.Fatalf("missing %s", id)
 		}
 	}
+	e4 := OperatorChecks()[0]
+	if e4.ID != "E4" {
+		t.Fatalf("first step %s", e4.ID)
+	}
+	for _, token := range []string{"CARD_REMOVED", "READER_REMOVED", "READ_FAILED", "พร้อม"} {
+		if !strings.Contains(e4.Prompt, token) && !strings.Contains(e4.Detail, token) {
+			t.Fatalf("E4 mapping missing %s", token)
+		}
+	}
 }
 
 func TestFirstForbiddenJPEGBytesAndPNG(t *testing.T) {
