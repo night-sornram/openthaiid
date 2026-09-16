@@ -22,7 +22,10 @@ in this candidate.
   are omitted from logs and acceptance reports.
 - Official Firefox support in the Playwright harness
   (`OPENTHAIID_BROWSER=firefox`). Linux CI/cloud lane uses Firefox instead
-  of Chrome **without** adding matrix rows. Safari: Playwright `webkit` on
+  of Chrome **without** adding matrix rows. The harness serves unbundled
+  SDK ESM (`autofill.js`, `probe.js`) as `text/javascript` (Firefox rejects
+  empty MIME) and sets `network.websocket.allowInsecureFromHTTPS` for
+  loopback `ws://` from the HTTPS fixture. Safari: Playwright `webkit` on
   macOS (`OPENTHAIID_BROWSER=webkit`); real Safari UI is macOS-only and not
   in CI.
 - `openthaiid update check|download|apply` against GitHub Releases (version

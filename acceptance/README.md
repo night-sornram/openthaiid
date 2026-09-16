@@ -90,7 +90,10 @@ block the 15s wait-for-bridge loop. After `quit`/kill, H9 refuses to
 start a replacement process if the old listener is still serving.
 
 Certificates are generated in the OS temp directory and never served.
-Only the acceptance page and `sdk/web/dist/index.js` are served.
+Only the acceptance page and `sdk/web/dist/{index,autofill,probe}.js` are
+served (`text/javascript`). Firefox rejects ES modules with an empty MIME
+type, so the sibling SDK files must be on that allowlist (Chrome was
+lenient). Portrait data URLs need harness CSP `img-src data:`.
 
 GitHub Actions: pull requests run this harness on ubuntu-24.04 **Firefox**
 (allow + deny + unanswered). macOS Chrome and Windows Chrome/Edge run on

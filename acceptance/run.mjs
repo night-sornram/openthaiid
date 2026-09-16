@@ -56,10 +56,15 @@ const MIME = {
   ".json": "application/json",
 };
 
+// Unbundled SDK ESM: index.js imports ./autofill.js and ./probe.js.
+// Firefox (unlike Chrome) rejects ES modules with an empty MIME type, so a
+// 404 for those siblings is a hard fail — serve every dist .js with text/javascript.
 const SERVED = [
   "acceptance/page/index.html",
   "acceptance/page/app.js",
   "sdk/web/dist/index.js",
+  "sdk/web/dist/autofill.js",
+  "sdk/web/dist/probe.js",
 ];
 
 const results = [];
@@ -177,7 +182,7 @@ function startHTTPS() {
       "Content-Type": MIME[extname(file)] || "application/octet-stream",
       "Connection": "close",
       "Content-Security-Policy":
-        "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+        "default-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'",
     });
     res.end(readFileSync(file));
   });
@@ -314,7 +319,16 @@ async function launchBrowser() {
   const name = String(BROWSER_CHANNEL || "chrome").toLowerCase();
   const headless = true;
   if (name === "firefox") {
-    return firefox.launch({ headless });
+    // Firefox treats ws:// from an https:// page as mixed active content.
+    // Clinic apps talking to 127.0.0.1 need the same exception (see docs/compatibility.md).
+    return firefox.launch({
+      headless,
+      firefoxUserPrefs: {
+        "network.websocket.allowInsecureFromHTTPS": true,
+        "security.mixed_content.block_active_content": false,
+        "dom.security.https_only_mode": false,
+      },
+    });
   }
   if (name === "webkit" || name === "safari") {
     // Playwright WebKit. Real Safari UI is macOS-only; see docs/compatibility.md.

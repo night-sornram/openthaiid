@@ -77,6 +77,14 @@ Document distro-specific permissions if a user cannot access the PC/SC daemon.
 - Local-network permission may be required (see Chrome 147 notes in
   `docs/security.md`).
 - Application CSP must allow `connect-src` to the loopback WebSocket origin.
+- Firefox treats `ws://127.0.0.1` from an `https://` page as mixed active
+  content. The acceptance harness sets
+  `network.websocket.allowInsecureFromHTTPS`. Real Firefox users may need to
+  allow the loopback WebSocket (or serve the ERP from http://localhost in
+  development). Chrome is more lenient for localhost mixed content.
+- Firefox is strict about ES module MIME types (`text/javascript`). Serve SDK
+  `.js` with that type; an empty Content-Type (including a 404) is a hard
+  block. Chrome often still executes the graph.
 
 ## Versioning
 
