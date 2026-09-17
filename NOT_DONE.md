@@ -1,8 +1,9 @@
 # Not done
 
-Last updated after the **Friday staff desk card** (`docs/friday-desk-card.md`)
-on tagged **v0.1.0-rc.5**. Physical ACR39U execution (including Friday
-E4–E6 on hardware) is still blocked.
+Last updated after **v0.1.0-rc.6 prep**: Go module hygiene (#32) and the
+Friday staff desk card (#33, `docs/friday-desk-card.md`). Physical ACR39U
+execution (including Friday E4–E6 on hardware) is still blocked. This tree
+is **tag-ready** for `v0.1.0-rc.6` after review.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -68,7 +69,7 @@ explicit and unsigned. There is no Store-signed auto-update.
 | Item | Notes |
 |---|---|
 | Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
-| Next software RC tag | `v0.1.0-rc.5` is already tagged and published as a prerelease. Do not retag it. Do not enable Actions. |
+| Published GitHub Release / `v0.1.0-rc.6` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. Do not retag `v0.1.0-rc.5`. |
 | Darwin clinic archive on GitHub | Produce with `make package-macos` **on a Mac**. Linux builders cannot cross-compile `ebfe/scard` + Cocoa. Unsigned / not notarized. |
 | Go toolchain / `ebfe/scard` bump | **Held:** `go1.27.1` is current stable (no `go1.27.2`). `ebfe/scard` has no newer tagged revision; keep the pin until the binding audit (P2–P6, P10) or a real upstream fix. |
 
@@ -88,13 +89,46 @@ explicit and unsigned. There is no Store-signed auto-update.
 4. Complete the headed public-HTTPS local-network permission check (M1).
 5. Finish the binding audit checklist in `docs/dependency-audit.md` /
    `docs/acceptance.md` (P2–P6, P10).
-6. `v0.1.0-rc.5` is already tagged and published. Do **not** retag it.
-   Do **not** enable GitHub Actions until minutes are available. The next
-   software RC is after further Unreleased work (or hardware). Module
-   holds: `go1.27.1`, `ebfe/scard` pin — see [CHANGELOG.md](CHANGELOG.md)
-   `[Unreleased]`.
+6. Human/coordinator: tag `v0.1.0-rc.6` from `dev` after review. Do **not**
+enable GitHub Actions until minutes are available. Exact commands after
+this PR is merged:
+
+```bash
+git checkout dev && git pull origin dev
+git tag -a v0.1.0-rc.6 -m "OpenThaiID v0.1.0-rc.6"
+git push origin v0.1.0-rc.6
+
+# Linux + Windows archives (Linux builder). Darwin must be on a Mac.
+VERSION=0.1.0-rc.6 OS=linux ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.6 OS=windows ARCH=amd64 ./scripts/package.sh
+# On a Mac only:
+#   VERSION=0.1.0-rc.6 make package-macos
+
+# Checksums of the archives (package.sh already writes SHA256SUMS *inside*
+# each archive for the binary):
+(
+  cd dist
+  sha256sum openthaiid-0.1.0-rc.6-linux-amd64.tar.gz \
+    openthaiid-0.1.0-rc.6-windows-amd64.zip \
+    > SHA256SUMS
+)
+# append the darwin archive SHA when produced on a Mac
+
+# Release notes: the [0.1.0-rc.6] section only (not the whole CHANGELOG).
+sed -n '/^## \[0.1.0-rc.6\]/,/^## \[0.1.0-rc.5\]/{ /^## \[0.1.0-rc.5\]/d; p; }' \
+  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.6-notes.md
+
+gh release create v0.1.0-rc.6 \
+  --repo night-sornram/openthaiid \
+  --prerelease \
+  --target dev \
+  --title "v0.1.0-rc.6" \
+  --notes-file /tmp/openthaiid-0.1.0-rc.6-notes.md \
+  dist/openthaiid-0.1.0-rc.6-linux-amd64.tar.gz \
+  dist/openthaiid-0.1.0-rc.6-windows-amd64.zip \
+  dist/SHA256SUMS
+# add dist/openthaiid-0.1.0-rc.6-darwin-<arch>.tar.gz when available
+```
 
 Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.5]` plus
-`[Unreleased]` (staff desk card on this pass; Go module hygiene already
-merged).
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.6]`.

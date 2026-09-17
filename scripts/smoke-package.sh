@@ -7,7 +7,7 @@ cd "$ROOT"
 chmod +x "$ROOT/scripts/package.sh"
 
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-VERSION="${VERSION:-0.1.0-rc.5}"
+VERSION="${VERSION:-0.1.0-rc.6}"
 
 echo "== native package =="
 VERSION="$VERSION" ./scripts/package.sh
@@ -124,8 +124,8 @@ grep -q "loopback-tls.md" packaging/START-HERE.darwin.txt
 grep -q "compatibility.md" packaging/START-HERE.linux.txt
 grep -q "compatibility.md" packaging/START-HERE.windows.txt
 grep -q "compatibility.md" packaging/START-HERE.darwin.txt
-grep -q "0.1.0-rc.5" cmd/openthaiid/main.go
-grep -q "0.1.0-rc.5" Makefile
+grep -q "0.1.0-rc.6" cmd/openthaiid/main.go
+grep -q "0.1.0-rc.6" Makefile
 
 echo "== friday-desk-card staff-only (not the qualify kit) =="
 test -f docs/friday-desk-card.md
@@ -142,10 +142,15 @@ grep -q "friday-desk-card.md" docs/friday-checklist.md
 grep -q "friday-desk-card.md" docs/getting-started.md
 grep -q "friday-desk-card.md" docs/training.md
 grep -q "friday-desk-card.md" docs/user.md
+grep -q "friday-desk-card.md" docs/hardware-qualification.md
+grep -q "friday-desk-card.md" docs/clinic.md
+grep -q "friday-desk-card.md" docs/installation.md
 grep -q "friday-desk-card.md" packaging/START-HERE.linux.txt
 grep -q "friday-desk-card.md" packaging/START-HERE.windows.txt
 grep -q "friday-desk-card.md" packaging/START-HERE.darwin.txt
 grep -q "friday-desk-card.md" README.md
+grep -q "friday-desk-card.md" scripts/friday-dry-run.sh
+grep -q "friday-desk-card.md" scripts/friday-dry-run.ps1
 if grep -q "openthaiid qualify" docs/friday-desk-card.md docs/friday-desk-card.html; then
   echo "ERROR: staff desk card must not include qualify" >&2
   exit 1
