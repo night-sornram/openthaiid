@@ -1,6 +1,6 @@
 {
   "name": "@openthaiid/web",
-  "version": "0.0.1-dev",
+  "version": "0.1.0-rc.8",
   "description": "Browser SDK for the OpenThaiID local bridge",
   "license": "Apache-2.0",
   "type": "module",
