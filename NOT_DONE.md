@@ -1,13 +1,13 @@
 # Friday readiness (pre-hardware)
 
-Last updated after **v0.1.0-rc.7** was tagged and published
-([release](https://github.com/night-sornram/openthaiid/releases/tag/v0.1.0-rc.7),
-`dev` at `712431c`). Software for the doctor-desk snapshot is complete.
+Last updated after **v0.1.0-rc.8** prep: Friday NOT_DONE playbook (#37),
+PC/SC bind-stress harness (#38). Physical ACR39U execution (including
+Friday E4–E6 on hardware) is still blocked. This tree is **tag-ready**
+for `v0.1.0-rc.8` after review. Do not retag `v0.1.0-rc.7`.
 This file is the **Friday morning playbook**, not a software backlog.
 
-Do **not** retag `v0.1.0-rc.7`. Do **not** invent a new RC for this docs
-pass. Do **not** enable GitHub Actions (included minutes until ~1 Oct 2026).
-Do **not** implement Laser-id / NHSO.
+Do **not** retag `v0.1.0-rc.7`. Do **not** enable GitHub Actions (included
+minutes until ~1 Oct 2026). Do **not** implement Laser-id / NHSO.
 
 Local evidence until Actions returns: `make test`, `make qualify-smoke`,
 `make bind-stress-smoke`, `make friday-dry-run`, `make smoke-package`, and
@@ -15,7 +15,7 @@ Local evidence until Actions returns: `make test`, `make qualify-smoke`,
 
 ---
 
-## Done in software (rc.7)
+## Done in software (rc.8)
 
 Already shipped. Do not re-open these as Friday software todos.
 
@@ -30,13 +30,15 @@ Already shipped. Do not re-open these as Friday software todos.
 - Operator GitHub Releases **check** (`openthaiid update check`, Ready **ตรวจเวอร์ชัน**)
 - Honest Firefox/Safari HTTPS Fill errors (`HTTPS_WS_BLOCKED` / `TLS_UNTRUSTED`)
 - Optional technician-managed loopback HTTPS/WSS (`docs/loopback-tls.md`)
-- Go module hygiene (rc.6); helper version string `0.1.0-rc.7`
+- Go module hygiene (rc.6); helper version string `0.1.0-rc.8`
 - Staff Friday **desk card** (`docs/friday-desk-card.md`)
 - Technician **`openthaiid doctor`** desk snapshot (`GET /v1/helper/doctor`)
+- Friday playbook (`NOT_DONE.md` split: software done / ACR39U / APDU / certs / Actions)
+- PC/SC **bind-stress** harness (`openthaiid bind-stress`, `make bind-stress-smoke`)
 - Published GitHub Release **v0.1.0-rc.7** (linux-amd64 + windows-amd64 archives)
 
 Authoritative software matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.7]`.
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.8]`.
 
 ---
 
@@ -72,9 +74,9 @@ does not close the three-platform claim.
 Untested configurations stay unverified.
 
 Darwin clinic archive: produce with `make package-macos` **on a Mac** and
-attach to the **existing** `v0.1.0-rc.7` release (unsigned / not notarized).
-Linux builders cannot cross-compile `ebfe/scard` + Cocoa. That is a Mac
-build step, not a new tag.
+attach to the **v0.1.0-rc.8** release after it is tagged (unsigned / not
+notarized). Linux builders cannot cross-compile `ebfe/scard` + Cocoa. That
+is a Mac build step, not a reason to retag `v0.1.0-rc.7`.
 
 ---
 
@@ -134,59 +136,45 @@ tag). Not a Friday software task.
 
 ## Coordinator — next tag only
 
-This docs pass does **not** get a tag. Helper version stays `0.1.0-rc.7`.
+Tree is tag-ready on `dev` after this PR. A human should tag
+`v0.1.0-rc.8` after review. This PR does **not** create the git tag.
 
 - Do **not** retag `v0.1.0-rc.7`.
 - Do **not** enable GitHub Actions.
-- Optional leftover on the **existing** release (Mac host; not a new tag):
 
 ```bash
-VERSION=0.1.0-rc.7 make package-macos
-gh release upload v0.1.0-rc.7 \
-  dist/openthaiid-0.1.0-rc.7-darwin-arm64.tar.gz \
-  --repo night-sornram/openthaiid
-# then append that archive’s SHA-256 to the published SHA256SUMS
-```
-
-Next **new** tag only after Friday hardware evidence (or a later software
-change that actually bumps the version in the tree). Pick `VERSION` then
-— do not invent it here. Last tagged section in CHANGELOG is
-`[0.1.0-rc.7]`.
-
-```bash
-# After a real version bump exists on dev. Do not retag v0.1.0-rc.7.
-# VERSION=0.1.0-rc.N
 git checkout dev && git pull origin dev
-git tag -a "v${VERSION}" -m "OpenThaiID v${VERSION}"
-git push origin "v${VERSION}"
+git tag -a v0.1.0-rc.8 -m "OpenThaiID v0.1.0-rc.8"
+git push origin v0.1.0-rc.8
 
 # Linux + Windows archives (Linux builder). Darwin must be on a Mac.
-VERSION="$VERSION" OS=linux ARCH=amd64 ./scripts/package.sh
-VERSION="$VERSION" OS=windows ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.8 OS=linux ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.8 OS=windows ARCH=amd64 ./scripts/package.sh
 # On a Mac only:
-#   VERSION="$VERSION" make package-macos
+#   VERSION=0.1.0-rc.8 make package-macos
 
+# Checksums of the archives (package.sh already writes SHA256SUMS *inside*
+# each archive for the binary):
 (
   cd dist
-  sha256sum "openthaiid-${VERSION}-linux-amd64.tar.gz" \
-    "openthaiid-${VERSION}-windows-amd64.zip" \
+  sha256sum openthaiid-0.1.0-rc.8-linux-amd64.tar.gz \
+    openthaiid-0.1.0-rc.8-windows-amd64.zip \
     > SHA256SUMS
 )
 # append the darwin archive SHA when produced on a Mac
 
-# Release notes: the new [VERSION] section only, stopping at [0.1.0-rc.7].
-PREV=0.1.0-rc.7
-sed -n "/^## \\[${VERSION}\\]/,/^## \\[${PREV}\\]/{ /^## \\[${PREV}\\]/d; p; }" \
-  CHANGELOG.md > "/tmp/openthaiid-${VERSION}-notes.md"
+# Release notes: the [0.1.0-rc.8] section only (not the whole CHANGELOG).
+sed -n '/^## \[0.1.0-rc.8\]/,/^## \[0.1.0-rc.7\]/{ /^## \[0.1.0-rc.7\]/d; p; }' \
+  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.8-notes.md
 
-gh release create "v${VERSION}" \
+gh release create v0.1.0-rc.8 \
   --repo night-sornram/openthaiid \
   --prerelease \
   --target dev \
-  --title "v${VERSION}" \
-  --notes-file "/tmp/openthaiid-${VERSION}-notes.md" \
-  "dist/openthaiid-${VERSION}-linux-amd64.tar.gz" \
-  "dist/openthaiid-${VERSION}-windows-amd64.zip" \
+  --title "v0.1.0-rc.8" \
+  --notes-file /tmp/openthaiid-0.1.0-rc.8-notes.md \
+  dist/openthaiid-0.1.0-rc.8-linux-amd64.tar.gz \
+  dist/openthaiid-0.1.0-rc.8-windows-amd64.zip \
   dist/SHA256SUMS
-# add dist/openthaiid-${VERSION}-darwin-<arch>.tar.gz when available
+# add dist/openthaiid-0.1.0-rc.8-darwin-<arch>.tar.gz when available
 ```

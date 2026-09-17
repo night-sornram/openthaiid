@@ -357,7 +357,7 @@ func TestHelperDoctorAllowsCLIAndRejectsForeignOrigin(t *testing.T) {
 
 func TestHelperDoctorRemembersSoftUpdateCheck(t *testing.T) {
 	tb := startTestBridge(t, false)
-	tb.srv.SetRuntime("0.1.0-rc.7", true)
+	tb.srv.SetRuntime("0.1.0-rc.8", true)
 	tb.srv.SetUpdateCheck(func(ctx context.Context, current string) (*update.CheckResult, error) {
 		return update.Unavailable(current, update.ReasonOffline, update.ReleasesPage), nil
 	})

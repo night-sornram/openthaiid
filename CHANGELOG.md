@@ -5,11 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-rc.8] — software release candidate (unreleased tag)
 
-PC/SC / `ebfe/scard` **bind-stress** harness against tagged **v0.1.0-rc.7**.
-Helper version stays `0.1.0-rc.7`. Do not retag `v0.1.0-rc.7`. Do not
-enable GitHub Actions (minutes until ~1 Oct 2026). No Laser-id / NHSO.
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Physical E1–E7 and
+Apple/Microsoft code signing are **not** in this candidate. Tag
+`v0.1.0-rc.8` only after human review. Do not retag `v0.1.0-rc.7`.
+
+Summarizes merges since `[0.1.0-rc.7]`: Friday NOT_DONE playbook (#37),
+PC/SC bind-stress harness (#38). Earlier technician `openthaiid doctor`
+desk snapshot stays in `[0.1.0-rc.7]` (not repeated here).
 
 ### Added
 
@@ -19,15 +24,33 @@ enable GitHub Actions (minutes until ~1 Oct 2026). No Laser-id / NHSO.
   card present/absent. Redacted JSON
   (`openthaiid.bindstress.v1`) refuses PII and raw APDUs. Synthetic smoke
   does **not** close P2–P10. Friday: omit `-synthetic` on each host.
-  [docs/bind-stress.md](docs/bind-stress.md).
+  [docs/bind-stress.md](docs/bind-stress.md). smoke-package asserts those
+  bind-stress links.
 
 ### Changed
 
-- Friday playbook and technician/qualify docs point at the bind-stress
-  harness so P2–P10 is run-the-script, not invent-the-script.
-  [NOT_DONE.md](NOT_DONE.md),
+- Helper version string defaults to `0.1.0-rc.8`.
+- Friday playbook: [NOT_DONE.md](NOT_DONE.md) is the ACR39U morning split
+  (done in software / do Friday with hardware / blocked APDU / blocked
+  certs / paused Actions), not a software backlog. Technician/qualify
+  docs point at the bind-stress harness so P2–P10 is run-the-script, not
+  invent-the-script.
   [docs/hardware-qualification.md](docs/hardware-qualification.md),
-  [docs/technician.md](docs/technician.md).
+  [docs/technician.md](docs/technician.md). smoke-package asserts the
+  playbook headings.
+
+### Security
+
+- Bind-stress reports never store citizen ID, names, address, photo
+  bytes, or raw APDUs. The writer refuses those payloads.
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
+- Binding audit P2–P10 closed (synthetic smoke is not a close)
 
 ## [0.1.0-rc.7] — software release candidate
 

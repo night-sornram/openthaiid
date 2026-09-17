@@ -7,7 +7,7 @@ cd "$ROOT"
 chmod +x "$ROOT/scripts/package.sh"
 
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-VERSION="${VERSION:-0.1.0-rc.7}"
+VERSION="${VERSION:-0.1.0-rc.8}"
 
 echo "== native package =="
 VERSION="$VERSION" ./scripts/package.sh
@@ -138,8 +138,8 @@ grep -q "loopback-tls.md" packaging/START-HERE.darwin.txt
 grep -q "compatibility.md" packaging/START-HERE.linux.txt
 grep -q "compatibility.md" packaging/START-HERE.windows.txt
 grep -q "compatibility.md" packaging/START-HERE.darwin.txt
-grep -q "0.1.0-rc.7" cmd/openthaiid/main.go
-grep -q "0.1.0-rc.7" Makefile
+grep -q "0.1.0-rc.8" cmd/openthaiid/main.go
+grep -q "0.1.0-rc.8" Makefile
 
 echo "== openthaiid doctor technician desk snapshot links =="
 grep -q "openthaiid doctor" docs/technician.md
@@ -187,17 +187,19 @@ if grep -qiE "laser-id|NHSO" docs/friday-desk-card.md docs/friday-desk-card.html
 fi
 
 echo "== NOT_DONE Friday playbook (not a stale software backlog) =="
-grep -q "Done in software (rc.7)" NOT_DONE.md
+grep -q "Done in software (rc.8)" NOT_DONE.md
 grep -q "Do Friday with ACR39U" NOT_DONE.md
 grep -q "Blocked without cited APDU" NOT_DONE.md
 grep -q "Blocked without user certs" NOT_DONE.md
 grep -q "Paused until Actions minutes" NOT_DONE.md
 grep -q "next tag only" NOT_DONE.md
-grep -q "v0.1.0-rc.7" NOT_DONE.md
+grep -q "v0.1.0-rc.8" NOT_DONE.md
+grep -q "git tag -a v0.1.0-rc.8" NOT_DONE.md
+grep -q "tag-ready" NOT_DONE.md
 grep -q "E1" NOT_DONE.md
 grep -q "M1" NOT_DONE.md
 grep -q "1 Oct 2026" NOT_DONE.md
-if grep -q "tag-ready" NOT_DONE.md; then
+if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.7|v0\\.1\\.0-rc\\.7.*tag-ready" NOT_DONE.md; then
   echo "ERROR: NOT_DONE must not still call rc.7 tag-ready (already tagged)" >&2
   exit 1
 fi
@@ -209,6 +211,10 @@ grep -q "NOT_DONE.md" README.md
 grep -q "NOT_DONE.md" docs/getting-started.md
 grep -q "NOT_DONE.md" docs/friday-checklist.md
 grep -q "NOT_DONE.md" docs/hardware-qualification.md
-grep -q '## \[Unreleased\]' CHANGELOG.md
+grep -q '## \[0.1.0-rc.8\]' CHANGELOG.md
+grep -q "bind-stress" CHANGELOG.md
+grep -q "Friday NOT_DONE playbook" CHANGELOG.md
+grep -q "bind-stress.md" CHANGELOG.md
+grep -q "NOT_DONE.md" CHANGELOG.md
 
 echo "OK smoke-package"

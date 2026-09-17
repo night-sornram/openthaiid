@@ -19,7 +19,7 @@ func TestExitCodeHardFailOnly(t *testing.T) {
 		{
 			name: "ready desk",
 			snap: Snapshot{
-				Version:       "0.1.0-rc.7",
+				Version:       "0.1.0-rc.8",
 				Helper:        HelperRunning,
 				HTTP:          "127.0.0.1:17891",
 				TLS:           TLSNo,
@@ -72,7 +72,7 @@ func TestExitCodeHardFailOnly(t *testing.T) {
 
 func TestFormatRedactsPIIAndSecrets(t *testing.T) {
 	s := Snapshot{
-		Version:       "0.1.0-rc.7",
+		Version:       "0.1.0-rc.8",
 		Helper:        HelperRunning,
 		HTTP:          "127.0.0.1:17891",
 		TLS:           TLSYes,
@@ -112,7 +112,7 @@ func TestFormatRedactsPIIAndSecrets(t *testing.T) {
 
 func TestFormatHealthyKeepsKitMarkers(t *testing.T) {
 	out := Format(Snapshot{
-		Version:       "0.1.0-rc.7",
+		Version:       "0.1.0-rc.8",
 		Helper:        HelperRunning,
 		HTTP:          "127.0.0.1:17891",
 		TLS:           TLSNo,
@@ -125,7 +125,7 @@ func TestFormatHealthyKeepsKitMarkers(t *testing.T) {
 		Update:        Update{State: UpdateNotChecked, Soft: true},
 	})
 	for _, want := range []string{
-		"openthaiid doctor (0.1.0-rc.7)",
+		"openthaiid doctor (0.1.0-rc.8)",
 		"result: OK",
 		"pcsc: OK",
 		"ACS ACR39U ICC Reader",
@@ -151,7 +151,7 @@ func TestCollectHelperDownUsesIndependentPCSC(t *testing.T) {
 	cfg.TLSKeyFile = "/etc/openthaiid/loopback-key.pem"
 	cfg.TLSPort = 17892
 	snap := Collect(context.Background(), Options{
-		Version: "0.1.0-rc.7",
+		Version: "0.1.0-rc.8",
 		Config:  cfg,
 		Helper: func(context.Context) (*Snapshot, error) {
 			return nil, errors.New("connection refused")
@@ -197,7 +197,7 @@ func TestCollectHelperUpDoesNotOpenPCSC(t *testing.T) {
 		Config:  config.Default(),
 		Helper: func(context.Context) (*Snapshot, error) {
 			s := Snapshot{
-				Version:       "0.1.0-rc.7",
+				Version:       "0.1.0-rc.8",
 				Helper:        HelperRunning,
 				HTTP:          "127.0.0.1:17991",
 				TLS:           TLSNo,
@@ -237,10 +237,10 @@ func TestCollectHelperUpDoesNotOpenPCSC(t *testing.T) {
 
 func TestCollectPCSCFailWhileHelperUp(t *testing.T) {
 	snap := Collect(context.Background(), Options{
-		Version: "0.1.0-rc.7",
+		Version: "0.1.0-rc.8",
 		Helper: func(context.Context) (*Snapshot, error) {
 			s := Snapshot{
-				Version:       "0.1.0-rc.7",
+				Version:       "0.1.0-rc.8",
 				Helper:        HelperRunning,
 				HTTP:          "127.0.0.1:17891",
 				TLS:           TLSNo,
@@ -275,7 +275,7 @@ func TestCollectPCSCFailWhileHelperUp(t *testing.T) {
 
 func TestCollectHelperDownPCSCFail(t *testing.T) {
 	snap := Collect(context.Background(), Options{
-		Version: "0.1.0-rc.7",
+		Version: "0.1.0-rc.8",
 		Config:  config.Default(),
 		Helper:  func(context.Context) (*Snapshot, error) { return nil, errors.New("down") },
 		PCSC:    func(context.Context) (Inventory, error) { return Inventory{}, errors.New("no pcscd") },
