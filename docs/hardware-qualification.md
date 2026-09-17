@@ -39,7 +39,7 @@ or Linux.
 | Step | What | Pass looks like |
 |---|---|---|
 | B1 | Unsigned clinic package on this PC | START-HERE.txt followed; helper starts. Not signed / not notarized. |
-| B2 | `openthaiid version` | Prints the package version (for example `0.1.0-rc.7`). |
+| B2 | `openthaiid version` | Prints the package version (for example `0.1.0-rc.8`). |
 | B3 | `openthaiid doctor` | Helper running (or `FAIL (HELPER_DOWN)`), `pcsc: OK` and the **reader name** only. Line `personal fields: not read`. TLS yes/no — no key paths. |
 | B4 | Plug ACR39U, insert a Thai ID | Doctor lists the reader. Do not run a dump tool that prints fields. |
 | B5 | Helper running | `openthaiid tray`, OpenThaiID.app / Start menu, or always-on `openthaiid serve` / `openthaiid service status`. Ready page `http://127.0.0.1:17891/`. |

@@ -33,7 +33,7 @@ func TestRunSyntheticSmoke(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	rep, err := Run(ctx, hw, Options{
-		Version:    "0.1.0-rc.7-test",
+		Version:    "0.1.0-rc.8-test",
 		Synthetic:  true,
 		Cycles:     3,
 		StepBudget: 2 * time.Second,
@@ -125,7 +125,7 @@ func TestRunSyntheticNoAPDUOrPIIInReport(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	rep, err := Run(ctx, hw, Options{
-		Version:    "0.1.0-rc.7-test",
+		Version:    "0.1.0-rc.8-test",
 		Synthetic:  true,
 		Cycles:     2,
 		WaitBudget: 300 * time.Millisecond,
@@ -211,7 +211,7 @@ func TestHardwareModeSkipsPresenceToggle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	rep, err := Run(ctx, hw, Options{
-		Version:    "0.1.0-rc.7-test",
+		Version:    "0.1.0-rc.8-test",
 		Synthetic:  false,
 		Cycles:     2,
 		WaitBudget: 300 * time.Millisecond,
