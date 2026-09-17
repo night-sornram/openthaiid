@@ -66,7 +66,7 @@ type Check struct {
 // Synthetic never closes P2–P10. Hardware on this GOOS/GOARCH can
 // evidence a subset; other hosts still need their own run.
 type Evidence struct {
-	ThisHostMayEvidence []string `json:"thisHostMayEvidence"`
+	ThisHostMayEvidence []string `json:"thisHostMayEvidence,omitempty"`
 	StillNeedsOtherHost []string `json:"stillNeedsOtherHost,omitempty"`
 	SyntheticDoesNot    []string `json:"syntheticDoesNotClose,omitempty"`
 	NeedsACR39U         bool     `json:"needsACR39U"`

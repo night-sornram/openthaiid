@@ -91,6 +91,13 @@ func TestRunSyntheticSmoke(t *testing.T) {
 	if parsed["schema"] != Schema {
 		t.Fatalf("schema %v", parsed["schema"])
 	}
+	ev, _ := parsed["evidence"].(map[string]any)
+	if ev == nil {
+		t.Fatal("missing evidence")
+	}
+	if _, ok := ev["thisHostMayEvidence"]; ok {
+		t.Fatalf("synthetic report should omit thisHostMayEvidence, got %v", ev["thisHostMayEvidence"])
+	}
 	pii, _ := parsed["pii"].(string)
 	if pii == "" || strings.Contains(strings.ToLower(pii), "stored") && !strings.Contains(pii, "never") {
 		// pii field must say values are omitted
