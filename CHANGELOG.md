@@ -31,6 +31,10 @@ sample (#40). Earlier Friday playbook / bind-stress stay in `[0.1.0-rc.8]`
 - `@openthaiid/web` and `@openthaiid/react` package versions (and the React
   peer on `@openthaiid/web`) aligned with the helper line `0.1.0-rc.9`.
   Still unpublished.
+- `@openthaiid/web` reconnect unit tests drive first-attempt backoff with
+  fake timers and fixed jitter (`Math.random` → 0, delay 500ms) so
+  `make sdk-test` is not racing `vi.waitFor`’s 1s default against a
+  500–999ms reconnect delay.
 
 ### Security
 

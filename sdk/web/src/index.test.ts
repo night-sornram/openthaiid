@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_FIELDS, SUPPORTED_FIELDS, TEXTUAL_FIELDS, ThaiID, ThaiIDError, portraitBlob, portraitDataUrl } from "../src/index";
 import { setPageWsContextForTests } from "../src/browser";
 
@@ -108,9 +108,28 @@ function installFakeWebSocket(opts: { autoRespond?: boolean; snapshot?: boolean;
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   setPageWsContextForTests(null);
 });
+
+async function connectUnderFakeTimers(id: ThaiID): Promise<void> {
+  const p = id.connect();
+  // FakeWS delivers status.snapshot on a 0ms macrotask after the token is set.
+  await vi.advanceTimersByTimeAsync(0);
+  await p;
+}
+
+async function flushReconnectUnderFakeTimers(id: ThaiID): Promise<void> {
+  // One timer only: the first reconnect delay (500ms with Math.random stubbed
+  // to 0). advanceTimersByTime(500) also flushes the 0ms snapshot before
+  // session.open assigns the token, and connect() then hangs on #awaitSnapshot.
+  await vi.advanceTimersToNextTimerAsync();
+  for (let i = 0; i < 8 && id.state() !== "connected"; i++) {
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+  }
+}
 
 describe("ThaiID", () => {
   it("defaults fields and endpoint", () => {
@@ -415,54 +434,57 @@ describe("ThaiID", () => {
     }
   }, 10_000);
 
-  it("reconnects after a helper restart with a new instance id", async () => {
-    const fake = installFakeWebSocket({ autoRespond: true, instanceIds: ["bridge-a", "bridge-b"] });
-    const id = new ThaiID();
-    try {
-      const states: string[] = [];
-      id.on("connectionChanged", (s) => states.push(s));
-      await id.connect();
-      expect(id.state()).toBe("connected");
-      fake.sockets[0]!.close();
-      await vi.waitFor(() => {
-        expect(fake.sockets.length).toBe(2);
-      });
-      await vi.waitFor(() => {
-        expect(id.state()).toBe("connected");
-      });
-      expect(states).toContain("reconnecting");
-      expect(id.state()).toBe("connected");
-    } finally {
-      await id.disconnect();
-      fake.restore();
-    }
-  });
+  describe("auto-reconnect", () => {
+    beforeEach(() => {
+      // Fake only timeout APIs so Date.now stays injectable for the budget test.
+      // Math.random → 0 ⇒ first reconnect delay is exactly 500ms (exp/2 + 0 jitter).
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      vi.spyOn(Math, "random").mockReturnValue(0);
+    });
 
-  it("keeps auto-reconnect after a successful recovery past the original budget", async () => {
-    let now = 1_000;
-    vi.spyOn(Date, "now").mockImplementation(() => now);
-    const fake = installFakeWebSocket({ autoRespond: true, instanceIds: ["bridge-a", "bridge-b", "bridge-c"] });
-    const id = new ThaiID();
-    try {
-      await id.connect();
-      fake.sockets[0]!.close();
-      await vi.waitFor(() => {
+    it("reconnects after a helper restart with a new instance id", async () => {
+      const fake = installFakeWebSocket({ autoRespond: true, instanceIds: ["bridge-a", "bridge-b"] });
+      const id = new ThaiID();
+      try {
+        const states: string[] = [];
+        id.on("connectionChanged", (s) => states.push(s));
+        await connectUnderFakeTimers(id);
+        expect(id.state()).toBe("connected");
+        fake.sockets[0]!.close();
+        expect(id.state()).toBe("reconnecting");
+        await flushReconnectUnderFakeTimers(id);
+        expect(fake.sockets.length).toBe(2);
+        expect(id.state()).toBe("connected");
+        expect(states).toContain("reconnecting");
+      } finally {
+        await id.disconnect();
+        fake.restore();
+      }
+    });
+
+    it("keeps auto-reconnect after a successful recovery past the original budget", async () => {
+      let now = 1_000;
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      const fake = installFakeWebSocket({ autoRespond: true, instanceIds: ["bridge-a", "bridge-b", "bridge-c"] });
+      const id = new ThaiID();
+      try {
+        await connectUnderFakeTimers(id);
+        fake.sockets[0]!.close();
+        expect(id.state()).toBe("reconnecting");
+        await flushReconnectUnderFakeTimers(id);
         expect(id.state()).toBe("connected");
         expect(fake.sockets.length).toBe(2);
-      });
-      now = 1_000 + 130_000;
-      fake.sockets[1]!.close();
-      await vi.waitFor(() => {
-        expect(id.state()).not.toBe("disconnected");
-      });
-      await vi.waitFor(() => {
+        now = 1_000 + 130_000;
+        fake.sockets[1]!.close();
+        expect(id.state()).toBe("reconnecting");
+        await flushReconnectUnderFakeTimers(id);
         expect(id.state()).toBe("connected");
         expect(fake.sockets.length).toBe(3);
-      });
-    } finally {
-      await id.disconnect();
-      fake.restore();
-    }
+      } finally {
+        await id.disconnect();
+        fake.restore();
+      }
+    });
   });
 
   it("read uses the selected reader from status", async () => {
