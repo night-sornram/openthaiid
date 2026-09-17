@@ -5,17 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-rc.6] — software release candidate (unreleased tag)
+## [0.1.0-rc.7] — software release candidate (unreleased tag)
 
 Software RC against `dev` while ACR39U hardware is in transit. **Do not
-enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.6` only after
+enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.7` only after
 human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
-in this candidate.
+in this candidate. Do not retag `v0.1.0-rc.6`.
 
-Summarizes merges since `[0.1.0-rc.5]`: Go module hygiene (#32), Friday
-staff desk card (#33), technician `openthaiid doctor` desk snapshot.
-Earlier version check / Firefox/Safari honesty / loopback helper TLS stay
-in `[0.1.0-rc.5]` (not repeated here).
+Summarizes merges since `[0.1.0-rc.6]`: technician `openthaiid doctor`
+desk snapshot (#35). Earlier Go module hygiene / Friday staff desk card
+stay in `[0.1.0-rc.6]` (not repeated here).
 
 ### Added
 
@@ -27,9 +26,40 @@ in `[0.1.0-rc.5]` (not repeated here).
   down or PC/SC is unavailable; soft update-check failures stay soft. Loopback
   `GET /v1/helper/doctor` (same Origin rule as summary; does not call GitHub)
   and Technician tools **Desk snapshot**. Tests cover redaction and exit codes
-  with fakes. Pointers: [technician.md](docs/technician.md),
+  with fakes. `make friday-dry-run` runs the snapshot and refuses PII.
+  Pointers: [technician.md](docs/technician.md),
   [friday-checklist.md](docs/friday-checklist.md),
-  [getting-started.md](docs/getting-started.md).
+  [getting-started.md](docs/getting-started.md). smoke-package asserts
+  those three links.
+
+### Changed
+
+- Helper version string defaults to `0.1.0-rc.7`.
+
+### Security
+
+- `openthaiid doctor` / `GET /v1/helper/doctor` never print citizen ID,
+  names, address, photo bytes, tokens, or TLS private-key paths. Foreign
+  `Origin` is rejected. The endpoint does not call GitHub.
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
+
+## [0.1.0-rc.6] — software release candidate
+
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Physical E1–E7 and Apple/Microsoft
+code signing are **not** in this candidate. Tagged `v0.1.0-rc.6`.
+
+Summarizes merges since `[0.1.0-rc.5]`: Go module hygiene (#32), Friday
+staff desk card (#33). Earlier version check / Firefox/Safari honesty /
+loopback helper TLS stay in `[0.1.0-rc.5]` (not repeated here).
+
+### Added
 
 - Staff-only Friday morning **printable desk card** (Thai-first, one page):
   [docs/friday-desk-card.md](docs/friday-desk-card.md) with a print-ready
@@ -76,7 +106,6 @@ in `[0.1.0-rc.5]` (not repeated here).
 
 - Physical ACR39U acceptance (E1–E7 / M1)
 - Signed / notarized store installers
-- A published GitHub Release until a human tags this RC
 - Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.5] — software release candidate (unreleased tag)

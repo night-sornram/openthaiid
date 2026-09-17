@@ -1,9 +1,9 @@
 # Not done
 
-Last updated after the **technician `openthaiid doctor` desk snapshot** on
-the `v0.1.0-rc.6` line (no rc.7 bump). Physical ACR39U execution (including
-Friday E4–E6 on hardware) is still blocked. This tree stays **tag-ready**
-for `v0.1.0-rc.6` after review.
+Last updated after **v0.1.0-rc.7 prep**: technician `openthaiid doctor`
+desk snapshot (#35). Physical ACR39U execution (including Friday E4–E6 on
+hardware) is still blocked. This tree is **tag-ready** for `v0.1.0-rc.7`
+after review. Do not retag `v0.1.0-rc.6`.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -70,7 +70,7 @@ explicit and unsigned. There is no Store-signed auto-update.
 | Item | Notes |
 |---|---|
 | Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
-| Published GitHub Release / `v0.1.0-rc.6` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. Do not retag `v0.1.0-rc.5`. |
+| Published GitHub Release / `v0.1.0-rc.7` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. Do not retag `v0.1.0-rc.6`. |
 | Darwin clinic archive on GitHub | Produce with `make package-macos` **on a Mac**. Linux builders cannot cross-compile `ebfe/scard` + Cocoa. Unsigned / not notarized. |
 | Go toolchain / `ebfe/scard` bump | **Held:** `go1.27.1` is current stable (no `go1.27.2`). `ebfe/scard` has no newer tagged revision; keep the pin until the binding audit (P2–P6, P10) or a real upstream fix. |
 
@@ -90,46 +90,46 @@ explicit and unsigned. There is no Store-signed auto-update.
 4. Complete the headed public-HTTPS local-network permission check (M1).
 5. Finish the binding audit checklist in `docs/dependency-audit.md` /
    `docs/acceptance.md` (P2–P6, P10).
-6. Human/coordinator: tag `v0.1.0-rc.6` from `dev` after review. Do **not**
+6. Human/coordinator: tag `v0.1.0-rc.7` from `dev` after review. Do **not**
 enable GitHub Actions until minutes are available. Exact commands after
 this PR is merged:
 
 ```bash
 git checkout dev && git pull origin dev
-git tag -a v0.1.0-rc.6 -m "OpenThaiID v0.1.0-rc.6"
-git push origin v0.1.0-rc.6
+git tag -a v0.1.0-rc.7 -m "OpenThaiID v0.1.0-rc.7"
+git push origin v0.1.0-rc.7
 
 # Linux + Windows archives (Linux builder). Darwin must be on a Mac.
-VERSION=0.1.0-rc.6 OS=linux ARCH=amd64 ./scripts/package.sh
-VERSION=0.1.0-rc.6 OS=windows ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.7 OS=linux ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.7 OS=windows ARCH=amd64 ./scripts/package.sh
 # On a Mac only:
-#   VERSION=0.1.0-rc.6 make package-macos
+#   VERSION=0.1.0-rc.7 make package-macos
 
 # Checksums of the archives (package.sh already writes SHA256SUMS *inside*
 # each archive for the binary):
 (
   cd dist
-  sha256sum openthaiid-0.1.0-rc.6-linux-amd64.tar.gz \
-    openthaiid-0.1.0-rc.6-windows-amd64.zip \
+  sha256sum openthaiid-0.1.0-rc.7-linux-amd64.tar.gz \
+    openthaiid-0.1.0-rc.7-windows-amd64.zip \
     > SHA256SUMS
 )
 # append the darwin archive SHA when produced on a Mac
 
-# Release notes: the [0.1.0-rc.6] section only (not the whole CHANGELOG).
-sed -n '/^## \[0.1.0-rc.6\]/,/^## \[0.1.0-rc.5\]/{ /^## \[0.1.0-rc.5\]/d; p; }' \
-  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.6-notes.md
+# Release notes: the [0.1.0-rc.7] section only (not the whole CHANGELOG).
+sed -n '/^## \[0.1.0-rc.7\]/,/^## \[0.1.0-rc.6\]/{ /^## \[0.1.0-rc.6\]/d; p; }' \
+  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.7-notes.md
 
-gh release create v0.1.0-rc.6 \
+gh release create v0.1.0-rc.7 \
   --repo night-sornram/openthaiid \
   --prerelease \
   --target dev \
-  --title "v0.1.0-rc.6" \
-  --notes-file /tmp/openthaiid-0.1.0-rc.6-notes.md \
-  dist/openthaiid-0.1.0-rc.6-linux-amd64.tar.gz \
-  dist/openthaiid-0.1.0-rc.6-windows-amd64.zip \
+  --title "v0.1.0-rc.7" \
+  --notes-file /tmp/openthaiid-0.1.0-rc.7-notes.md \
+  dist/openthaiid-0.1.0-rc.7-linux-amd64.tar.gz \
+  dist/openthaiid-0.1.0-rc.7-windows-amd64.zip \
   dist/SHA256SUMS
-# add dist/openthaiid-0.1.0-rc.6-darwin-<arch>.tar.gz when available
+# add dist/openthaiid-0.1.0-rc.7-darwin-<arch>.tar.gz when available
 ```
 
 Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.6]`.
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.7]`.

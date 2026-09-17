@@ -61,6 +61,7 @@ Need pcscd, for example:
   sudo systemctl enable --now pcscd
 
 Commands: openthaiid status | doctor | quit | open | open technician | autostart | service | audit | update check | qualify | serve
+./openthaiid doctor  redacted desk snapshot (helper, ports, PC/SC, probe; no personal fields)
 
 Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).
