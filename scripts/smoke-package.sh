@@ -7,7 +7,7 @@ cd "$ROOT"
 chmod +x "$ROOT/scripts/package.sh"
 
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-VERSION="${VERSION:-0.1.0-rc.6}"
+VERSION="${VERSION:-0.1.0-rc.7}"
 
 echo "== native package =="
 VERSION="$VERSION" ./scripts/package.sh
@@ -124,8 +124,20 @@ grep -q "loopback-tls.md" packaging/START-HERE.darwin.txt
 grep -q "compatibility.md" packaging/START-HERE.linux.txt
 grep -q "compatibility.md" packaging/START-HERE.windows.txt
 grep -q "compatibility.md" packaging/START-HERE.darwin.txt
-grep -q "0.1.0-rc.6" cmd/openthaiid/main.go
-grep -q "0.1.0-rc.6" Makefile
+grep -q "0.1.0-rc.7" cmd/openthaiid/main.go
+grep -q "0.1.0-rc.7" Makefile
+
+echo "== openthaiid doctor technician desk snapshot links =="
+grep -q "openthaiid doctor" docs/technician.md
+grep -q "GET /v1/helper/doctor" docs/technician.md
+grep -q "Desk snapshot" docs/technician.md
+grep -q "openthaiid doctor" docs/friday-checklist.md
+grep -q "openthaiid doctor" docs/getting-started.md
+grep -q "doctor -port" scripts/friday-dry-run.sh
+grep -q "doctor -port" scripts/friday-dry-run.ps1
+grep -q "openthaiid doctor" packaging/START-HERE.linux.txt
+grep -q "openthaiid doctor" packaging/START-HERE.darwin.txt
+grep -q "openthaiid.exe doctor" packaging/START-HERE.windows.txt
 
 echo "== friday-desk-card staff-only (not the qualify kit) =="
 test -f docs/friday-desk-card.md
