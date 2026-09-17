@@ -24,9 +24,9 @@ Other versions are unverified until tested.
 | Safari / WebKit | **macOS only** for real Safari. Playwright `webkit` is the automatable engine (`OPENTHAIID_BROWSER=webkit` / `make acceptance-webkit`). Linux WebKit is not Safari. | Headed Safari remains a manual check |
 
 The GitHub Actions matrix is **not** expanded: pull requests (when the
-workflow is enabled) run Firefox on ubuntu only; the full lane adds Chrome
-on macOS/Windows and Edge on Windows. Do not add Safari rows (macOS
-multiplier).
+workflow is enabled after ~1 Oct 2026) run Firefox on ubuntu only; the
+full lane adds Chrome on macOS/Windows and Edge on Windows. Do not add
+Safari rows (macOS multiplier). The workflow stays disabled until then.
 
 ### Clinic Fill / Ready (software)
 

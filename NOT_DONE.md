@@ -1,135 +1,190 @@
-# Not done
+# Friday readiness (pre-hardware)
 
-Last updated after **v0.1.0-rc.7 prep**: technician `openthaiid doctor`
-desk snapshot (#35). Physical ACR39U execution (including Friday E4–E6 on
-hardware) is still blocked. This tree is **tag-ready** for `v0.1.0-rc.7`
-after review. Do not retag `v0.1.0-rc.6`.
+Last updated after **v0.1.0-rc.7** was tagged and published
+([release](https://github.com/night-sornram/openthaiid/releases/tag/v0.1.0-rc.7),
+`dev` at `712431c`). Software for the doctor-desk snapshot is complete.
+This file is the **Friday morning playbook**, not a software backlog.
 
-Software ownership, cancellation, stall recovery, request saturation, the
-cross-platform acceptance harness, remaining textual fields, optional
-portrait (synthetic), the qualification *kit*, unsigned macOS packaging
-instructions, reconnect/test-connection staff UX, multi-reader select,
-card-removed / unplug clinic UX, sleep/wake + PC/SC recovery mapping,
-operator GitHub Releases **check**, honest Firefox/Safari HTTPS Fill
-errors, optional technician-managed loopback HTTPS/WSS, Go module
-hygiene, the staff Friday **desk card** (`docs/friday-desk-card.md`), and
-the technician **`openthaiid doctor` desk snapshot** are implemented. This
-file lists everything that is **not** complete for a **hardware-qualified**
-release.
+Do **not** retag `v0.1.0-rc.7`. Do **not** invent a new RC for this docs
+pass. Do **not** enable GitHub Actions (included minutes until ~1 Oct 2026).
+Do **not** implement Laser-id / NHSO.
 
-Do **not** treat GitHub Actions as green on this PR: the workflow stays
-disabled (included minutes exhausted). Run `make test`,
-`make qualify-smoke`, `make friday-dry-run`, `make smoke-package`, and
-`make acceptance-firefox` locally.
+Local evidence until Actions returns: `make test`, `make qualify-smoke`,
+`make friday-dry-run`, `make smoke-package`, and `make acceptance-firefox`.
 
 ---
 
-## Blocked on hardware / target environments
+## Done in software (rc.7)
+
+Already shipped. Do not re-open these as Friday software todos.
+
+- Reader ownership, cancellation, stall recovery, request saturation
+- Cross-platform acceptance harness (synthetic) + `make friday-dry-run`
+- Remaining textual fields + optional portrait (synthetic)
+- Qualification *kit* (`openthaiid qualify`, no personal fields in reports)
+- Unsigned clinic packaging + macOS-host-only `make package-macos` instructions
+- Reconnect / **ทดสอบการเชื่อมต่อ**, multi-reader **ใช้เครื่องนี้**
+- Card-removed / reader-unplug clinic UX (`CARD_REMOVED` / `READER_REMOVED`)
+- Sleep/wake + PC/SC recovery mapping (`BRIDGE_UNAVAILABLE` / `PCSC_UNAVAILABLE`)
+- Operator GitHub Releases **check** (`openthaiid update check`, Ready **ตรวจเวอร์ชัน**)
+- Honest Firefox/Safari HTTPS Fill errors (`HTTPS_WS_BLOCKED` / `TLS_UNTRUSTED`)
+- Optional technician-managed loopback HTTPS/WSS (`docs/loopback-tls.md`)
+- Go module hygiene (rc.6); helper version string `0.1.0-rc.7`
+- Staff Friday **desk card** (`docs/friday-desk-card.md`)
+- Technician **`openthaiid doctor`** desk snapshot (`GET /v1/helper/doctor`)
+- Published GitHub Release **v0.1.0-rc.7** (linux-amd64 + windows-amd64 archives)
+
+Authoritative software matrix: [docs/acceptance.md](docs/acceptance.md).
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.7]`.
+
+---
+
+## Do Friday with ACR39U
+
+Reader on the desk. Never `-synthetic` for a hardware claim. No personal
+field values in reports, tickets, or screenshots.
+Kit: [docs/hardware-qualification.md](docs/hardware-qualification.md).
+One-page: [docs/friday-checklist.md](docs/friday-checklist.md).
+Staff print: [docs/friday-desk-card.md](docs/friday-desk-card.md).
+
+**Order:** macOS + ACR39U first, then Windows, then Linux. A macOS pass
+does not close the three-platform claim.
 
 | ID | Item | Needs |
 |---|---|---|
-| E1 | Reader/card detection within 2s under normal operation | ACR39U + OS. Kit: `docs/hardware-qualification.md` + `openthaiid qualify` |
-| E2 | 100 successful repeated MVP reads (no field values stored in reports) | ACR39U. Kit records pass/fail + timing + codes only |
+| E1 | Reader/card detection within 2s under normal operation | ACR39U + OS. `openthaiid qualify` |
+| E2 | 100 successful repeated MVP reads (no field values stored) | ACR39U. Pass/fail + timing + codes only |
 | E3 | ≥20 insertion/removal cycles | ACR39U |
-| E4 | Removal during reading and reader unplug | ACR39U |
+| E4 | Removal during reading and reader unplug | ACR39U (software mapped `CARD_REMOVED` / `READER_REMOVED`) |
 | E5 | Browser refresh, bridge restart, sleep/wake | ACR39U + browser (software mapped; physical still required) |
-| E6 | Missing/stopped PC/SC service recovery where applicable | OS PC/SC (synthetic unavailable→restore done; physical still required) |
-| E7 | Local visual verification without storing field contents | Operator |
-| — | Windows physical qualification | Windows host + reader |
-| — | Linux physical qualification | Linux host + reader |
+| E6 | Missing/stopped PC/SC service recovery where applicable | OS PC/SC (synthetic unavailable→restore done; physical still required; macOS may SKIP) |
+| E7 | Local visual verification without storing field contents | Operator + real card |
 | M1 | Headed manual check from a public HTTPS origin (local-network permission) | Operator HTTPS origin. Kit section in `docs/hardware-qualification.md` |
-| P2–P6, P10 | `ebfe/scard` binding audit items (layouts, WinSCard load, cgo stress) | Cross-build + review |
-| Safari | Real Safari UI (not Playwright WebKit) | macOS + Safari |
-| Loopback TLS headed | Firefox/Safari **https** ERP Fill with a **locally trusted** helper cert (`wss://127.0.0.1:17892`) | Clinic PC + mkcert (or imported self-signed). Software listener + SDK selection are in this tree. |
+| — | Windows physical qualification | Windows host + reader (after macOS) |
+| — | Linux physical qualification | Linux host + reader (after Windows) |
+| — | Real Safari UI (not Playwright WebKit) | macOS + Safari |
+| — | Loopback TLS headed: Firefox/Safari **https** ERP Fill with a **locally trusted** helper cert (`wss://127.0.0.1:17892`) | Clinic PC + mkcert (or imported self-signed). Software listener + SDK selection are in this tree. |
+| — | Real-card layout checks (community hypotheses) | Gender `1`/`2`; English-name `#` layout; 7-part address `#` order; portrait JPEG SOI/EOI trim — see `docs/provenance.md` |
+| P2–P6, P10 | `ebfe/scard` binding audit (layouts, WinSCard load, cgo stress) | Cross-build + review on the Friday hosts |
+| P7–P9 | Concurrent context / Transmit lengths / `Cancel` vs `GetStatusChange` | Code is Partial; hardware stress still open |
 
-**Order:** macOS + ACR39U first, then Windows/Linux. Untested configurations stay unverified.
+Untested configurations stay unverified.
 
-Physical-card confirmation is also still required for community hypotheses on
-this branch: gender `1`/`2` encoding, English-name `#` layout, 7-part
-address `#` component order, and portrait JPEG SOI/EOI trim
-(see `docs/provenance.md`).
+Darwin clinic archive: produce with `make package-macos` **on a Mac** and
+attach to the **existing** `v0.1.0-rc.7` release (unsigned / not notarized).
+Linux builders cannot cross-compile `ebfe/scard` + Cocoa. That is a Mac
+build step, not a new tag.
 
 ---
 
-## Explicitly out of this milestone (cannot fake)
+## Blocked without cited APDU (Laser-id / NHSO)
+
+Do **not** implement `laserId`, NHSO, or other DFs. The cited APDU.md
+revision for `thai-citizen-mvp` does not list them. Community source
+constants are not a citable command table.
+
+See [docs/provenance.md](docs/provenance.md) (Laser-id / NHSO section).
+Stay document-only until a URL + immutable revision + license note is
+reviewed the same way as APDU.md `4d803243715254cc93efe9040d8b1ecd85f520aa`.
+
+---
+
+## Blocked without user certs (Store / notarize)
+
+Cannot fake:
 
 - Apple notarization / Developer ID signing (no certificate)
 - Microsoft Authenticode / Store signing (no certificate)
-- Physical E1–E7 ACR39U qualification
-- Laser-id / NHSO / other DFs not in the cited APDU table (see provenance)
 
-Unsigned packages + `docs/signing.md` are the path toward signed installers.
-A technician can **check** GitHub Releases (`openthaiid update check`, Ready
-**ตรวจเวอร์ชัน**) without auto-download. CLI `update apply --yes` stays
-explicit and unsigned. There is no Store-signed auto-update.
+Unsigned packages + [docs/signing.md](docs/signing.md) are the path.
+A technician can **check** GitHub Releases without auto-download.
+CLI `update apply --yes` stays explicit and unsigned. There is no
+Store-signed auto-update.
 
 ---
 
-## Outstanding software items
+## Paused until Actions minutes (~1 Oct 2026)
 
-| Item | Notes |
-|---|---|
-| Binding audit P7–P9 marked Partial | Code ownership/limits implemented; hardware stress still open |
-| Published GitHub Release / `v0.1.0-rc.7` tag | Tree is tag-ready on `dev` after this PR. A human should tag after review. Do not enable Actions to build the RC. Do not retag `v0.1.0-rc.6`. |
-| Darwin clinic archive on GitHub | Produce with `make package-macos` **on a Mac**. Linux builders cannot cross-compile `ebfe/scard` + Cocoa. Unsigned / not notarized. |
-| Go toolchain / `ebfe/scard` bump | **Held:** `go1.27.1` is current stable (no `go1.27.2`). `ebfe/scard` has no newer tagged revision; keep the pin until the binding audit (P2–P6, P10) or a real upstream fix. |
+The workflow file stays in the tree and stays **disabled** at the repo
+until included minutes reset (~1 Oct 2026). Do not enable it to “prove”
+this PR or to build an RC.
 
----
+Docs-only / `.cursor/`-only changes already skip CI (`paths-ignore`).
+When minutes return: PR lane is Ubuntu Firefox; full lane is
+`workflow_dispatch` / push to `dev`/`main`. See
+[docs/acceptance.md](docs/acceptance.md).
 
-## How to close the remaining work
-
-1. Local: `make test`, `make qualify-smoke`, `make friday-dry-run`,
-   `make smoke-package`, and
-   `make acceptance-firefox` (Linux). On macOS, `make package-macos` and
-   `make acceptance-webkit`. Real Safari is still a headed check.
-2. Connect an ACR39U on macOS; complete
-   [docs/hardware-qualification.md](docs/hardware-qualification.md)
-   (E1–E7) without logging field values (including photo bytes). Confirm
-   gender, English-name, address order, and portrait JPEG on a real card.
-3. Repeat physical checks on Windows and Linux.
-4. Complete the headed public-HTTPS local-network permission check (M1).
-5. Finish the binding audit checklist in `docs/dependency-audit.md` /
-   `docs/acceptance.md` (P2–P6, P10).
-6. Human/coordinator: tag `v0.1.0-rc.7` from `dev` after review. Do **not**
-enable GitHub Actions until minutes are available. Exact commands after
-this PR is merged:
+Until then, run locally:
 
 ```bash
+make test
+make qualify-smoke
+make friday-dry-run
+make smoke-package
+make acceptance-firefox   # Linux
+# On macOS: make package-macos && make acceptance-webkit
+```
+
+Go toolchain / `ebfe/scard` pin: **held** (`go1.27.1`; no newer `ebfe/scard`
+tag). Not a Friday software task.
+
+---
+
+## Coordinator — next tag only
+
+This docs pass does **not** get a tag. Helper version stays `0.1.0-rc.7`.
+
+- Do **not** retag `v0.1.0-rc.7`.
+- Do **not** enable GitHub Actions.
+- Optional leftover on the **existing** release (Mac host; not a new tag):
+
+```bash
+VERSION=0.1.0-rc.7 make package-macos
+gh release upload v0.1.0-rc.7 \
+  dist/openthaiid-0.1.0-rc.7-darwin-arm64.tar.gz \
+  --repo night-sornram/openthaiid
+# then append that archive’s SHA-256 to the published SHA256SUMS
+```
+
+Next **new** tag only after Friday hardware evidence (or a later software
+change that actually bumps the version in the tree). Pick `VERSION` then
+— do not invent it here. Last tagged section in CHANGELOG is
+`[0.1.0-rc.7]`.
+
+```bash
+# After a real version bump exists on dev. Do not retag v0.1.0-rc.7.
+# VERSION=0.1.0-rc.N
 git checkout dev && git pull origin dev
-git tag -a v0.1.0-rc.7 -m "OpenThaiID v0.1.0-rc.7"
-git push origin v0.1.0-rc.7
+git tag -a "v${VERSION}" -m "OpenThaiID v${VERSION}"
+git push origin "v${VERSION}"
 
 # Linux + Windows archives (Linux builder). Darwin must be on a Mac.
-VERSION=0.1.0-rc.7 OS=linux ARCH=amd64 ./scripts/package.sh
-VERSION=0.1.0-rc.7 OS=windows ARCH=amd64 ./scripts/package.sh
+VERSION="$VERSION" OS=linux ARCH=amd64 ./scripts/package.sh
+VERSION="$VERSION" OS=windows ARCH=amd64 ./scripts/package.sh
 # On a Mac only:
-#   VERSION=0.1.0-rc.7 make package-macos
+#   VERSION="$VERSION" make package-macos
 
-# Checksums of the archives (package.sh already writes SHA256SUMS *inside*
-# each archive for the binary):
 (
   cd dist
-  sha256sum openthaiid-0.1.0-rc.7-linux-amd64.tar.gz \
-    openthaiid-0.1.0-rc.7-windows-amd64.zip \
+  sha256sum "openthaiid-${VERSION}-linux-amd64.tar.gz" \
+    "openthaiid-${VERSION}-windows-amd64.zip" \
     > SHA256SUMS
 )
 # append the darwin archive SHA when produced on a Mac
 
-# Release notes: the [0.1.0-rc.7] section only (not the whole CHANGELOG).
-sed -n '/^## \[0.1.0-rc.7\]/,/^## \[0.1.0-rc.6\]/{ /^## \[0.1.0-rc.6\]/d; p; }' \
-  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.7-notes.md
+# Release notes: the new [VERSION] section only, stopping at [0.1.0-rc.7].
+PREV=0.1.0-rc.7
+sed -n "/^## \\[${VERSION}\\]/,/^## \\[${PREV}\\]/{ /^## \\[${PREV}\\]/d; p; }" \
+  CHANGELOG.md > "/tmp/openthaiid-${VERSION}-notes.md"
 
-gh release create v0.1.0-rc.7 \
+gh release create "v${VERSION}" \
   --repo night-sornram/openthaiid \
   --prerelease \
   --target dev \
-  --title "v0.1.0-rc.7" \
-  --notes-file /tmp/openthaiid-0.1.0-rc.7-notes.md \
-  dist/openthaiid-0.1.0-rc.7-linux-amd64.tar.gz \
-  dist/openthaiid-0.1.0-rc.7-windows-amd64.zip \
+  --title "v${VERSION}" \
+  --notes-file "/tmp/openthaiid-${VERSION}-notes.md" \
+  "dist/openthaiid-${VERSION}-linux-amd64.tar.gz" \
+  "dist/openthaiid-${VERSION}-windows-amd64.zip" \
   dist/SHA256SUMS
-# add dist/openthaiid-0.1.0-rc.7-darwin-<arch>.tar.gz when available
+# add dist/openthaiid-${VERSION}-darwin-<arch>.tar.gz when available
 ```
-
-Authoritative matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.7]`.

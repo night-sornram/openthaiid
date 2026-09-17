@@ -172,4 +172,29 @@ if grep -qiE "laser-id|NHSO" docs/friday-desk-card.md docs/friday-desk-card.html
   exit 1
 fi
 
+echo "== NOT_DONE Friday playbook (not a stale software backlog) =="
+grep -q "Done in software (rc.7)" NOT_DONE.md
+grep -q "Do Friday with ACR39U" NOT_DONE.md
+grep -q "Blocked without cited APDU" NOT_DONE.md
+grep -q "Blocked without user certs" NOT_DONE.md
+grep -q "Paused until Actions minutes" NOT_DONE.md
+grep -q "next tag only" NOT_DONE.md
+grep -q "v0.1.0-rc.7" NOT_DONE.md
+grep -q "E1" NOT_DONE.md
+grep -q "M1" NOT_DONE.md
+grep -q "1 Oct 2026" NOT_DONE.md
+if grep -q "tag-ready" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not still call rc.7 tag-ready (already tagged)" >&2
+  exit 1
+fi
+if grep -q "git tag -a v0.1.0-rc.7" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not retag v0.1.0-rc.7" >&2
+  exit 1
+fi
+grep -q "NOT_DONE.md" README.md
+grep -q "NOT_DONE.md" docs/getting-started.md
+grep -q "NOT_DONE.md" docs/friday-checklist.md
+grep -q "NOT_DONE.md" docs/hardware-qualification.md
+grep -q '## \[Unreleased\]' CHANGELOG.md
+
 echo "OK smoke-package"

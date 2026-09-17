@@ -98,8 +98,8 @@ exits via `process.exit` at 150s. A new push cancels in-progress runs.
 
 PR CI runs H1 + H5–H7 (ubuntu **Firefox**, three policies). H2–H4 (macOS Chrome,
 Windows Chrome, Windows Edge) run on the full lane only (merge to `dev`/`main`
-or `workflow_dispatch`). The workflow may be disabled to conserve minutes;
-run `make acceptance-firefox` locally.
+or `workflow_dispatch`). The workflow stays disabled until included minutes
+reset (~1 Oct 2026); run `make acceptance-firefox` locally.
 
 | # | Criterion | Status |
 |---|---|---|
@@ -198,7 +198,7 @@ Successful compilation alone does not close these checks.
 | G11 | PC/SC StateUnaware retention + recovery; stall + ownership | Done |
 | G12 | Shared synthetic demo card end-to-end | Done |
 | G13 | Green five-target CI with version smoke + npm ci | Done (PR #1); full lane after merge / dispatch |
-| G14 | Playwright browser acceptance (Firefox on Linux; Chrome × macOS/Windows + Edge on Windows) | Code ready; run locally while Actions is disabled |
+| G14 | Playwright browser acceptance (Firefox on Linux; Chrome × macOS/Windows + Edge on Windows) | Code ready; run locally while Actions is paused (~1 Oct 2026) |
 | G15 | Hardware qualification evidence | Open |
 | G16 | node-pty cross-platform terminal approval harness | Done (local macOS); multi-OS CI ready |
 
