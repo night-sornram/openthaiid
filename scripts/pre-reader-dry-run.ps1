@@ -1,8 +1,8 @@
-# Friday morning software dry-run (synthetic). No ACR39U required.
+# Pre-reader software dry-run (synthetic). No ACR39U required.
 # Never prints citizen ID, names, address, or photo bytes.
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File scripts/friday-dry-run.ps1
-#   powershell -ExecutionPolicy Bypass -File scripts/friday-dry-run.ps1 -TwoReaders
+#   powershell -ExecutionPolicy Bypass -File scripts/pre-reader-dry-run.ps1
+#   powershell -ExecutionPolicy Bypass -File scripts/pre-reader-dry-run.ps1 -TwoReaders
 param(
     [switch]$TwoReaders,
     [int]$Port = 17981,
@@ -47,8 +47,8 @@ function Get-Json {
     return $raw | ConvertFrom-Json
 }
 
-Write-Host "== OpenThaiID Friday dry-run (synthetic; not a hardware pass) =="
-Write-Host "docs: getting-started.md · training.md · friday-desk-card.md · friday-checklist.md"
+Write-Host "== OpenThaiID pre-reader dry-run (synthetic; not a hardware pass) =="
+Write-Host "docs: getting-started.md · training.md · staff-desk-card.md · hardware-checklist.md"
 Write-Host "never print citizen ID, names, address, or photo bytes"
 
 if (-not (Test-Path $Bin)) {
@@ -77,7 +77,7 @@ if (-not $SkipQualify) {
     if (Test-Path $report) { Remove-Item -Force $report }
 }
 
-$HomeDir = Join-Path $env:TEMP ("openthaiid-friday-dry-run-" + [guid]::NewGuid().ToString())
+$HomeDir = Join-Path $env:TEMP ("openthaiid-pre-reader-dry-run-" + [guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $HomeDir | Out-Null
 $env:OPENTHAIID_HOME = $HomeDir
 $env:OPENTHAIID_LANG = "th"
@@ -175,7 +175,7 @@ if ($mgr.running -ne $true) { throw "manager status: helper not running" }
 if ($mgr.synthetic -ne $true) { throw "manager status: expected synthetic" }
 if ($mgr.backend.status -ne "available") { throw "manager status: backend not available" }
 if (-not $mgr.readers) { throw "manager status: no readers" }
-Write-Host "OK manager-status probe-only (WS bridge.probe is scripts/friday-dry-run.sh)"
+Write-Host "OK manager-status probe-only (WS bridge.probe is scripts/pre-reader-dry-run.sh)"
 
 if ($TwoReaders) {
     Write-Host "== pick practice reader (ใช้เครื่องนี้) =="
@@ -197,14 +197,14 @@ Stop-Helper
 
 Write-Host ""
 Write-Host "======== ผ่าน / PASS — ซ้อมก่อนได้เครื่อง ========"
-Write-Host "ซอฟต์แวร์เช้าวันศุกร์พร้อมบนโหมดฝึกซ้อม (ยังไม่ใช่ผ่าน ACR39U)"
-Write-Host "Friday-morning software path rehearsed on -synthetic (not a hardware pass)."
+Write-Host "ซอฟต์แวร์ก่อนได้เครื่องพร้อมบนโหมดฝึกซ้อม (ยังไม่ใช่ผ่าน ACR39U)"
+Write-Host "pre-reader software path rehearsed on -synthetic (not a hardware pass)."
 Write-Host ""
 Write-Host "หน้า พร้อม / Ready: $Ready"
 Write-Host "ดัชนีเช้านี้: docs/getting-started.md"
 Write-Host "ฝึกกรอกข้อมูลต่อ: docs/training.md"
-Write-Host "เช้าที่มีเครื่องจริง: พิมพ์ docs/friday-desk-card.md ที่โต๊ะ"
-Write-Host "ชุด qualify: docs/friday-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)"
+Write-Host "เช้าที่มีเครื่องจริง: พิมพ์ docs/staff-desk-card.md ที่โต๊ะ"
+Write-Host "ชุด qualify: docs/hardware-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)"
 Write-Host ""
 Write-Host "ห้ามส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR ที่มียอด card.read"
 Write-Host "Do not send citizen ID, names, address, date of birth, photos, filled-form"

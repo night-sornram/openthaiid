@@ -1,6 +1,6 @@
 # เชื่อม ERP คลินิก / โรงพยาบาลที่มีอยู่แล้ว
 
-ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)
+ดัชนีเมื่อได้เครื่องอ่าน: [getting-started.md](getting-started.md)
 
 OpenThaiID เป็นไลบรารีที่เรียกจากหน้า Create Patient (หรือ KYC) ของระบบที่มีอยู่แล้ว
 **ไม่ต้องติดตั้งเว็บไซต์หรือแบ็กเอนด์ OpenThaiID**

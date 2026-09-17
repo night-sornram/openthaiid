@@ -23,14 +23,14 @@ reader from the same page, call `autofillThaiID(config)`. Drop-in JSON
 (`request` + `map`, schema + samples): [docs/erp-integration.md](docs/erp-integration.md).
 
 Clinic staff: start at [docs/getting-started.md](docs/getting-started.md)
-(Thai-first Friday-morning index). Then [docs/user.md](docs/user.md)
+(Thai-first hardware-arrival index). Then [docs/user.md](docs/user.md)
 (Ready lights with **ปกติ / รอ / ยังไม่พร้อม** text; tray / Start menu, not a
 developer terminal; multi-reader **ใช้เครื่องนี้**; card-removed / sleep-wake
 recovery). Practice without a reader: [docs/training.md](docs/training.md)
-(`make friday-dry-run`, then `openthaiid -synthetic`).
-Friday staff desk card (print one Thai page):
-[docs/friday-desk-card.md](docs/friday-desk-card.md).
-Friday with ACR39U: [docs/friday-checklist.md](docs/friday-checklist.md).
+(`make pre-reader-dry-run`, then `openthaiid -synthetic`).
+Staff desk card (print one Thai page):
+[docs/staff-desk-card.md](docs/staff-desk-card.md).
+When the ACR39U arrives: [docs/hardware-checklist.md](docs/hardware-checklist.md).
 Technicians: [docs/technician.md](docs/technician.md).
 Clinic IT packaging: [docs/installation.md](docs/installation.md).
 Always-on without a tray: `openthaiid service install`.
@@ -44,10 +44,10 @@ make build
 # Check PC/SC + helper desk snapshot (never reads personal fields)
 ./dist/openthaiid doctor
 
-# Friday qualification kit (no personal fields; synthetic smoke or real reader)
+# Hardware qualification kit (no personal fields; synthetic smoke or real reader)
 ./dist/openthaiid qualify -synthetic -e2-count 3 -e3-count 2 -report dist/openthaiid-qualify.json
-# Rehearse Friday morning without a reader (ซ้อมก่อนได้เครื่อง):
-make friday-dry-run
+# Rehearse the clinic software path without a reader (ซ้อมก่อนได้เครื่อง):
+make pre-reader-dry-run
 # With ACR39U + card inserted:
 ./scripts/hardware-qualify.sh
 ./scripts/hardware-qualify.sh --operator   # E3 / E4–E7 / M1 prompts; pass|fail|skip only
@@ -55,7 +55,7 @@ make friday-dry-run
 
 # PC/SC binding-audit stress (no personal fields, no APDUs)
 make bind-stress-smoke
-# Friday with ACR39U (never -synthetic):
+# When the ACR39U arrives (never -synthetic):
 ./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json
 
 # Run with real hardware (terminal; technicians)
@@ -220,7 +220,7 @@ Browser (HTTPS ERP page)
 | `internal/audit` | Redacted operator trail (codes, origins, presence) |
 | `internal/protocol` | Protocol v1 envelopes |
 | `internal/bridge` | Loopback HTTP + WebSocket dispatch |
-| `internal/qualify` | Friday E1–E7 / M1 kit (redacted JSON report) |
+| `internal/qualify` | E1–E7 / M1 kit (redacted JSON report) |
 | `internal/bindstress` | PC/SC binding-audit stress (redacted JSON; no APDUs) |
 | `internal/update` | GitHub Releases version check (unsigned; no auto-install) |
 | `sdk/web` | `@openthaiid/web` |
@@ -244,18 +244,18 @@ See [docs/security.md](docs/security.md) and [docs/protocol.md](docs/protocol.md
 
 ## Documentation
 
-Friday morning: [docs/getting-started.md](docs/getting-started.md) (Thai-first
-index for staff, training, Friday, ERP, and technicians).
+When the reader arrives: [docs/getting-started.md](docs/getting-started.md) (Thai-first
+index for staff, training, hardware checklist, ERP, and technicians).
 
 | Document | Contents |
 |---|---|
-| [docs/getting-started.md](docs/getting-started.md) | Friday-morning hub: which guide to open |
-| [docs/friday-desk-card.md](docs/friday-desk-card.md) | Staff-only printable Thai desk card (plug → Ready → Test connection → Fill) |
+| [docs/getting-started.md](docs/getting-started.md) | Hardware-arrival hub: which guide to open |
+| [docs/staff-desk-card.md](docs/staff-desk-card.md) | Staff-only printable Thai desk card (plug → Ready → Test connection → Fill) |
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
 | [docs/erp-integration.md](docs/erp-integration.md) | Drop-in JSON config + schema for an existing hospital/clinic ERP |
 | [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill; multi-reader and recovery tables |
-| [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives (`make friday-dry-run`) |
-| [docs/friday-checklist.md](docs/friday-checklist.md) | Operator Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
+| [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives (`make pre-reader-dry-run`) |
+| [docs/hardware-checklist.md](docs/hardware-checklist.md) | Operator hardware checklist: Ready → qualify → Fill → E4–E6 recovery → what to send |
 | [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, Firefox/Safari HTTPS, service, qualify) |
 | [docs/loopback-tls.md](docs/loopback-tls.md) | Optional local HTTPS/WSS for Firefox/Safari https ERP |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |
@@ -264,8 +264,8 @@ index for staff, training, Friday, ERP, and technicians).
 | [docs/provenance.md](docs/provenance.md) | APDU sources and licenses |
 | [docs/compatibility.md](docs/compatibility.md) | OS/browser/reader matrix |
 | [docs/acceptance.md](docs/acceptance.md) | Acceptance gates |
-| [docs/hardware-qualification.md](docs/hardware-qualification.md) | Friday E1–E7 / M1 operator kit (no personal data) |
-| [docs/bind-stress.md](docs/bind-stress.md) | PC/SC bind-stress harness (P2–P10; synthetic today, ACR39U Friday) |
+| [docs/hardware-qualification.md](docs/hardware-qualification.md) | E1–E7 / M1 operator kit (no personal data) |
+| [docs/bind-stress.md](docs/bind-stress.md) | PC/SC bind-stress harness (P2–P10; synthetic today, ACR39U when the reader arrives) |
 | [docs/installation.md](docs/installation.md) | Clinic package + source build (`make package-macos` on a Mac) |
 | [docs/signing.md](docs/signing.md) | Unsigned packages; future Authenticode / Developer ID checklist |
 | [docs/dependency-audit.md](docs/dependency-audit.md) | Binding audit checklist |
@@ -277,7 +277,7 @@ make test          # Go unit + integration (synthetic hardware)
 make smoke-helper  # Linux tray/background + package-free status/quit/autostart
 make qualify-smoke # synthetic E1–E3 kit (no personal fields in the report)
 make bind-stress-smoke # synthetic PC/SC bind-stress (does not close P2–P10)
-make friday-dry-run # synthetic Friday-morning rehearsal (Ready + qualify-smoke + probe)
+make pre-reader-dry-run # synthetic pre-reader rehearsal (Ready + qualify-smoke + probe)
 make smoke-package # native archive + darwin cross-compile refusal on Linux
 make package       # clinic archive (START-HERE + OS launch files)
 make package-macos # Darwin archive; Mac host only; unsigned / not notarized
@@ -295,7 +295,7 @@ flaky packages), linux/amd64 build, the Web + React SDKs, and Firefox
 acceptance (allow/deny/unanswered). The **full** five-target build +
 Chrome×macOS/Windows + Edge×Windows matrix, and `-count=50`, run on push
 to `dev`/`main` and via **workflow_dispatch**. Docs-only changes skip CI.
-See [docs/acceptance.md](docs/acceptance.md). Friday hardware vs software:
+See [docs/acceptance.md](docs/acceptance.md). Hardware vs software:
 [NOT_DONE.md](NOT_DONE.md).
 
 Browser acceptance uses Playwright channels (`chrome`, `msedge`) and a real
@@ -303,7 +303,7 @@ PTY via node-pty for terminal approval. Approval policies: allow, deny,
 unanswered. See [acceptance/README.md](acceptance/README.md).
 
 Hardware acceptance (ACR39U on Windows/Linux/macOS) is still required before
-a production release claim. Friday vs already-shipped software:
+a production release claim. Hardware vs already-shipped software:
 [NOT_DONE.md](NOT_DONE.md). The operator kit is
 [docs/hardware-qualification.md](docs/hardware-qualification.md). See
 [docs/acceptance.md](docs/acceptance.md) for the current evidence status.

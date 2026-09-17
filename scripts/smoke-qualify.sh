@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Software smoke for the Friday qualification kit (synthetic only).
+# Software smoke for the hardware qualification kit (synthetic only).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

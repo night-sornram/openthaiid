@@ -1,4 +1,4 @@
-# Friday hardware qualification (Windows).
+# Hardware qualification (Windows).
 # Never prints or stores citizen ID, names, address, or portrait bytes.
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File Qualify-OpenThaiID.ps1
@@ -44,7 +44,7 @@ if ($Operator) {
     Write-Host "Operator mode: type pass, fail, or skip only. Do not type card data."
 }
 
-Write-Host "See docs\friday-checklist.md (one page) and docs\hardware-qualification.md."
+Write-Host "See docs\hardware-checklist.md (one page) and docs\hardware-qualification.md."
 Write-Host "report will be: $Report"
 
 & $Bin @qualifyArgs

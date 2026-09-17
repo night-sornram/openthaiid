@@ -58,7 +58,7 @@ One Go process owns:
    supplies a local cert (Firefox/Safari https ERP) —
    [loopback-tls.md](loopback-tls.md), matrix [compatibility.md](compatibility.md).
    (browser Origin also needs CSRF). Manager refresh/reconnect are bounded.
-   Inventory: [security.md](security.md). Friday-morning hub:
+   Inventory: [security.md](security.md). Hardware-arrival hub:
    [getting-started.md](getting-started.md).
 5. A terminal command loop for approvals and revocation (console mode).
 6. Optional tray / background mode (`openthaiid tray`) instead of the
@@ -99,7 +99,7 @@ flowchart LR
 | `internal/bridge` | Loopback listener, Manager HTML, WebSocket connections, dispatch |
 | `internal/config` | Typed configuration and validation |
 | `internal/update` | GitHub Releases version check (unsigned lookup; CLI download/apply stay explicit) |
-| `internal/qualify` | Friday E1–E7 / M1 kit (`openthaiid qualify`; redacted JSON report) |
+| `internal/qualify` | E1–E7 / M1 kit (`openthaiid qualify`; redacted JSON report) |
 | `internal/bindstress` | PC/SC bind-stress (`openthaiid bind-stress`; redacted JSON, no APDUs) |
 | `sdk/web` | `@openthaiid/web` (includes clinic JSON Schema + `parseAutofillClinicConfig`) |
 | `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |

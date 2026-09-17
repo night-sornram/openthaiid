@@ -24,7 +24,7 @@ Usage: scripts/bind-stress.sh [--synthetic] [--cycles N] [--report PATH]
   --report PATH Write PII-free JSON (default: dist/openthaiid-bind-stress.json).
 
 Today (no ACR39U):  scripts/bind-stress.sh --synthetic --cycles 3
-Friday (ACR39U):    scripts/bind-stress.sh --report ./openthaiid-bind-stress.json
+Hardware (ACR39U):    scripts/bind-stress.sh --report ./openthaiid-bind-stress.json
                     Never -synthetic for a hardware claim.
 
 Never prints citizen ID, names, address, photo bytes, or raw APDUs.

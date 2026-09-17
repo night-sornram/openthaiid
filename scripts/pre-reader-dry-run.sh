@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Friday morning software dry-run (synthetic). No ACR39U required.
+# Pre-reader software dry-run (synthetic). No ACR39U required.
 # Rehearses: build → qualify-smoke → -synthetic helper → Ready/summary/status
 # → Test connection (loopback summary + CSRF status + bridge.probe).
 # Never prints citizen ID, names, address, or photo bytes.
@@ -15,21 +15,21 @@ SKIP_QUALIFY=0
 
 usage() {
   cat <<'EOF'
-Usage: scripts/friday-dry-run.sh [--two-readers] [--port N] [--skip-qualify]
+Usage: scripts/pre-reader-dry-run.sh [--two-readers] [--port N] [--skip-qualify]
 
-  Rehearse the Friday-morning clinic software path without a real reader.
+  Rehearse the clinic software path without a real reader.
   Does not claim an ACR39U / E1–E7 hardware pass.
 
   --two-readers   Seed OPENTHAIID_SYNTHETIC_READERS=2 and pick ใช้เครื่องนี้
   --port N        Helper port (default 17981; does not clash with 17891)
   --skip-qualify  Skip make qualify-smoke (helper/Ready checks still run)
 
-  make friday-dry-run
-  ./scripts/friday-dry-run.sh --two-readers
+  make pre-reader-dry-run
+  ./scripts/pre-reader-dry-run.sh --two-readers
 
   Never prints citizen ID, names, address, or photo bytes.
   See docs/getting-started.md and docs/training.md (ซ้อมก่อนได้เครื่อง).
-  Friday with hardware: docs/friday-checklist.md
+  When hardware arrives: docs/hardware-checklist.md
 EOF
 }
 
@@ -276,8 +276,8 @@ print(m.group(1))
 PY
 }
 
-echo "== OpenThaiID Friday dry-run (synthetic; not a hardware pass) =="
-echo "docs: getting-started.md · training.md · friday-desk-card.md · friday-checklist.md"
+echo "== OpenThaiID pre-reader dry-run (synthetic; not a hardware pass) =="
+echo "docs: getting-started.md · training.md · staff-desk-card.md · hardware-checklist.md"
 echo "never print citizen ID, names, address, or photo bytes"
 
 if [ ! -x "$BIN" ]; then
@@ -415,14 +415,14 @@ fi
 cat <<EOF
 
 ======== ผ่าน / PASS — ซ้อมก่อนได้เครื่อง ========
-ซอฟต์แวร์เช้าวันศุกร์พร้อมบนโหมดฝึกซ้อม (ยังไม่ใช่ผ่าน ACR39U)
-Friday-morning software path rehearsed on -synthetic (not a hardware pass).
+ซอฟต์แวร์ก่อนได้เครื่องพร้อมบนโหมดฝึกซ้อม (ยังไม่ใช่ผ่าน ACR39U)
+pre-reader software path rehearsed on -synthetic (not a hardware pass).
 
 หน้า พร้อม / Ready: ${READY}
 ดัชนีเช้านี้: docs/getting-started.md
 ฝึกกรอกข้อมูลต่อ: docs/training.md  (examples/clinic-patient/ แล้วกด อนุญาต)
-เช้าที่มีเครื่องจริง: พิมพ์ docs/friday-desk-card.md ที่โต๊ะ
-ชุด qualify: docs/friday-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)
+เช้าที่มีเครื่องจริง: พิมพ์ docs/staff-desk-card.md ที่โต๊ะ
+ชุด qualify: docs/hardware-checklist.md  (เปิดตัวช่วยโดยไม่ใส่ -synthetic)
 
 ห้ามส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR ที่มียอด card.read
 Do not send citizen ID, names, address, date of birth, photos, filled-form

@@ -1,6 +1,6 @@
 # วิธีใช้ OpenThaiID (เจ้าหน้าที่คลินิก)
 
-เช้าวันศุกร์เปิด [getting-started.md](getting-started.md) ก่อน ถ้ายังไม่แน่ใจว่าเอกสารไหน
+เมื่อได้เครื่องอ่าน เปิด [getting-started.md](getting-started.md) ก่อน ถ้ายังไม่แน่ใจว่าเอกสารไหน
 
 ใช้ได้เฉพาะคอมพิวเตอร์ที่ต่อเครื่องอ่านบัตร ไม่มีเว็บไซต์ OpenThaiID
 และไม่มีอะไรต้องติดตั้งบนคลาวด์
@@ -59,10 +59,10 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 | OpenThaiID ยังไม่ทำงาน | เปิดตัวช่วย (Start Menu / แอป / `openthaiid tray`) หน้านี้รอให้กลับมาได้เอง |
 | ตัวช่วยหลุดการเชื่อมต่อ | ไม่ต้องปิดหน้าคลินิก — รอไฟสถานะ แล้วกด กรอกข้อมูล อีกครั้ง |
 | ทดสอบการเชื่อมต่อ | บนหน้า พร้อม กด **ทดสอบการเชื่อมต่อ** (ไม่อ่านข้อมูลบนบัตร) |
-| หลังเครื่องหลับ/ตื่น หรือบริการอ่านบัตรสะดุด | ไม่ต้องรีสตาร์ทเครื่อง กด **ทดสอบการเชื่อมต่อ** ถ้ายังไม่ **พร้อม** ให้ช่างเทคนิคกด **Reconnect card service** (`PCSC_UNAVAILABLE`) — วันศุกร์ E5/E6: [friday-checklist.md](friday-checklist.md) · ช่างเทคนิค: [technician.md](technician.md) |
+| หลังเครื่องหลับ/ตื่น หรือบริการอ่านบัตรสะดุด | ไม่ต้องรีสตาร์ทเครื่อง กด **ทดสอบการเชื่อมต่อ** ถ้ายังไม่ **พร้อม** ให้ช่างเทคนิคกด **Reconnect card service** (`PCSC_UNAVAILABLE`) — E5/E6: [hardware-checklist.md](hardware-checklist.md) · ช่างเทคนิค: [technician.md](technician.md) |
 | ไม่พบเครื่องอ่านบัตร | ถอดแล้วเสียบเครื่องอ่านใหม่ รอไฟ **พร้อม** |
 | เครื่องอ่านถูกถอดระหว่างอ่าน | เสียบเครื่องอ่าน เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`READER_REMOVED`) |
-| บัตรถูกถอดระหว่างอ่าน | เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`CARD_REMOVED`) อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ — วันศุกร์ E4: [friday-checklist.md](friday-checklist.md) |
+| บัตรถูกถอดระหว่างอ่าน | เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`CARD_REMOVED`) อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ — E4: [hardware-checklist.md](hardware-checklist.md) |
 | เสียบบัตรประชาชนไทย | เสียบบัตรให้สุด |
 | มีเครื่องอ่านมากกว่าหนึ่งเครื่อง | กด **ใช้เครื่องนี้** บนหน้า พร้อม — ช่างเทคนิค **Use this reader**: [technician.md](technician.md) |
 | เว็บไซต์ต้องการอ่านบัตร | กดอนุญาตหน้าคลินิก (ให้รหัสตรงกัน) |
@@ -74,19 +74,19 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 
 ## ฝึกใช้ก่อนได้เครื่องจริง
 
-ยังไม่มี ACR39U ก็ฝึกได้: `make friday-dry-run` แล้วเปิด `openthaiid -synthetic`
+ยังไม่มี ACR39U ก็ฝึกได้: `make pre-reader-dry-run` แล้วเปิด `openthaiid -synthetic`
 ตาม [training.md](training.md) ครั้งแรกยังต้องกดอนุญาต
 ห้ามส่งภาพหน้าจอหรือค่าในช่องไปในทิคเก็ต
 
-วันศุกร์ที่มีเครื่องอ่าน: พิมพ์ [friday-desk-card.md](friday-desk-card.md) ที่โต๊ะ
-ชุด qualify: [friday-checklist.md](friday-checklist.md)
-ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)
+เมื่อได้เครื่องอ่าน: พิมพ์ [staff-desk-card.md](staff-desk-card.md) ที่โต๊ะ
+ชุด qualify: [hardware-checklist.md](hardware-checklist.md)
+ดัชนีเมื่อได้เครื่องอ่าน: [getting-started.md](getting-started.md)
 
 ---
 
 # Using OpenThaiID (clinic staff) — English
 
-Friday-morning index: [getting-started.md](getting-started.md).
+Hardware-arrival index: [getting-started.md](getting-started.md).
 
 You only need the computer next to the card reader. There is no OpenThaiID
 website to visit and nothing to deploy in the cloud.
@@ -136,13 +136,13 @@ the clinic page you are using. Match the code if the ERP shows one.
 
 Do not send screenshots of the patient’s card or of filled form fields.
 
-Practice without a reader: [training.md](training.md) (`make friday-dry-run`, then
+Practice without a reader: [training.md](training.md) (`make pre-reader-dry-run`, then
 `openthaiid -synthetic`).
-Friday with ACR39U: print the staff desk card
-[friday-desk-card.md](friday-desk-card.md). Operator qualify (multi-reader,
+When the ACR39U arrives: print the staff desk card
+[staff-desk-card.md](staff-desk-card.md). Operator qualify (multi-reader,
 E4 card-removed / unplug, E5/E6 sleep and PC/SC recovery):
-[friday-checklist.md](friday-checklist.md).
+[hardware-checklist.md](hardware-checklist.md).
 Technicians (Reconnect card service, **Use this reader**):
 [technician.md](technician.md).
-Friday-morning index: [getting-started.md](getting-started.md).
+Hardware-arrival index: [getting-started.md](getting-started.md).
 

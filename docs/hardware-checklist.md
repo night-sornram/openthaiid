@@ -1,15 +1,15 @@
-# วันศุกร์ — ACR39U (หนึ่งหน้า)
+# เมื่อได้เครื่องอ่าน — ACR39U (หนึ่งหน้า)
 
-ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)  
-บัตรโต๊ะเจ้าหน้าที่ (พิมพ์หนึ่งหน้า ไทย): [friday-desk-card.md](friday-desk-card.md)
+ดัชนีเมื่อได้เครื่องอ่าน: [getting-started.md](getting-started.md)  
+บัตรโต๊ะเจ้าหน้าที่ (พิมพ์หนึ่งหน้า ไทย): [staff-desk-card.md](staff-desk-card.md)
 
-ซอฟต์แวร์ **v0.1.0-rc.9** พร้อมแล้ว — หน้านี้คือเช้าที่มี ACR39U
+ซอฟต์แวร์ **v0.1.0-rc.9** พร้อมแล้ว — หน้านี้คือเมื่อมี ACR39U
 (แยกงาน: [NOT_DONE.md](../NOT_DONE.md))
 
 เสียบเครื่องอ่าน → พร้อม → qualify → กรอกข้อมูล → ส่งให้ jarvis เฉพาะวินิจฉัย
 **ห้าม** ส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR ที่มียอด `card.read`
 
-ฝึกซ้อมโดยไม่มีเครื่อง: [training.md](training.md) (`make friday-dry-run` /
+ฝึกซ้อมโดยไม่มีเครื่อง: [training.md](training.md) (`make pre-reader-dry-run` /
 `-synthetic`) — ซ้อมก่อนได้เครื่อง ไม่ใช่ผ่าน ACR39U
 ชุดเต็ม: [hardware-qualification.md](hardware-qualification.md)
 ช่างเทคนิค P2–P10 (PC/SC bind-stress): [bind-stress.md](bind-stress.md)
@@ -46,8 +46,8 @@ Firefox / Safari กรอกจากหน้าคลินิก **HTTPS**: 
 | บริการอ่านบัตรไม่ตอบสนอง | `BACKEND_STALLED` | **Reconnect card service** | เหมือนแถวบน |
 
 ชุดทดสอบสังเคราะห์จำลองบริการอ่านบัตรดับแล้วกลับมาได้แล้ว
-วันศุกร์บน ACR39U ยังต้องติ๊ก E5 / E6 ใน qualify (macOS อาจ SKIP E6 ถ้าหยุด PC/SC ไม่ได้)
-รายละเอียดช่างเทคนิค: [technician.md](technician.md) Friday E5/E6
+บน ACR39U ยังต้องติ๊ก E5 / E6 ใน qualify (macOS อาจ SKIP E6 ถ้าหยุด PC/SC ไม่ได้)
+รายละเอียดช่างเทคนิค: [technician.md](technician.md) E5/E6
 
 ## 2. Qualify (ไม่เก็บข้อมูลบุคคล)
 
@@ -85,7 +85,7 @@ Firefox / Safari บนหน้าคลินิก **https://**: [compatibili
 
 อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ — `autofillThaiID` ล้างช่องที่ผูกกับการกรอก
 (ไม่แตะเบอร์โทร / HN) การฝึกสังเคราะห์ครอบคลุมเส้นนี้แล้ว
-วันศุกร์บน ACR39U ยังต้องติ๊ก E4 ใน qualify
+บน ACR39U ยังต้องติ๊ก E4 ใน qualify
 เจ้าหน้าที่: [user.md](user.md) · ช่างเทคนิค E4: [technician.md](technician.md)
 
 ## 4. ส่งให้ jarvis (วินิจฉัยเท่านั้น)

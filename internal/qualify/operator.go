@@ -16,7 +16,7 @@ type OperatorStep struct {
 	Detail string
 }
 
-// OperatorChecks is the Friday operator slice (not automated).
+// OperatorChecks is the operator slice (not automated).
 func OperatorChecks() []OperatorStep {
 	return []OperatorStep{
 		{
@@ -26,7 +26,7 @@ func OperatorChecks() []OperatorStep {
 			Prompt: `E4 — Removal during read / reader unplug
 ถอดบัตรขณะอ่าน แล้วถอดเครื่องอ่าน
 
-Software maps Friday E4 to stable protocol codes (do not change the tokens):
+Software maps E4 to stable protocol codes (do not change the tokens):
   pull card during Fill/read  → CARD_REMOVED
   unplug USB reader mid-read  → READER_REMOVED
   native I/O that cannot tell  → READ_FAILED
@@ -58,7 +58,7 @@ Type pass, fail, or skip`,
 			Prompt: `E5 — Browser refresh, helper restart, sleep/wake
 รีเฟรชเบราว์เซอร์ รีสตาร์ทตัวช่วย sleep/wake
 
-Software maps Friday E5 to stable protocol codes and buttons (do not change the tokens):
+Software maps E5 to stable protocol codes and buttons (do not change the tokens):
   ERP / Ready cannot reach helper     → BRIDGE_UNAVAILABLE
   Ready / ทดสอบการเชื่อมต่อ while helper is down
                                       → Test connection fails (same code)
@@ -94,7 +94,7 @@ Type pass, fail, or skip`,
 			Prompt: `E6 — Missing/stopped PC/SC recovery
 บริการอ่านบัตรหยุดทำงาน แล้วกลับมา
 
-Software maps Friday E6 to stable protocol codes and buttons (do not change the tokens):
+Software maps E6 to stable protocol codes and buttons (do not change the tokens):
   Helper reachable, card service down → PCSC_UNAVAILABLE
   Ready / clinic ทดสอบการเชื่อมต่อ     → helper up, card service not ready (no personal fields)
   Technician Reconnect card service   → POST /v1/manager/reconnect

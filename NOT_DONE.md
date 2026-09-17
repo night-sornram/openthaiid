@@ -1,8 +1,7 @@
-# Friday readiness (pre-hardware)
+# Hardware-arrival readiness (pre-hardware)
 
 Last updated after **v0.1.0-rc.9** (tagged + GitHub Release) plus merged
-SDK reconnect flake fix (#42). Physical ACR39U execution (including Friday
-E4–E6 on hardware) is still blocked.
+SDK reconnect flake fix (#42). Physical ACR39U execution (including E4–E6 on hardware) is still blocked.
 
 **Pre-hardware software is complete as of post-#42 / rc.9+.** There is no
 remaining software backlog that can be finished without ACR39U, without
@@ -20,20 +19,20 @@ Do **not** retag `v0.1.0-rc.9`. Do **not** bump to `v0.1.0-rc.10` for the
 #42 test-only flake fix. Do **not** enable GitHub Actions (included
 minutes until ~1 Oct 2026). Do **not** implement Laser-id / NHSO.
 
-This file is the **Friday morning playbook**, not a software backlog.
+This file is the **hardware-arrival playbook**, not a software backlog.
 
 Local evidence until Actions returns: `make test`, `make qualify-smoke`,
-`make bind-stress-smoke`, `make friday-dry-run`, `make smoke-package`, and
+`make bind-stress-smoke`, `make pre-reader-dry-run`, `make smoke-package`, and
 `make acceptance-firefox`.
 
 ---
 
 ## Done in software (rc.9+)
 
-Already shipped. Do not re-open these as Friday software todos.
+Already shipped. Do not re-open these as software todos.
 
 - Reader ownership, cancellation, stall recovery, request saturation
-- Cross-platform acceptance harness (synthetic) + `make friday-dry-run`
+- Cross-platform acceptance harness (synthetic) + `make pre-reader-dry-run`
 - Remaining textual fields + optional portrait (synthetic)
 - Qualification *kit* (`openthaiid qualify`, no personal fields in reports)
 - Unsigned clinic packaging + macOS-host-only `make package-macos` instructions
@@ -44,9 +43,9 @@ Already shipped. Do not re-open these as Friday software todos.
 - Honest Firefox/Safari HTTPS Fill errors (`HTTPS_WS_BLOCKED` / `TLS_UNTRUSTED`)
 - Optional technician-managed loopback HTTPS/WSS (`docs/loopback-tls.md`)
 - Go module hygiene (rc.6); helper version string `0.1.0-rc.9`
-- Staff Friday **desk card** (`docs/friday-desk-card.md`)
+- Staff **desk card** (`docs/staff-desk-card.md`)
 - Technician **`openthaiid doctor`** desk snapshot (`GET /v1/helper/doctor`)
-- Friday playbook (`NOT_DONE.md` split: software done / ACR39U / APDU / certs / Actions)
+- hardware playbook (`NOT_DONE.md` split: software done / ACR39U / APDU / certs / Actions)
 - PC/SC **bind-stress** harness (`openthaiid bind-stress`, `make bind-stress-smoke`)
 - SDK packages aligned at `0.1.0-rc.9` (`@openthaiid/web` / `@openthaiid/react`, unpublished)
 - HTTPS clinic ERP sample (`examples/clinic-patient/clinic-https.json`)
@@ -59,13 +58,13 @@ Release notes: [CHANGELOG.md](CHANGELOG.md) `[Unreleased]` + `[0.1.0-rc.9]`.
 
 ---
 
-## Do Friday with ACR39U
+## When the ACR39U arrives
 
 Reader on the desk. Never `-synthetic` for a hardware claim. No personal
 field values in reports, tickets, or screenshots.
 Kit: [docs/hardware-qualification.md](docs/hardware-qualification.md).
-One-page: [docs/friday-checklist.md](docs/friday-checklist.md).
-Staff print: [docs/friday-desk-card.md](docs/friday-desk-card.md).
+One-page: [docs/hardware-checklist.md](docs/hardware-checklist.md).
+Staff print: [docs/staff-desk-card.md](docs/staff-desk-card.md).
 
 **Order:** macOS + ACR39U first, then Windows, then Linux. A macOS pass
 does not close the three-platform claim.
@@ -85,7 +84,7 @@ does not close the three-platform claim.
 | — | Real Safari UI (not Playwright WebKit) | macOS + Safari |
 | — | Loopback TLS headed: Firefox/Safari **https** ERP Fill with a **locally trusted** helper cert (`wss://127.0.0.1:17892`) | Clinic PC + mkcert (or imported self-signed). Software listener + SDK selection are in this tree. |
 | — | Real-card layout checks (community hypotheses) | Gender `1`/`2`; English-name `#` layout; 7-part address `#` order; portrait JPEG SOI/EOI trim — see `docs/provenance.md` |
-| P2–P6, P10 | `ebfe/scard` binding audit (layouts, WinSCard load, cgo stress) | Cross-build + **run the harness** on the Friday hosts. Today: `make bind-stress-smoke`. Friday: `./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json` (never `-synthetic`). [docs/bind-stress.md](docs/bind-stress.md) |
+| P2–P6, P10 | `ebfe/scard` binding audit (layouts, WinSCard load, cgo stress) | Cross-build + **run the harness** on the hardware hosts. Today: `make bind-stress-smoke`. Hardware: `./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json` (never `-synthetic`). [docs/bind-stress.md](docs/bind-stress.md) |
 | P7–P9 | Concurrent context / Transmit lengths / `Cancel` vs `GetStatusChange` | Code is Partial; **harness is runnable**. Synthetic smoke is not a close. Hardware: same script, card seated for P8. [docs/bind-stress.md](docs/bind-stress.md) |
 
 Untested configurations stay unverified.
@@ -140,14 +139,14 @@ Until then, run locally:
 make test
 make qualify-smoke
 make bind-stress-smoke
-make friday-dry-run
+make pre-reader-dry-run
 make smoke-package
 make acceptance-firefox   # Linux
 # On macOS: make package-macos && make acceptance-webkit
 ```
 
 Go toolchain / `ebfe/scard` pin: **held** (`go1.27.1`; no newer `ebfe/scard`
-tag). Not a Friday software task.
+tag). Not a software task.
 
 ---
 

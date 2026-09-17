@@ -79,7 +79,7 @@ func NewReport(version, mode string, cycles int) *Report {
 	notes := []string{
 		"Never paste citizen ID, names, address, portrait bytes, raw APDUs, or card.read payloads.",
 		"Synthetic mode proves the harness, not ebfe/scard native layouts.",
-		"Friday with ACR39U: openthaiid bind-stress -report ./openthaiid-bind-stress.json (no -synthetic).",
+		"When the ACR39U arrives: openthaiid bind-stress -report ./openthaiid-bind-stress.json (no -synthetic).",
 	}
 	if mode != "hardware" {
 		notes = append(notes, "This synthetic run does not close P2–P10.")

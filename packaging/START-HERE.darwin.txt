@@ -24,8 +24,8 @@ Happy path
    use the ไทย / English toggle if you need English. Technician tools
    stay English.
 
-Friday staff desk card (print one Thai page): docs/friday-desk-card.md
-Operator qualify sheet: docs/friday-checklist.md
+Staff desk card (print one Thai page): docs/staff-desk-card.md
+Operator qualify sheet: docs/hardware-checklist.md
 
 If Gatekeeper still blocks an unsigned app, run the raw binary from Terminal:
 
@@ -55,12 +55,12 @@ Technicians
 ./openthaiid                 terminal helper
 ./openthaiid doctor          desk snapshot (helper, ports, PC/SC, probe; no personal fields)
 ./openthaiid qualify -report ./openthaiid-qualify.json
-                             Friday E1–E3 + printed E4–E7/M1 prompts
+                             E1–E3 + printed E4–E7/M1 prompts
 ./openthaiid qualify -operator -report ./openthaiid-qualify.json
                              same, and record pass/fail/skip from the keyboard
                              (never type citizen ID, names, address, or photo)
-See docs/getting-started.md, docs/friday-desk-card.md (staff print card),
-docs/technician.md, docs/friday-checklist.md,
+See docs/getting-started.md, docs/staff-desk-card.md (staff print card),
+docs/technician.md, docs/hardware-checklist.md,
 docs/user.md
 (multi-reader, CARD_REMOVED / sleep-wake / PC/SC recovery),
 docs/security.md (loopback HTTP inventory),
@@ -69,7 +69,7 @@ docs/loopback-tls.md (optional helper HTTPS/WSS), and
 docs/hardware-qualification.md. Always-on without a menu-bar session:
 docs/installation.md (`openthaiid service install`). Technician audit JSON:
 ./openthaiid audit (or Technician tools → Copy JSON). Practice without a
-reader: docs/training.md. From a source checkout: make friday-dry-run.
+reader: docs/training.md. From a source checkout: make pre-reader-dry-run.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.

@@ -361,7 +361,7 @@ func writeChecks(rep *Report, st *cycleStats, opt Options) {
 	switch {
 	case !opt.Synthetic:
 		toggle.Result = ResultSkip
-		toggle.Detail = "hardware cannot auto-toggle; B3 records observed presence. Insert/remove is Friday E3."
+		toggle.Detail = "hardware cannot auto-toggle; B3 records observed presence. Insert/remove is E3."
 	case opt.ToggleCard == nil:
 		toggle.Result = ResultSkip
 		toggle.Detail = "synthetic run without ToggleCard; B3 still probes presence"
@@ -462,7 +462,7 @@ func writeChecks(rep *Report, st *cycleStats, opt Options) {
 
 	gcDetail := "runtime.GC between cycles (P10). Synthetic has no cgo pointers; hardware darwin/linux does."
 	if opt.Synthetic {
-		gcDetail = "Go GC only on synthetic — does not close P10. Friday OS PC/SC on darwin/linux is the cgo evidence."
+		gcDetail = "Go GC only on synthetic — does not close P10. OS PC/SC on hardware on darwin/linux is the cgo evidence."
 	}
 	rep.AddCheck(Check{
 		ID:         "B9",
