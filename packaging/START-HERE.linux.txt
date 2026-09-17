@@ -60,7 +60,7 @@ Need pcscd, for example:
   sudo apt install pcscd libpcsclite1
   sudo systemctl enable --now pcscd
 
-Commands: openthaiid status | quit | open | open technician | autostart | service | audit | update check | qualify | serve
+Commands: openthaiid status | doctor | quit | open | open technician | autostart | service | audit | update check | qualify | serve
 
 Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).

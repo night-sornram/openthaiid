@@ -19,8 +19,8 @@ Firefox / Safari กรอกจากหน้าคลินิก **HTTPS**: 
   ถ้าแผนก IT ติดตั้ง always-on แล้ว (`openthaiid service install` /
   `Install-OpenThaiID-Service.ps1`) ไม่ต้องเปิดถาด — ดู
   [installation.md](installation.md)
-- `openthaiid version` และ `openthaiid doctor` — `pcsc: OK` + ชื่อเครื่องอ่าน
-  บรรทัด `personal fields: not read`
+- `openthaiid version` และ `openthaiid doctor` — helper running, `pcsc: OK`,
+  ชื่อเครื่องอ่าน, `personal fields: not read` (ไม่มี path ของกุญแจ TLS)
 - หน้า Ready `http://127.0.0.1:17891/` ขึ้น **พร้อม** หลังเสียบบัตรประชาชน
 - ถ้าเสียบเครื่องอ่านมากกว่าหนึ่งเครื่อง ให้กด **ใช้เครื่องนี้** บนหน้า พร้อม
   (หรือ Technician tools **Use this reader**) ก่อนกรอกข้อมูล —

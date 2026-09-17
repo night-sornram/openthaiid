@@ -1,9 +1,9 @@
 # Not done
 
-Last updated after **v0.1.0-rc.6 prep**: Go module hygiene (#32) and the
-Friday staff desk card (#33, `docs/friday-desk-card.md`). Physical ACR39U
-execution (including Friday E4–E6 on hardware) is still blocked. This tree
-is **tag-ready** for `v0.1.0-rc.6` after review.
+Last updated after the **technician `openthaiid doctor` desk snapshot** on
+the `v0.1.0-rc.6` line (no rc.7 bump). Physical ACR39U execution (including
+Friday E4–E6 on hardware) is still blocked. This tree stays **tag-ready**
+for `v0.1.0-rc.6` after review.
 
 Software ownership, cancellation, stall recovery, request saturation, the
 cross-platform acceptance harness, remaining textual fields, optional
@@ -12,9 +12,10 @@ instructions, reconnect/test-connection staff UX, multi-reader select,
 card-removed / unplug clinic UX, sleep/wake + PC/SC recovery mapping,
 operator GitHub Releases **check**, honest Firefox/Safari HTTPS Fill
 errors, optional technician-managed loopback HTTPS/WSS, Go module
-hygiene, and the staff Friday **desk card** (`docs/friday-desk-card.md`)
-are implemented. This file lists everything that is **not**
-complete for a **hardware-qualified** release.
+hygiene, the staff Friday **desk card** (`docs/friday-desk-card.md`), and
+the technician **`openthaiid doctor` desk snapshot** are implemented. This
+file lists everything that is **not** complete for a **hardware-qualified**
+release.
 
 Do **not** treat GitHub Actions as green on this PR: the workflow stays
 disabled (included minutes exhausted). Run `make test`,

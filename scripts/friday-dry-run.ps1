@@ -129,6 +129,16 @@ if ($TwoReaders) {
 }
 Write-Host "OK status (no personal fields)"
 
+Write-Host "== doctor desk snapshot =="
+$doctor = & $Bin doctor -port $Port | Out-String
+Assert-NoPii -Text $doctor -Label "doctor"
+if ($doctor -notmatch "pcsc: OK") { throw "doctor: expected pcsc: OK" }
+if ($doctor -notmatch "personal fields: not read") { throw "doctor: missing personal-fields line" }
+if ($doctor -notmatch "helper: running") { throw "doctor: helper should be running" }
+if ($doctor -notmatch "probe: OK") { throw "doctor: expected probe OK" }
+if ($doctor -match "tlsKeyFile|BEGIN PRIVATE") { throw "doctor: leaked TLS key material" }
+Write-Host "OK doctor (redacted desk snapshot)"
+
 $readyPath = Join-Path $HomeDir "ready.html"
 Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 -Uri $Ready -OutFile $readyPath
 $readyHtml = Get-Content -Raw -Encoding UTF8 -Path $readyPath

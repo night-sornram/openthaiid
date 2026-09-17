@@ -40,7 +40,7 @@ func main() {
 			fmt.Println(version)
 			return
 		case "doctor":
-			os.Exit(runDoctor())
+			os.Exit(runDoctor(os.Args[2:]))
 		case "help", "-h", "--help":
 			usage()
 			return
@@ -450,38 +450,6 @@ func terminalLoop(ctx context.Context, cancel context.CancelFunc, authMgr *auth.
 	}
 }
 
-func runDoctor() int {
-	fmt.Printf("openthaiid doctor (%s)\n", version)
-	fmt.Println("config: OK (defaults)")
-	backend, err := pcsc.NewOSBackend()
-	if err != nil {
-		fmt.Printf("pcsc: FAIL create backend: %v\n", err)
-		return 1
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := backend.Establish(ctx); err != nil {
-		fmt.Printf("pcsc: FAIL establish: %v\n", err)
-		fmt.Println("hint: on Linux ensure pcscd is running and libpcsclite is installed")
-		fmt.Println("hint: on macOS ensure PC/SC.framework is available")
-		fmt.Println("hint: on Windows ensure the Smart Card service is running")
-		return 1
-	}
-	defer func() { _ = backend.Release(context.Background()) }()
-	readers, err := backend.Readers(ctx)
-	if err != nil {
-		fmt.Printf("pcsc: FAIL list readers: %v\n", err)
-		return 1
-	}
-	fmt.Printf("pcsc: OK backend=%s readers=%d\n", backend.Name(), len(readers))
-	for _, r := range readers {
-		// Name only — never card contents.
-		fmt.Printf("  reader: %s\n", r.Name)
-	}
-	fmt.Println("personal fields: not read")
-	return 0
-}
-
 func newLogger(level string, lv *slog.LevelVar, extra io.Writer) *slog.Logger {
 	if lv == nil {
 		lv = new(slog.LevelVar)
@@ -519,7 +487,9 @@ Usage:
   openthaiid service         install | uninstall | start | stop | status   (always-on, no tray)
   openthaiid audit           Print the redacted operator audit trail JSON (no personal fields)
   openthaiid update          check | download | apply   (GitHub Releases lookup; unsigned; check does not install)
-  openthaiid doctor          Check the card service (no personal fields)
+  openthaiid doctor          Desk snapshot: helper, ports, PC/SC, probe, TLS yes/no
+                             (no personal fields, tokens, or key paths). Exit 1 only
+                             if the helper is down or PC/SC is unavailable.
   openthaiid qualify         Friday kit: E1–E3 + E4–E7/M1 prompts; one JSON report (no personal fields)
                              default report: ./openthaiid-qualify.json
                              -operator records pass/fail/skip only (never type card data)

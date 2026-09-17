@@ -53,7 +53,7 @@ Headless binary: ./openthaiid serve
 Technicians
 -----------
 ./openthaiid                 terminal helper
-./openthaiid doctor          card service only; never reads personal fields
+./openthaiid doctor          desk snapshot (helper, ports, PC/SC, probe; no personal fields)
 ./openthaiid qualify -report ./openthaiid-qualify.json
                              Friday E1–E3 + printed E4–E7/M1 prompts
 ./openthaiid qualify -operator -report ./openthaiid-qualify.json

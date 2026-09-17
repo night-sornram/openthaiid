@@ -93,6 +93,12 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(js, "checkGitHubReleases") || !strings.Contains(js, "/v1/manager/update/check") {
 		t.Fatal("missing operator GitHub Releases check")
 	}
+	if !strings.Contains(page, `id="desk-snapshot"`) {
+		t.Fatal("missing technician desk snapshot button")
+	}
+	if !strings.Contains(js, "copyDeskSnapshot") || !strings.Contains(js, "/v1/helper/doctor") {
+		t.Fatal("missing desk snapshot copy")
+	}
 	if !strings.Contains(js, "clearChildren") || !strings.Contains(js, "execCommand") {
 		t.Fatal("Ready page needs replaceChildren/clipboard fallbacks for Firefox/Safari")
 	}

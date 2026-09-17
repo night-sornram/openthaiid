@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/night-sornram/openthaiid/internal/pcsc"
+	"github.com/night-sornram/openthaiid/internal/update"
 )
 
 func TestHelperSummaryNoPII(t *testing.T) {
@@ -221,4 +223,170 @@ func TestHelperShutdownNoOrigin(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatal("shutdown callback not invoked")
+}
+
+func TestHelperDoctorSnapshotNoPII(t *testing.T) {
+	t.Setenv("OPENTHAIID_LANG", "th")
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		rdb.SeedDemoCard()
+	})
+	tb.srv.SetRuntime("0.0.1-test", true)
+	var githubCalls atomic.Int32
+	tb.srv.SetUpdateCheck(func(ctx context.Context, current string) (*update.CheckResult, error) {
+		githubCalls.Add(1)
+		t.Fatal("doctor GET must not call GitHub")
+		return nil, nil
+	})
+	waitReader(t, tb, "synthetic-acr39u")
+
+	resp, err := http.Get(tb.httpBase() + "/v1/helper/doctor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertNoForbiddenJSON(t, raw)
+	if githubCalls.Load() != 0 {
+		t.Fatal("doctor must not call GitHub")
+	}
+	for _, n := range []string{"citizenId", "thaiName", "tlsKeyFile", "tlsCertFile", "pending", "trusted", "audit"} {
+		if bytes.Contains(raw, []byte(`"`+n+`"`)) {
+			t.Fatalf("doctor leaked %q: %s", n, raw)
+		}
+	}
+	var snap map[string]any
+	if err := json.Unmarshal(raw, &snap); err != nil {
+		t.Fatal(err)
+	}
+	if snap["helper"] != "running" {
+		t.Fatalf("helper %+v", snap["helper"])
+	}
+	if snap["pcsc"] != "OK" {
+		t.Fatalf("pcsc %+v", snap)
+	}
+	if snap["hardFail"] == true {
+		t.Fatalf("healthy desk hardFail: %+v", snap)
+	}
+	text, _ := snap["text"].(string)
+	if !strings.Contains(text, "pcsc: OK") || !strings.Contains(text, "personal fields: not read") {
+		t.Fatalf("text %s", text)
+	}
+	if !strings.Contains(text, "probe: OK") {
+		t.Fatalf("probe text %s", text)
+	}
+	if !strings.Contains(text, "ถัดไป:") || !strings.Contains(text, "Next:") {
+		t.Fatalf("bilingual next missing: %s", text)
+	}
+	if !strings.Contains(text, "tls=no") {
+		t.Fatalf("tls line: %s", text)
+	}
+	upd, _ := snap["update"].(map[string]any)
+	if upd["state"] != "not_checked" {
+		t.Fatalf("update %+v", upd)
+	}
+}
+
+func TestHelperDoctorPCSCUnavailableIsHardFail(t *testing.T) {
+	tb := startTestBridgeSeed(t, false, func(mon, rdb *pcsc.SyntheticBackend) {
+		rdb.SeedDemoCard()
+	})
+	tb.srv.SetRuntime("0.0.1-test", true)
+	waitReader(t, tb, "synthetic-acr39u")
+	tb.mon.SetServiceDown(true)
+	if err := tb.mgr.Refresh(context.Background()); err == nil {
+		t.Fatal("refresh while down must fail")
+	}
+
+	resp, err := http.Get(tb.httpBase() + "/v1/helper/doctor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertNoForbiddenJSON(t, raw)
+	var snap map[string]any
+	if err := json.Unmarshal(raw, &snap); err != nil {
+		t.Fatal(err)
+	}
+	if snap["hardFail"] != true || snap["failCode"] != "PCSC_UNAVAILABLE" {
+		t.Fatalf("%+v", snap)
+	}
+	if snap["pcsc"] == "OK" {
+		t.Fatalf("pcsc still OK: %+v", snap)
+	}
+	text, _ := snap["text"].(string)
+	if strings.Contains(text, "pcsc: OK") {
+		t.Fatalf("text claims pcsc OK: %s", text)
+	}
+}
+
+func TestHelperDoctorAllowsCLIAndRejectsForeignOrigin(t *testing.T) {
+	tb := startTestBridge(t, false)
+	resp, err := http.Get(tb.httpBase() + "/v1/helper/doctor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("cli doctor %d", resp.StatusCode)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, tb.httpBase()+"/v1/helper/doctor", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Origin", "https://evil.example")
+	bad, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bad.Body.Close()
+	if bad.StatusCode != http.StatusForbidden {
+		t.Fatalf("foreign origin %d", bad.StatusCode)
+	}
+}
+
+func TestHelperDoctorRemembersSoftUpdateCheck(t *testing.T) {
+	tb := startTestBridge(t, false)
+	tb.srv.SetRuntime("0.1.0-rc.6", true)
+	tb.srv.SetUpdateCheck(func(ctx context.Context, current string) (*update.CheckResult, error) {
+		return update.Unavailable(current, update.ReasonOffline, update.ReleasesPage), nil
+	})
+	token := csrfFrom(t, getBody(t, tb, "/"))
+	_ = managerPOST(t, tb, token, "/v1/manager/update/check", nil)
+
+	resp, err := http.Get(tb.httpBase() + "/v1/helper/doctor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	assertNoForbiddenJSON(t, raw)
+	var snap map[string]any
+	if err := json.Unmarshal(raw, &snap); err != nil {
+		t.Fatal(err)
+	}
+	upd, _ := snap["update"].(map[string]any)
+	if upd["state"] != "unavailable" || upd["reason"] != "offline" {
+		t.Fatalf("update %+v", upd)
+	}
+	if upd["soft"] != true {
+		t.Fatalf("update must stay soft: %+v", upd)
+	}
+	if snap["hardFail"] == true {
+		t.Fatalf("soft update must not hard-fail: %+v", snap)
+	}
+	text, _ := snap["text"].(string)
+	if !strings.Contains(text, "soft") || !strings.Contains(text, "Fill still works") {
+		t.Fatalf("update line: %s", text)
+	}
 }
