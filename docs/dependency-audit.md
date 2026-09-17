@@ -19,7 +19,7 @@ does not add extra modules to `go.sum`.
 ### ebfe/scard audit
 
 Compilation and local synthetic tests do **not** close these items.
-Runnable harness (synthetic smoke today; hardware Friday):
+Runnable harness (synthetic smoke today; hardware when the reader arrives):
 [bind-stress.md](bind-stress.md). `make bind-stress-smoke` /
 `./scripts/bind-stress.sh`. Reports never include APDUs or personal fields.
 

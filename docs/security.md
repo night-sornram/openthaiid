@@ -137,9 +137,9 @@ within browser security rules only.
 
 The helper binds only IPv4 loopback. Any local process can still call these
 APIs (origin checks protect browsers, not malware on the PC). There is no
-CORS. Friday-morning hub: [getting-started.md](getting-started.md).
+CORS. Hardware-arrival hub: [getting-started.md](getting-started.md).
 Technician debug: [technician.md](technician.md). Software rehearsal
-without a reader: `make friday-dry-run` ([training.md](training.md)).
+without a reader: `make pre-reader-dry-run` ([training.md](training.md)).
 Firefox/Safari https Fill: [compatibility.md](compatibility.md). Optional
 helper TLS: [loopback-tls.md](loopback-tls.md).
 Endpoints:

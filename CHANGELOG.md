@@ -21,6 +21,12 @@ Post-tag notes on `dev` after **v0.1.0-rc.9**. Helper / SDK versions stay
 - [NOT_DONE.md](NOT_DONE.md): pre-hardware software is complete as of
   post-#42 / rc.9+. Remaining software-ish leftovers are optional Darwin
   packaging on a Mac host and headed clinic-PC browser checks.
+- Date-neutral rename (no helper version bump): `friday-desk-card` →
+  [`staff-desk-card`](docs/staff-desk-card.md) (`.md` + `.html`),
+  `friday-checklist` → [`hardware-checklist`](docs/hardware-checklist.md),
+  `friday-dry-run` → `pre-reader-dry-run` (`make pre-reader-dry-run`,
+  `scripts/pre-reader-dry-run.sh` / `.ps1`). Prose uses hardware-arrival /
+  when the reader arrives / เมื่อได้เครื่องอ่าน — no calendar day.
 
 ## [0.1.0-rc.9] — software release candidate
 
@@ -30,7 +36,7 @@ Apple/Microsoft code signing are **not** in this candidate. Tagged
 `v0.1.0-rc.9`. Do not retag `v0.1.0-rc.8`.
 
 Summarizes merges since `[0.1.0-rc.8]`: SDK version align + HTTPS ERP
-sample (#40). Earlier Friday playbook / bind-stress stay in `[0.1.0-rc.8]`
+sample (#40). Earlier hardware playbook / bind-stress stay in `[0.1.0-rc.8]`
 (not repeated here). Post-tag SDK reconnect flake (#42) is in
 `[Unreleased]`.
 
@@ -70,7 +76,7 @@ enable GitHub Actions** (minutes exhausted). Physical E1–E7 and
 Apple/Microsoft code signing are **not** in this candidate. Tagged
 `v0.1.0-rc.8`. Do not retag `v0.1.0-rc.7`.
 
-Summarizes merges since `[0.1.0-rc.7]`: Friday NOT_DONE playbook (#37),
+Summarizes merges since `[0.1.0-rc.7]`: NOT_DONE hardware playbook (#37),
 PC/SC bind-stress harness (#38). Earlier technician `openthaiid doctor`
 desk snapshot stays in `[0.1.0-rc.7]` (not repeated here).
 
@@ -81,15 +87,15 @@ desk snapshot stays in `[0.1.0-rc.7]` (not repeated here).
   context connect/disconnect, reader list, presence probe, and synthetic
   card present/absent. Redacted JSON
   (`openthaiid.bindstress.v1`) refuses PII and raw APDUs. Synthetic smoke
-  does **not** close P2–P10. Friday: omit `-synthetic` on each host.
+  does **not** close P2–P10. Hardware: omit `-synthetic` on each host.
   [docs/bind-stress.md](docs/bind-stress.md). smoke-package asserts those
   bind-stress links.
 
 ### Changed
 
 - Helper version string defaults to `0.1.0-rc.8`.
-- Friday playbook: [NOT_DONE.md](NOT_DONE.md) is the ACR39U morning split
-  (done in software / do Friday with hardware / blocked APDU / blocked
+- Hardware playbook: [NOT_DONE.md](NOT_DONE.md) is the ACR39U arrival split
+  (done in software / when hardware arrives / blocked APDU / blocked
   certs / paused Actions), not a software backlog. Technician/qualify
   docs point at the bind-stress harness so P2–P10 is run-the-script, not
   invent-the-script.
@@ -118,7 +124,7 @@ Apple/Microsoft code signing are **not** in this candidate. Tagged
 `v0.1.0-rc.7`. Do not retag `v0.1.0-rc.6`.
 
 Summarizes merges since `[0.1.0-rc.6]`: technician `openthaiid doctor`
-desk snapshot (#35). Earlier Go module hygiene / Friday staff desk card
+desk snapshot (#35). Earlier Go module hygiene / Staff desk card
 stay in `[0.1.0-rc.6]` (not repeated here).
 
 ### Added
@@ -131,9 +137,9 @@ stay in `[0.1.0-rc.6]` (not repeated here).
   down or PC/SC is unavailable; soft update-check failures stay soft. Loopback
   `GET /v1/helper/doctor` (same Origin rule as summary; does not call GitHub)
   and Technician tools **Desk snapshot**. Tests cover redaction and exit codes
-  with fakes. `make friday-dry-run` runs the snapshot and refuses PII.
+  with fakes. `make pre-reader-dry-run` runs the snapshot and refuses PII.
   Pointers: [technician.md](docs/technician.md),
-  [friday-checklist.md](docs/friday-checklist.md),
+  [hardware-checklist.md](docs/hardware-checklist.md),
   [getting-started.md](docs/getting-started.md). smoke-package asserts
   those three links.
 
@@ -159,22 +165,22 @@ Software RC against `dev` while ACR39U hardware is in transit. **Do not
 enable GitHub Actions** (minutes exhausted). Physical E1–E7 and Apple/Microsoft
 code signing are **not** in this candidate. Tagged `v0.1.0-rc.6`.
 
-Summarizes merges since `[0.1.0-rc.5]`: Go module hygiene (#32), Friday
-staff desk card (#33). Earlier version check / Firefox/Safari honesty /
+Summarizes merges since `[0.1.0-rc.5]`: Go module hygiene (#32), staff
+desk card (#33). Earlier version check / Firefox/Safari honesty /
 loopback helper TLS stay in `[0.1.0-rc.5]` (not repeated here).
 
 ### Added
 
-- Staff-only Friday morning **printable desk card** (Thai-first, one page):
-  [docs/friday-desk-card.md](docs/friday-desk-card.md) with a print-ready
-  sibling [friday-desk-card.html](docs/friday-desk-card.html) (large type,
+- Staff-only printable desk card for when the reader arrives (Thai-first, one page):
+  [docs/staff-desk-card.md](docs/staff-desk-card.md) with a print-ready
+  sibling [staff-desk-card.html](docs/staff-desk-card.html) (large type,
   A4). Plug reader → open Ready → **ทดสอบการเชื่อมต่อ** → open ERP → Fill
   → if stuck call a technician. Tiny tips for card-removed, sleep/wake,
   and https ERP TLS (ask tech — do not list browser options). Linked from
-  getting-started, friday-checklist, training, user, START-HERE,
-  hardware-qualification, clinic, installation, and friday-dry-run.
+  getting-started, hardware-checklist, training, user, START-HERE,
+  hardware-qualification, clinic, installation, and pre-reader-dry-run.
   Qualify / diagnostics stay on
-  [friday-checklist.md](docs/friday-checklist.md). No Ready
+  [hardware-checklist.md](docs/hardware-checklist.md). No Ready
   print-stylesheet change.
 
 ### Changed
@@ -203,7 +209,7 @@ loopback helper TLS stay in `[0.1.0-rc.5]` (not repeated here).
 ### Security
 
 - `govulncheck ./...` reports no known vulnerabilities on this module
-  graph (Go 1.27.1 toolchain). Desk card and friday-dry-run never print
+  graph (Go 1.27.1 toolchain). Desk card and pre-reader-dry-run never print
   citizen ID, names, address, or photo bytes.
 
 ### Not claimed
@@ -221,7 +227,7 @@ in this candidate.
 
 Summarizes merges since `[0.1.0-rc.4]`: operator GitHub Releases version
 check (#28), Firefox/Safari clinic Fill honesty (#29), optional loopback
-helper TLS (#30). Earlier getting-started hub / Ready a11y / friday-dry-run
+helper TLS (#30). Earlier getting-started hub / Ready a11y / pre-reader-dry-run
 / helper HTTP hardening stay in `[0.1.0-rc.4]` (not repeated here).
 
 ### Added
@@ -251,9 +257,9 @@ helper TLS (#30). Earlier getting-started hub / Ready a11y / friday-dry-run
 ### Changed
 
 - Helper version string defaults to `0.1.0-rc.5`.
-- Getting-started, compatibility, loopback-tls, Friday checklist, training,
+- Getting-started, compatibility, loopback-tls, Hardware checklist, training,
   START-HERE, architecture, protocol, and security docs cross-link the
-  Friday hub, Firefox/Safari Fill matrix, and optional helper TLS.
+  hardware-arrival hub, Firefox/Safari Fill matrix, and optional helper TLS.
 - `openthaiid update check` lists `/releases` (not `/releases/latest`) so
   prereleases `v0.1.0-rc.1`–`rc.5` count unless `--stable`. GitHub HTTP 404
   (private repo, unauthenticated) is **unavailable**, not “no releases”.
@@ -284,34 +290,34 @@ human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
 in this candidate.
 
 Summarizes merges since `[0.1.0-rc.3]`: getting-started hub + Ready a11y
-(#24), Friday synthetic dry-run (#25), helper HTTP hardening (#26). Earlier
+(#24), pre-reader synthetic dry-run (#25), helper HTTP hardening (#26). Earlier
 clinic-day reconnect / multi-reader / card-removed / sleep-wake waves stay
 in `[0.1.0-rc.3]` (not repeated here).
 
 ### Added
 
-- Thai-first Friday-morning hub: [getting-started.md](docs/getting-started.md)
-  indexes clinic staff, training, Friday checklist, ERP drop-in, and
+- Thai-first hardware-arrival hub: [getting-started.md](docs/getting-started.md)
+  indexes clinic staff, training, Hardware checklist, ERP drop-in, and
   technician guides in one place.
 - Ready page accessibility for clinic staff: **ใช้เครื่องนี้**,
   **ทดสอบการเชื่อมต่อ**, and the ไทย / English toggle are at least 44px tap
   targets; `:focus-visible` rings; the three lights include **ปกติ / รอ /
   ยังไม่พร้อม** text (not color alone).
-- Friday-morning **ซ้อมก่อนได้เครื่อง** rehearsal: `make friday-dry-run`
-  (`scripts/friday-dry-run.sh`, Windows `scripts/friday-dry-run.ps1`) builds
+- Hardware-arrival **ซ้อมก่อนได้เครื่อง** rehearsal: `make pre-reader-dry-run`
+  (`scripts/pre-reader-dry-run.sh`, Windows `scripts/pre-reader-dry-run.ps1`) builds
   the helper if needed, runs qualify-smoke, starts `-synthetic` (optional
   two practice readers), curls Ready / `GET /v1/helper/summary` and the
   Test connection path (`GET /v1/manager/status` + `bridge.probe`), and
   prints a Thai/English pass summary pointing at
   [getting-started.md](docs/getting-started.md) and
-  [friday-checklist.md](docs/friday-checklist.md). Never prints citizen ID,
+  [hardware-checklist.md](docs/hardware-checklist.md). Never prints citizen ID,
   names, address, or photo bytes. Not an ACR39U hardware pass.
 
 ### Changed
 
 - Helper version string defaults to `0.1.0-rc.4`.
-- Getting-started, training, Friday checklist, hardware-qualification,
-  technician, and security docs cross-link the hub, `make friday-dry-run`,
+- Getting-started, training, Hardware checklist, hardware-qualification,
+  technician, and security docs cross-link the hub, `make pre-reader-dry-run`,
   and the loopback helper HTTP inventory.
 
 ### Security
@@ -371,8 +377,8 @@ in `[0.1.0-rc.2]` (not repeated here).
   Ready / `watchThaiID` poll faster while Ready so **พร้อม** cannot linger
   after `card.removed` / reader gone. `autofillThaiID` clears mapped
   sensitive fields on those aborts (phone / HN stay). Technician English
-  remains on `{ lang: "en" }` and qualify prompts. Friday E4 maps to these
-  codes in [friday-checklist.md](docs/friday-checklist.md),
+  remains on `{ lang: "en" }` and qualify prompts. E4 maps to these
+  codes in [hardware-checklist.md](docs/hardware-checklist.md),
   [technician.md](docs/technician.md), and
   [user.md](docs/user.md).
 - Sleep/wake and PC/SC recovery UX: Ready re-probes on `pageshow` /
@@ -382,12 +388,12 @@ in `[0.1.0-rc.2]` (not repeated here).
   Reconnect card service / wait for **พร้อม**”. `watchThaiID` and Ready
   detect backend unavailable → restored and say **พร้อม** again when the
   card is seated. Synthetic `SetServiceDown` covers that path without
-  simulating OS sleep. Friday E5/E6 mapped in the same docs.
+  simulating OS sleep. E5/E6 mapped in the same docs.
 
 ### Changed
 
 - Helper version string defaults to `0.1.0-rc.3`.
-- Friday checklist, technician, and staff user docs cross-link
+- Hardware checklist, technician, and staff user docs cross-link
   multi-reader selection and card-removed / sleep-wake / PC/SC recovery.
 
 ### Fixed
@@ -421,14 +427,14 @@ enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.2` only after
 human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
 in this candidate.
 
-Summarizes merges since `[0.1.0-rc.1]`: Friday qualify kit (#13–#14), Thai
-staff UI (#14), Thai Fill errors + training + Friday runbook (#15), ERP
+Summarizes merges since `[0.1.0-rc.1]`: Qualify kit (#13–#14), Thai
+staff UI (#14), Thai Fill errors + training + hardware runbook (#15), ERP
 autofill JSON schema (#16), operator audit trail + always-on serve/service
 (#17).
 
 ### Added
 
-- Friday hardware qualification kit: [docs/hardware-qualification.md](docs/hardware-qualification.md),
+- Hardware qualification kit: [docs/hardware-qualification.md](docs/hardware-qualification.md),
   `openthaiid qualify`, `scripts/hardware-qualify.sh`, `make qualify-smoke`.
   Reports are pass/fail + timing + error codes + technician diagnostics.
   Citizen ID, names, address text, and portrait bytes are never stored;
@@ -455,7 +461,7 @@ autofill JSON schema (#16), operator audit trail + always-on serve/service
   chrome. Wire/technician messages remain English.
 - Staff training: Ready-page **ฝึกใช้ก่อนได้เครื่องจริง** card in
   `-synthetic`, Thai clinic example flow, [docs/training.md](docs/training.md).
-- One-page Friday runbook: [docs/friday-checklist.md](docs/friday-checklist.md)
+- One-page hardware checklist: [docs/hardware-checklist.md](docs/hardware-checklist.md)
   (plug reader → Ready → qualify → Fill → diagnostics only for tickets).
 - `sdk/web/schema/autofill-clinic-config.schema.json` (export
   `@openthaiid/web/schema/autofill-clinic-config.json`), TypeScript
@@ -493,7 +499,7 @@ autofill JSON schema (#16), operator audit trail + always-on serve/service
 - JPEG SOI bytes, `FFD8FF`, and PNG Base64 prefixes are refused in qualify
   output in addition to the existing citizen-ID / synthetic / `data:image`
   blockers.
-- Package START-HERE / Friday checklist / technician docs cross-link
+- Package START-HERE / Hardware checklist / technician docs cross-link
   qualify, redacted audit JSON, and `openthaiid service install`.
 - Technician docs no longer call portrait “out of scope”; it is optional
   and off by default.

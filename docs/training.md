@@ -1,6 +1,6 @@
 # ฝึกใช้ก่อนได้เครื่องจริง
 
-ดัชนีเช้าวันนี้: [getting-started.md](getting-started.md)
+ดัชนีเมื่อได้เครื่องอ่าน: [getting-started.md](getting-started.md)
 
 ใช้ตัวช่วยโหมดฝึกซ้อม (`-synthetic`) กับตัวอย่างคลินิก
 **ไม่ต้องรอเครื่องอ่าน ACR39U** บัตรเป็นข้อมูลจำลอง ไม่ใช่ผู้ป่วยจริง
@@ -13,20 +13,20 @@
 
 ## สั้น ๆ
 
-ซ้อมก่อนได้เครื่อง (เส้นทางซอฟต์แวร์เช้าวันศุกร์บนบัตรจำลอง — ไม่ใช่ผ่าน ACR39U):
+ซ้อมก่อนได้เครื่อง (เส้นทางซอฟต์แวร์ก่อนได้เครื่องบนบัตรจำลอง — ไม่ใช่ผ่าน ACR39U):
 
 ```bash
-make friday-dry-run
+make pre-reader-dry-run
 # ซ้อมเลือกเครื่องอ่าน (สองเครื่องจำลอง):
-./scripts/friday-dry-run.sh --two-readers
-# Windows: powershell -ExecutionPolicy Bypass -File scripts/friday-dry-run.ps1
+./scripts/pre-reader-dry-run.sh --two-readers
+# Windows: powershell -ExecutionPolicy Bypass -File scripts/pre-reader-dry-run.ps1
 ```
 
 คำสั่งนี้สร้างตัวช่วยถ้ายังไม่มี เปิด `-synthetic` รัน qualify-smoke ตรวจ
 หน้า พร้อม / `GET /v1/helper/summary` / ทดสอบการเชื่อมต่อ (`bridge.probe`) /
 `openthaiid doctor`
 แล้วพิมพ์สรุปผ่าน ไทย/อังกฤษ ชี้ไปที่ [getting-started.md](getting-started.md)
-กับ [friday-checklist.md](friday-checklist.md) — ไม่พิมพ์เลขบัตร ชื่อ หรือรูป
+กับ [hardware-checklist.md](hardware-checklist.md) — ไม่พิมพ์เลขบัตร ชื่อ หรือรูป
 
 1. เปิดตัวช่วยฝึกซ้อมเอง (ถ้ายังไม่ได้รัน dry-run):
 
@@ -60,22 +60,22 @@ make friday-dry-run
 หรือ `PCSC_UNAVAILABLE` — ไม่ต้องรีสตาร์ทเครื่อง กด **ทดสอบการเชื่อมต่อ**
 แล้วรอ **พร้อม** (ช่างเทคนิคกด **Reconnect card service** ได้ถ้าบริการอ่านบัตรดับ)
 โหมดฝึกซ้อมจำลองบริการอ่านบัตรดับในชุดทดสอบ ไม่จำลอง sleep ของเครื่อง
-วันศุกร์ E5/E6: [friday-checklist.md](friday-checklist.md) ·
+E5/E6: [hardware-checklist.md](hardware-checklist.md) ·
 ช่างเทคนิค: [technician.md](technician.md)
 
 ถ้าถอดบัตรหรือถอดเครื่องอ่านระหว่างกรอก หน้าคลินิกต้องบอกว่าเกิดอะไร
 (`CARD_REMOVED` / `READER_REMOVED`) ให้เสียบใหม่ รอ **พร้อม** แล้วกด กรอกข้อมูล
 อีกครั้ง — อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ
 โหมดฝึกซ้อมไม่มีเครื่องจริงให้ถอด แต่ชุดทดสอบสังเคราะห์ครอบคลุมเส้นนี้แล้ว
-วันศุกร์ E4: [friday-checklist.md](friday-checklist.md) ·
+E4: [hardware-checklist.md](hardware-checklist.md) ·
 เจ้าหน้าที่: [user.md](user.md)
 
 ## เมื่อได้เครื่องจริง
 
 ปิดตัวช่วยฝึกซ้อม แล้วเปิดใหม่ **โดยไม่ใส่** `-synthetic`
-พิมพ์ [friday-desk-card.md](friday-desk-card.md) ไว้ที่โต๊ะเจ้าหน้าที่
+พิมพ์ [staff-desk-card.md](staff-desk-card.md) ไว้ที่โต๊ะเจ้าหน้าที่
 เสียบ ACR39U ตามบัตรนั้น (ไม่ใช่ชุด qualify)
-ชุดช่างเทคนิค: [friday-checklist.md](friday-checklist.md)
+ชุดช่างเทคนิค: [hardware-checklist.md](hardware-checklist.md)
 อย่าสับสนบัตรจำลองกับบัตรผู้ป่วย
 
 รายละเอียดช่างเทคนิค: [technician.md](technician.md)
@@ -84,8 +84,8 @@ make friday-dry-run
 
 # Practice before the real reader arrives (English)
 
-Start with `make friday-dry-run` (ซ้อมก่อนได้เครื่อง) to rehearse the
-Friday-morning software path on `-synthetic` without an ACR39U. Then start
+Start with `make pre-reader-dry-run` (ซ้อมก่อนได้เครื่อง) to rehearse the
+pre-reader software path on `-synthetic` without an ACR39U. Then start
 `./dist/openthaiid -synthetic`, open
 `examples/clinic-patient/`, click Fill, then **Allow** on the Ready page.
 The form shows fictional card data. Do not send screenshots or field
@@ -93,9 +93,9 @@ values in tickets — diagnostics, `openthaiid audit` JSON, and error
 **codes** only.
 Pass `{ lang: "en" }` / `?lang=en` for English staff banners.
 When the ACR39U arrives, restart the helper without `-synthetic`.
-Friday-morning index: [getting-started.md](getting-started.md).
-Staff desk card (print one Thai page): [friday-desk-card.md](friday-desk-card.md).
-Friday one-page (multi-reader, E4–E6): [friday-checklist.md](friday-checklist.md).
+Hardware-arrival index: [getting-started.md](getting-started.md).
+Staff desk card (print one Thai page): [staff-desk-card.md](staff-desk-card.md).
+Operator one-page (multi-reader, E4–E6): [hardware-checklist.md](hardware-checklist.md).
 Technicians: [technician.md](technician.md).
 Loopback HTTP inventory: [security.md](security.md).
 Firefox/Safari https Fill: [compatibility.md](compatibility.md) · optional

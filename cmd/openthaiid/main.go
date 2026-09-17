@@ -492,12 +492,12 @@ Usage:
   openthaiid doctor          Desk snapshot: helper, ports, PC/SC, probe, TLS yes/no
                              (no personal fields, tokens, or key paths). Exit 1 only
                              if the helper is down or PC/SC is unavailable.
-  openthaiid qualify         Friday kit: E1–E3 + E4–E7/M1 prompts; one JSON report (no personal fields)
+  openthaiid qualify         Qualify kit: E1–E3 + E4–E7/M1 prompts; one JSON report (no personal fields)
                              default report: ./openthaiid-qualify.json
                              -operator records pass/fail/skip only (never type card data)
   openthaiid bind-stress     PC/SC binding stress: connect/list/probe/presence; one JSON report
                              (no personal fields, no APDUs). -synthetic is harness smoke only.
-                             Friday with ACR39U: omit -synthetic. See docs/bind-stress.md
+                             When the ACR39U arrives: omit -synthetic. See docs/bind-stress.md
   openthaiid version         Print version
 
 Flags (run / tray mode):
@@ -520,7 +520,7 @@ WebSocket:     ws://127.0.0.1:17891/v1/ws
 Optional WSS:  wss://127.0.0.1:17892/v1/ws  (technician-managed local cert)
 
 Clinic staff: install once, start the helper (tray or Start menu), plug reader, Fill.
-Technicians:  see docs/technician.md, docs/friday-checklist.md,
+Technicians:  see docs/technician.md, docs/hardware-checklist.md,
               docs/hardware-qualification.md, and docs/bind-stress.md.
 
 There is no backend or frontend to deploy. The ERP calls autofillThaiID.

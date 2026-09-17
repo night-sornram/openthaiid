@@ -158,7 +158,7 @@ func runQualify(args []string) int {
 
 func operatorHint(synthetic, skip bool) string {
 	if synthetic {
-		return "not scored on synthetic smoke. Friday hardware: openthaiid qualify -operator"
+		return "not scored on synthetic smoke. Hardware: openthaiid qualify -operator"
 	}
 	if skip {
 		return "prompts printed below; not scored. Record pass/fail with -operator"

@@ -56,7 +56,7 @@ func runBindStress(args []string) int {
 		banner = "bind-stress: synthetic smoke (does not close P2–P10 / ACR39U binding audit)\n"
 	}
 	banner += "A single redacted JSON report will be written to:\n  " + absReport + "\n"
-	banner += "See docs/bind-stress.md. Friday hardware: omit -synthetic.\n"
+	banner += "See docs/bind-stress.md. Hardware: omit -synthetic.\n"
 	if !printSafe(os.Stdout, banner) {
 		return 1
 	}

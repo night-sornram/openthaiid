@@ -1,6 +1,6 @@
 # Optional loopback TLS (technician)
 
-Friday-morning index: [getting-started.md](getting-started.md).
+Hardware-arrival index: [getting-started.md](getting-started.md).
 Fill-fails checklist: [technician.md](technician.md).
 
 Use this when the clinic ERP is **https://** and staff use **Firefox or Safari**.

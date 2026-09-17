@@ -11,7 +11,7 @@ import (
 	"github.com/night-sornram/openthaiid/internal/reader"
 )
 
-// OperatorIO is the Friday keyboard for E3 (hardware) and E4–E7 / M1.
+// OperatorIO is the operator keyboard for E3 (hardware) and E4–E7 / M1.
 // Implementations must refuse to store free text or personal data.
 type OperatorIO interface {
 	Ask(step OperatorStep) Result
@@ -289,7 +289,7 @@ func runE2(ctx context.Context, rep *Report, mgr *reader.Manager, engine *card.E
 
 func runOperatorChecks(rep *Report, opt Options) {
 	if opt.Synthetic {
-		opt.Log("E4–E7 / M1 skipped (synthetic smoke). Friday hardware: openthaiid qualify -operator")
+		opt.Log("E4–E7 / M1 skipped (synthetic smoke). Hardware: openthaiid qualify -operator")
 		opt.Log("Never record citizen ID, names, address, or photo bytes. See docs/hardware-qualification.md")
 	} else {
 		opt.Log("E4–E7 / M1 operator prompts (never type card data / never paste a photo)")

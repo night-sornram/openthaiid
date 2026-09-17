@@ -1,6 +1,6 @@
 # PC/SC bind-stress (P2–P10)
 
-Friday **binding-audit stress** for `ebfe/scard`. This is a runnable harness,
+**Binding-audit stress** for `ebfe/scard`. This is a runnable harness,
 not a blank checklist. It is **not** the E1–E7 qualify kit (no MVP field
 reads, no operator pass/fail of clinic UX).
 
@@ -49,7 +49,7 @@ Same command, **no** `-synthetic`. Plug the reader (card seated for B5/B6).
 ```bash
 make build
 ./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json
-# 50 loops on the Friday desk:
+# 50 loops on the clinic desk:
 ./scripts/bind-stress.sh --cycles 50 --report ./openthaiid-bind-stress.json
 ```
 
@@ -66,7 +66,7 @@ make build
 | P10 | GC while cgo pointers exist | darwin / linux hardware (Windows WinSCard is not cgo) |
 
 A macOS pass does **not** close Windows or Linux. Run the same script on
-each Friday host. Order stays macOS first, then Windows, then Linux
+each hardware host. Order stays macOS first, then Windows, then Linux
 ([hardware-qualification.md](hardware-qualification.md)).
 
 Without a card, B5/B6 SKIP (`NO_CARD` / `NO_READER`); B1–B3, B7–B9 still
@@ -89,7 +89,7 @@ Confirm:
 
 1. `"schema": "openthaiid.bindstress.v1"`
 2. `"pii"` says values are omitted
-3. `"mode"` is `hardware` on Friday (`synthetic-smoke` is not a binding pass)
+3. `"mode"` is `hardware` when the reader is on the desk (`synthetic-smoke` is not a binding pass)
 4. No citizen ID, names, `/9j/`, `data:image`, or SELECT hex dumps
 5. Attach the file. Do not paste ERP dumps or HAR with `card.read`
 

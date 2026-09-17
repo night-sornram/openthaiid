@@ -19,7 +19,7 @@ Happy path
 5. The first time, Allow the clinic page on the Ready page
    (http://127.0.0.1:17891/). Match the code if the ERP shows one.
 
-Friday hardware qualification (when the ACR39U arrives)
+Hardware qualification (when the ACR39U arrives)
 -------------------------------------------------------
 Plug the reader, insert a Thai ID you are allowed to handle, then:
 
@@ -32,9 +32,9 @@ Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
   openthaiid.exe qualify -operator -report openthaiid-qualify.json
 
 Never type or save citizen ID, names, address, or photo bytes. One JSON
-report path is printed as `report: ...`. Friday-morning index:
+report path is printed as `report: ...`. Hardware-arrival index:
 docs\getting-started.md. Staff desk card (print one Thai page):
-docs\friday-desk-card.md. Operator one-page: docs\friday-checklist.md
+docs\staff-desk-card.md. Operator one-page: docs\hardware-checklist.md
 (full kit: docs\hardware-qualification.md). Always-on without a tray:
 docs\installation.md (Install-OpenThaiID-Service.ps1 /
 openthaiid.exe service install). Technician audit JSON: Technician tools
@@ -72,14 +72,14 @@ Menu / Desktop shortcuts. It does not enable autostart unless you pass
 
 Technicians: run openthaiid.exe in a terminal, or Technician tools.
 `openthaiid.exe doctor` prints a redacted desk snapshot (no personal fields).
-See docs\getting-started.md, docs\friday-desk-card.md (staff print card),
-docs\technician.md, docs\friday-checklist.md,
+See docs\getting-started.md, docs\staff-desk-card.md (staff print card),
+docs\technician.md, docs\hardware-checklist.md,
 docs\user.md
 (multi-reader, CARD_REMOVED / READER_REMOVED, sleep/wake PC/SC recovery),
 docs\security.md (loopback HTTP inventory), docs\compatibility.md
 (Firefox/Safari https Fill), and docs\loopback-tls.md (optional helper
 HTTPS/WSS).
-From a source checkout: make friday-dry-run (ซ้อมก่อนได้เครื่อง).
+From a source checkout: make pre-reader-dry-run (ซ้อมก่อนได้เครื่อง).
 Do not send screenshots of card data.
 `openthaiid.exe update check` looks at GitHub Releases (unsigned packages).
 

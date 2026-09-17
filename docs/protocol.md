@@ -16,7 +16,7 @@
   `POST /v1/helper/shutdown` (foreign Origin rejected).
   Inventory: [security.md](security.md). Optional HTTPS/WSS:
   [loopback-tls.md](loopback-tls.md). Firefox/Safari matrix:
-  [compatibility.md](compatibility.md). Friday-morning hub:
+  [compatibility.md](compatibility.md). Hardware-arrival hub:
   [getting-started.md](getting-started.md).
 - Frame limit: 64 KiB text-only. Compression disabled.
 - Port is explicit configuration. No port scanning or silent fallback.

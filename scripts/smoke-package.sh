@@ -37,7 +37,7 @@ if [ "$HOST_OS" != "darwin" ]; then
   echo "$out" | grep -q "must run on a Mac"
 fi
 
-echo "== START-HERE Friday qualify + audit JSON + service install =="
+echo "== START-HERE Hardware qualify + audit JSON + service install =="
 for f in packaging/START-HERE.linux.txt packaging/START-HERE.windows.txt packaging/START-HERE.darwin.txt; do
   grep -q "qualify" "$f"
   grep -qi "audit" "$f"
@@ -50,44 +50,44 @@ test -f packaging/windows/Register-OpenThaiID-Task.ps1
 grep -q "serve" packaging/linux/openthaiid.service
 grep -q "serve" packaging/linux/openthaiid-system.service
 
-echo "== friday-checklist / technician / user cross-links =="
-grep -q "qualify" docs/friday-checklist.md
-grep -qi "audit" docs/friday-checklist.md
-grep -q "service install" docs/friday-checklist.md
-grep -q "ใช้เครื่องนี้" docs/friday-checklist.md
-grep -q "CARD_REMOVED" docs/friday-checklist.md
-grep -q "PCSC_UNAVAILABLE" docs/friday-checklist.md
-grep -q "technician.md" docs/friday-checklist.md
-grep -q "user.md" docs/friday-checklist.md
+echo "== hardware-checklist / technician / user cross-links =="
+grep -q "qualify" docs/hardware-checklist.md
+grep -qi "audit" docs/hardware-checklist.md
+grep -q "service install" docs/hardware-checklist.md
+grep -q "ใช้เครื่องนี้" docs/hardware-checklist.md
+grep -q "CARD_REMOVED" docs/hardware-checklist.md
+grep -q "PCSC_UNAVAILABLE" docs/hardware-checklist.md
+grep -q "technician.md" docs/hardware-checklist.md
+grep -q "user.md" docs/hardware-checklist.md
 grep -q "qualify" docs/technician.md
 grep -qi "audit" docs/technician.md
 grep -q "service install" docs/technician.md
 grep -q "ใช้เครื่องนี้" docs/technician.md
 grep -q "CARD_REMOVED" docs/technician.md
 grep -q "PCSC_UNAVAILABLE" docs/technician.md
-grep -q "friday-checklist.md" docs/technician.md
+grep -q "hardware-checklist.md" docs/technician.md
 grep -q "user.md" docs/technician.md
 grep -q "ใช้เครื่องนี้" docs/user.md
 grep -q "CARD_REMOVED" docs/user.md
 grep -q "PCSC_UNAVAILABLE" docs/user.md
-grep -q "friday-checklist.md" docs/user.md
+grep -q "hardware-checklist.md" docs/user.md
 grep -q "technician.md" docs/user.md
 grep -q "getting-started.md" README.md
 grep -q "user.md" docs/getting-started.md
 grep -q "training.md" docs/getting-started.md
-grep -q "friday-checklist.md" docs/getting-started.md
+grep -q "hardware-checklist.md" docs/getting-started.md
 grep -q "erp-integration.md" docs/getting-started.md
 grep -q "technician.md" docs/getting-started.md
-grep -q "getting-started.md" docs/friday-checklist.md
+grep -q "getting-started.md" docs/hardware-checklist.md
 grep -q "getting-started.md" docs/user.md
 grep -q "getting-started.md" docs/training.md
-grep -q "friday-dry-run" docs/getting-started.md
+grep -q "pre-reader-dry-run" docs/getting-started.md
 grep -q "ซ้อมก่อนได้เครื่อง" docs/getting-started.md
-grep -q "friday-dry-run" docs/training.md
+grep -q "pre-reader-dry-run" docs/training.md
 grep -q "ซ้อมก่อนได้เครื่อง" docs/training.md
-grep -q "friday-dry-run" Makefile
-test -f scripts/friday-dry-run.sh
-test -f scripts/friday-dry-run.ps1
+grep -q "pre-reader-dry-run" Makefile
+test -f scripts/pre-reader-dry-run.sh
+test -f scripts/pre-reader-dry-run.ps1
 grep -q "getting-started.md" docs/erp-integration.md
 grep -q "getting-started.md" docs/technician.md
 grep -q "getting-started.md" packaging/START-HERE.linux.txt
@@ -96,14 +96,14 @@ grep -q "getting-started.md" packaging/START-HERE.darwin.txt
 grep -q "security.md" docs/getting-started.md
 grep -q "getting-started.md" docs/security.md
 grep -q "Loopback HTTP" docs/security.md
-grep -q "friday-dry-run" docs/security.md
+grep -q "pre-reader-dry-run" docs/security.md
 grep -q "security.md" docs/technician.md
 grep -q "getting-started.md" docs/hardware-qualification.md
-grep -q "friday-dry-run" docs/hardware-qualification.md
+grep -q "pre-reader-dry-run" docs/hardware-qualification.md
 grep -q "bind-stress.md" docs/hardware-qualification.md
 grep -q "bind-stress" NOT_DONE.md
 grep -q "bind-stress.md" docs/technician.md
-grep -q "bind-stress.md" docs/friday-checklist.md
+grep -q "bind-stress.md" docs/hardware-checklist.md
 grep -q "bind-stress.md" docs/acceptance.md
 grep -q "bind-stress.md" docs/dependency-audit.md
 grep -q "bind-stress-smoke" Makefile
@@ -114,18 +114,18 @@ test -f docs/bind-stress.md
 grep -q "openthaiid.bindstress.v1" docs/bind-stress.md
 grep -q "bind-stress.md" docs/getting-started.md
 grep -q "bind-stress.md" README.md
-grep -q "security.md" docs/friday-checklist.md
-grep -q "friday-dry-run" packaging/START-HERE.linux.txt
-grep -q "friday-dry-run" packaging/START-HERE.windows.txt
-grep -q "friday-dry-run" packaging/START-HERE.darwin.txt
+grep -q "security.md" docs/hardware-checklist.md
+grep -q "pre-reader-dry-run" packaging/START-HERE.linux.txt
+grep -q "pre-reader-dry-run" packaging/START-HERE.windows.txt
+grep -q "pre-reader-dry-run" packaging/START-HERE.darwin.txt
 grep -q "loopback-tls.md" docs/getting-started.md
 grep -q "compatibility.md" docs/getting-started.md
 grep -q "getting-started.md" docs/loopback-tls.md
 grep -q "getting-started.md" docs/compatibility.md
 grep -q "loopback-tls.md" docs/compatibility.md
 grep -q "loopback-tls.md" docs/hardware-qualification.md
-grep -q "loopback-tls.md" docs/friday-checklist.md
-grep -q "compatibility.md" docs/friday-checklist.md
+grep -q "loopback-tls.md" docs/hardware-checklist.md
+grep -q "compatibility.md" docs/hardware-checklist.md
 grep -q "loopback-tls.md" docs/training.md
 grep -q "compatibility.md" docs/training.md
 grep -q "loopback-tls.md" docs/security.md
@@ -177,50 +177,50 @@ echo "== openthaiid doctor technician desk snapshot links =="
 grep -q "openthaiid doctor" docs/technician.md
 grep -q "GET /v1/helper/doctor" docs/technician.md
 grep -q "Desk snapshot" docs/technician.md
-grep -q "openthaiid doctor" docs/friday-checklist.md
+grep -q "openthaiid doctor" docs/hardware-checklist.md
 grep -q "openthaiid doctor" docs/getting-started.md
-grep -q "doctor -port" scripts/friday-dry-run.sh
-grep -q "doctor -port" scripts/friday-dry-run.ps1
+grep -q "doctor -port" scripts/pre-reader-dry-run.sh
+grep -q "doctor -port" scripts/pre-reader-dry-run.ps1
 grep -q "openthaiid doctor" packaging/START-HERE.linux.txt
 grep -q "openthaiid doctor" packaging/START-HERE.darwin.txt
 grep -q "openthaiid.exe doctor" packaging/START-HERE.windows.txt
 
-echo "== friday-desk-card staff-only (not the qualify kit) =="
-test -f docs/friday-desk-card.md
-test -f docs/friday-desk-card.html
-grep -q "เสียบเครื่องอ่าน" docs/friday-desk-card.md
-grep -q "ทดสอบการเชื่อมต่อ" docs/friday-desk-card.md
-grep -q "กรอกข้อมูล" docs/friday-desk-card.md
-grep -q "เรียกช่าง" docs/friday-desk-card.md
-grep -q "ทดสอบการเชื่อมต่อ" docs/friday-desk-card.html
-grep -q "เรียกช่าง" docs/friday-desk-card.html
-grep -q "@media print" docs/friday-desk-card.html
-grep -q "friday-desk-card.html" docs/friday-desk-card.md
-grep -q "friday-desk-card.md" docs/friday-checklist.md
-grep -q "friday-desk-card.md" docs/getting-started.md
-grep -q "friday-desk-card.md" docs/training.md
-grep -q "friday-desk-card.md" docs/user.md
-grep -q "friday-desk-card.md" docs/hardware-qualification.md
-grep -q "friday-desk-card.md" docs/clinic.md
-grep -q "friday-desk-card.md" docs/installation.md
-grep -q "friday-desk-card.md" packaging/START-HERE.linux.txt
-grep -q "friday-desk-card.md" packaging/START-HERE.windows.txt
-grep -q "friday-desk-card.md" packaging/START-HERE.darwin.txt
-grep -q "friday-desk-card.md" README.md
-grep -q "friday-desk-card.md" scripts/friday-dry-run.sh
-grep -q "friday-desk-card.md" scripts/friday-dry-run.ps1
-if grep -q "openthaiid qualify" docs/friday-desk-card.md docs/friday-desk-card.html; then
+echo "== staff-desk-card staff-only (not the qualify kit) =="
+test -f docs/staff-desk-card.md
+test -f docs/staff-desk-card.html
+grep -q "เสียบเครื่องอ่าน" docs/staff-desk-card.md
+grep -q "ทดสอบการเชื่อมต่อ" docs/staff-desk-card.md
+grep -q "กรอกข้อมูล" docs/staff-desk-card.md
+grep -q "เรียกช่าง" docs/staff-desk-card.md
+grep -q "ทดสอบการเชื่อมต่อ" docs/staff-desk-card.html
+grep -q "เรียกช่าง" docs/staff-desk-card.html
+grep -q "@media print" docs/staff-desk-card.html
+grep -q "staff-desk-card.html" docs/staff-desk-card.md
+grep -q "staff-desk-card.md" docs/hardware-checklist.md
+grep -q "staff-desk-card.md" docs/getting-started.md
+grep -q "staff-desk-card.md" docs/training.md
+grep -q "staff-desk-card.md" docs/user.md
+grep -q "staff-desk-card.md" docs/hardware-qualification.md
+grep -q "staff-desk-card.md" docs/clinic.md
+grep -q "staff-desk-card.md" docs/installation.md
+grep -q "staff-desk-card.md" packaging/START-HERE.linux.txt
+grep -q "staff-desk-card.md" packaging/START-HERE.windows.txt
+grep -q "staff-desk-card.md" packaging/START-HERE.darwin.txt
+grep -q "staff-desk-card.md" README.md
+grep -q "staff-desk-card.md" scripts/pre-reader-dry-run.sh
+grep -q "staff-desk-card.md" scripts/pre-reader-dry-run.ps1
+if grep -q "openthaiid qualify" docs/staff-desk-card.md docs/staff-desk-card.html; then
   echo "ERROR: staff desk card must not include qualify" >&2
   exit 1
 fi
-if grep -qiE "laser-id|NHSO" docs/friday-desk-card.md docs/friday-desk-card.html; then
+if grep -qiE "laser-id|NHSO" docs/staff-desk-card.md docs/staff-desk-card.html; then
   echo "ERROR: staff desk card must not mention Laser-id/NHSO" >&2
   exit 1
 fi
 
-echo "== NOT_DONE Friday playbook (not a stale software backlog) =="
+echo "== NOT_DONE hardware playbook (not a stale software backlog) =="
 grep -q "Done in software (rc.9" NOT_DONE.md
-grep -q "Do Friday with ACR39U" NOT_DONE.md
+grep -q "When the ACR39U arrives" NOT_DONE.md
 grep -q "Blocked without cited APDU" NOT_DONE.md
 grep -q "Blocked without user certs" NOT_DONE.md
 grep -q "Paused until Actions minutes" NOT_DONE.md
@@ -257,7 +257,7 @@ if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.7|v0\\.1\\.0-rc\\.7.*tag-ready" NOT_DONE
 fi
 grep -q "NOT_DONE.md" README.md
 grep -q "NOT_DONE.md" docs/getting-started.md
-grep -q "NOT_DONE.md" docs/friday-checklist.md
+grep -q "NOT_DONE.md" docs/hardware-checklist.md
 grep -q "NOT_DONE.md" docs/hardware-qualification.md
 grep -q "post-#42 / rc.9+" docs/hardware-qualification.md
 if grep -q "rc.7 is done in" docs/hardware-qualification.md; then
@@ -269,7 +269,7 @@ grep -q '## \[0.1.0-rc.8\]' CHANGELOG.md
 grep -q "SDK version align" CHANGELOG.md
 grep -q "clinic-https.json" CHANGELOG.md
 grep -q "bind-stress" CHANGELOG.md
-grep -q "Friday NOT_DONE playbook" CHANGELOG.md
+grep -q "NOT_DONE hardware playbook" CHANGELOG.md
 grep -q "bind-stress.md" CHANGELOG.md
 grep -q "NOT_DONE.md" CHANGELOG.md
 

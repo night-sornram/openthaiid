@@ -1,9 +1,9 @@
 # บัตรโต๊ะเจ้าหน้าที่ — เช้าได้เครื่อง ACR39U
 
 พิมพ์**หนึ่งหน้า**นี้ วางไว้ที่โต๊ะ · ตัวใหญ่ อ่านตอนเช้าได้  
-เปิด [friday-desk-card.html](friday-desk-card.html) แล้วพิมพ์ (Ctrl+P / Command+P)
+เปิด [staff-desk-card.html](staff-desk-card.html) แล้วพิมพ์ (Ctrl+P / Command+P)
 
-ชุด qualify / วินิจฉัยของช่างเทคนิคอยู่ที่ [friday-checklist.md](friday-checklist.md)  
+ชุด qualify / วินิจฉัยของช่างเทคนิคอยู่ที่ [hardware-checklist.md](hardware-checklist.md)  
 ดัชนีเช้านี้: [getting-started.md](getting-started.md)
 
 ## เช้านี้ทำตามนี้

@@ -9,7 +9,7 @@ OpenThaiID website or backend to deploy. The helper listens only on
 1. Get a per-OS archive from `scripts/package.sh` (or an internal share of
    `dist/openthaiid-<version>-<os>-<arch>.tar.gz` / `.zip`).
 2. Follow **START-HERE.txt** in that archive.
-   Friday-morning index in the same archive: `docs/getting-started.md`.
+   Hardware-arrival index in the same archive: `docs/getting-started.md`.
 
 | OS | What staff run | Notes |
 |---|---|---|
@@ -183,10 +183,10 @@ Cross-compilation notes:
 ./dist/openthaiid tray -open   # same, open Ready page
 ./dist/openthaiid serve        # headless always-on helper
 ./dist/openthaiid service status
-./dist/openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
+./dist/openthaiid qualify -report ./openthaiid-qualify.json   # Qualify kit
 ./dist/openthaiid audit        # redacted operator trail JSON
-# One-page staff card: docs/friday-desk-card.md
-# Operator qualify sheet: docs/friday-checklist.md  Practice: docs/training.md
+# One-page staff card: docs/staff-desk-card.md
+# Operator qualify sheet: docs/hardware-checklist.md  Practice: docs/training.md
 # Technician: docs/technician.md
 ```
 

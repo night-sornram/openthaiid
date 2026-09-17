@@ -1,4 +1,4 @@
-# Friday hardware qualification wrapper (Windows).
+# Hardware qualification wrapper (Windows).
 # Never prints or stores citizen ID, names, address, or portrait bytes.
 param(
     [switch]$Synthetic,

@@ -20,7 +20,7 @@ Happy path
    on the Ready page before Fill. Open the clinic ERP. Click Fill (กรอกข้อมูล).
 5. The first time, Allow the clinic page on the Ready page.
 
-Friday hardware qualification (when the ACR39U arrives)
+Hardware qualification (when the ACR39U arrives)
 -------------------------------------------------------
 Plug the reader, insert a Thai ID you are allowed to handle, then:
 
@@ -32,9 +32,9 @@ Interactive E3 / E4–E7 / M1 prompts (type pass, fail, or skip only):
   ./openthaiid qualify -operator -report ./openthaiid-qualify.json
 
 Never type or save citizen ID, names, address, or photo bytes. One JSON
-report path is printed as `report: ...`. Friday-morning index:
+report path is printed as `report: ...`. Hardware-arrival index:
 docs/getting-started.md. Staff desk card (print one Thai page):
-docs/friday-desk-card.md. Operator one-page: docs/friday-checklist.md
+docs/staff-desk-card.md. Operator one-page: docs/hardware-checklist.md
 (full kit: docs/hardware-qualification.md). Always-on without a tray:
 docs/installation.md (`openthaiid service install`). Technician audit JSON:
 ./openthaiid audit  (or Technician tools → Copy JSON). Practice without a
@@ -67,13 +67,13 @@ Packages are unsigned. See docs/signing.md. `openthaiid update check` looks
 at GitHub Releases (no card data).
 
 Technicians: ./openthaiid in a terminal. See docs/getting-started.md,
-docs/friday-desk-card.md (staff print card),
+docs/staff-desk-card.md (staff print card),
 docs/technician.md, docs/security.md (loopback HTTP inventory),
 docs/compatibility.md (Firefox/Safari https Fill), and
 docs/loopback-tls.md (optional helper HTTPS/WSS).
 Staff recovery (two readers, card pulled, sleep/wake): docs/user.md and
-docs/friday-checklist.md.
-From a source checkout: make friday-dry-run (ซ้อมก่อนได้เครื่อง).
+docs/hardware-checklist.md.
+From a source checkout: make pre-reader-dry-run (ซ้อมก่อนได้เครื่อง).
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.

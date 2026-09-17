@@ -1,4 +1,4 @@
-# Friday hardware qualification kit
+# Hardware qualification kit
 
 Operator checklist for **ACR39U** physical qualification (acceptance E1–E7
 plus M1). This is the work that waits on the reader. Software can only
@@ -9,14 +9,14 @@ text, dates of birth, or portrait / photo bytes (including Base64 and
 `data:image` URLs). Tickets get **pass/fail**, **milliseconds**, **error
 codes**, and the technician diagnostics copy below.
 
-Software vs Friday split: [NOT_DONE.md](../NOT_DONE.md) (pre-hardware
+Software vs hardware split: [NOT_DONE.md](../NOT_DONE.md) (pre-hardware
 software is complete as of post-#42 / rc.9+; this kit is the ACR39U work).
 
 Synthetic `openthaiid qualify -synthetic` proves the kit, not the reader.
-Friday-morning index: [getting-started.md](getting-started.md).
-One-command software rehearsal: `make friday-dry-run` (ซ้อมก่อนได้เครื่อง).
-Staff desk card (print one Thai page): [friday-desk-card.md](friday-desk-card.md).
-One-page Friday sheet: [friday-checklist.md](friday-checklist.md).
+Hardware-arrival index: [getting-started.md](getting-started.md).
+One-command software rehearsal: `make pre-reader-dry-run` (ซ้อมก่อนได้เครื่อง).
+Staff desk card (print one Thai page): [staff-desk-card.md](staff-desk-card.md).
+One-page hardware checklist: [hardware-checklist.md](hardware-checklist.md).
 Practice Fill without hardware: [training.md](training.md).
 Loopback helper HTTP inventory (foreign Origin cannot stop the helper):
 [security.md](security.md).
@@ -50,14 +50,14 @@ commit SHA. No card field values.
 ## Automated slice (this repo)
 
 ```bash
-# Friday-morning software rehearsal (no hardware; does not claim E1–E7)
-make friday-dry-run
-./scripts/friday-dry-run.sh --two-readers   # optional practice picker
+# Pre-reader software rehearsal (no hardware; does not claim E1–E7)
+make pre-reader-dry-run
+./scripts/pre-reader-dry-run.sh --two-readers   # optional practice picker
 
 # Kit smoke only (no helper / Ready page)
 make qualify-smoke
 
-# Friday, with the reader + card already inserted (one JSON report):
+# With the reader + card already inserted (one JSON report):
 ./dist/openthaiid qualify -report ./openthaiid-qualify.json
 # Interactive E3 + E4–E7/M1 (type pass, fail, or skip only — never card data):
 ./dist/openthaiid qualify -operator -report ./openthaiid-qualify.json
@@ -93,7 +93,7 @@ Harness: [bind-stress.md](bind-stress.md).
 make bind-stress-smoke
 ./scripts/bind-stress.sh --synthetic --cycles 3
 
-# Friday, ACR39U on this PC (never -synthetic):
+# With ACR39U on this PC (never -synthetic):
 ./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json
 ```
 
@@ -110,9 +110,9 @@ preview if you need to confirm a layout. **Do not save the preview.**
 | E1 | Reader/card detection within 2s under normal operation | Card inserted, helper started (or `qualify`). Ready lights go on. | PASS/FAIL, `durationMs`, `NO_READER` / `NO_CARD` / `PCSC_UNAVAILABLE` if fail |
 | E2 | 100 successful repeated MVP reads | `qualify` E2, or 100 Fill clicks. Report stores field *names* and JPEG flags only. | PASS/FAIL, min/avg/max ms, error code counts |
 | E3 | ≥20 insertion/removal cycles | Remove until status says insert card, seat fully, repeat. Synthetic kit toggles a practice card. | PASS/FAIL, cycles ok, max cycle ms |
-| E4 | Removal during reading and reader unplug | Start Fill / a qualify read, pull the card, then unplug the reader. Ready must leave **พร้อม**. Staff: [user.md](user.md). Technician: [technician.md](technician.md). One-page: [friday-checklist.md](friday-checklist.md). | PASS if helper stays up and the clinic error is `CARD_REMOVED` (card pulled) / `READER_REMOVED` (USB unplug) / `READ_FAILED` (native I/O that cannot tell) — not a crash. Staff Thai tells them to reinsert, wait for Ready, Fill again. Codes stay stable. |
-| E5 | Browser refresh, bridge restart, sleep/wake | Fill, refresh ERP, `openthaiid quit` then start again, sleep/wake. Ready re-probes on wake (`bridge.probe` / status only — never `card.read`). Staff: [user.md](user.md). Technician: [technician.md](technician.md). One-page: [friday-checklist.md](friday-checklist.md). | PASS if reconnect works without a reboot; helper-down is `BRIDGE_UNAVAILABLE` (Test connection fails); after restart Ready returns to **พร้อม**. No field values in logs. SKIP sleep/wake only if the PC cannot sleep, and record which steps you did. |
-| E6 | Missing/stopped PC/SC recovery | Linux: stop `pcscd` briefly. Windows: stop Smart Card service if safe. macOS: note built-in PC/SC; record SKIP if you cannot disable it. Ready must leave **พร้อม**. Test connection stays probe-only. Staff: [user.md](user.md). Technician: [technician.md](technician.md). One-page: [friday-checklist.md](friday-checklist.md). | PASS if clinic/Ready/doctor show `PCSC_UNAVAILABLE`, then recovery: start the service, Technician **Reconnect card service** if lights stay down, Ready says **พร้อม** again. SKIP + reason on macOS when PC/SC cannot be stopped. Do not reboot. |
+| E4 | Removal during reading and reader unplug | Start Fill / a qualify read, pull the card, then unplug the reader. Ready must leave **พร้อม**. Staff: [user.md](user.md). Technician: [technician.md](technician.md). One-page: [hardware-checklist.md](hardware-checklist.md). | PASS if helper stays up and the clinic error is `CARD_REMOVED` (card pulled) / `READER_REMOVED` (USB unplug) / `READ_FAILED` (native I/O that cannot tell) — not a crash. Staff Thai tells them to reinsert, wait for Ready, Fill again. Codes stay stable. |
+| E5 | Browser refresh, bridge restart, sleep/wake | Fill, refresh ERP, `openthaiid quit` then start again, sleep/wake. Ready re-probes on wake (`bridge.probe` / status only — never `card.read`). Staff: [user.md](user.md). Technician: [technician.md](technician.md). One-page: [hardware-checklist.md](hardware-checklist.md). | PASS if reconnect works without a reboot; helper-down is `BRIDGE_UNAVAILABLE` (Test connection fails); after restart Ready returns to **พร้อม**. No field values in logs. SKIP sleep/wake only if the PC cannot sleep, and record which steps you did. |
+| E6 | Missing/stopped PC/SC recovery | Linux: stop `pcscd` briefly. Windows: stop Smart Card service if safe. macOS: note built-in PC/SC; record SKIP if you cannot disable it. Ready must leave **พร้อม**. Test connection stays probe-only. Staff: [user.md](user.md). Technician: [technician.md](technician.md). One-page: [hardware-checklist.md](hardware-checklist.md). | PASS if clinic/Ready/doctor show `PCSC_UNAVAILABLE`, then recovery: start the service, Technician **Reconnect card service** if lights stay down, Ready says **พร้อม** again. SKIP + reason on macOS when PC/SC cannot be stopped. Do not reboot. |
 | E7 | Local visual verification without storing field contents | Look at clinic example / ERP. Confirm name split, address, gender, photo *on screen only*. | PASS = looked right **and** nothing was copied/saved |
 
 Community layout hypotheses (still not a government spec) — confirm with

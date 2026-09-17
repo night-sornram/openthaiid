@@ -1,6 +1,6 @@
 # Technician / developer guide
 
-Friday-morning index (Thai-first): [getting-started.md](getting-started.md).
+Hardware-arrival index (Thai-first): [getting-started.md](getting-started.md).
 
 Clinic staff should stay on the simple Ready view (Thai **พร้อม** lights by
 default; English toggle on that page). Lights include **OK / Waiting / Not
@@ -33,8 +33,8 @@ Work top to bottom. Most failures are the first four. Clinic ERP pages should
 show `formatStaffError(err)` (Thai by default) and keep the protocol **code**
 for tickets (`BRIDGE_UNAVAILABLE`, `NO_READER`, `NO_CARD`, `CARD_REMOVED`,
 `READER_REMOVED`, `PCSC_UNAVAILABLE`, `APPROVAL_DENIED`, `FIELD_NOT_ALLOWED`,
-`HTTPS_WS_BLOCKED`, `TLS_UNTRUSTED`). Staff Thai tables: [user.md](user.md). Friday one-page (E4–E6):
-[friday-checklist.md](friday-checklist.md).
+`HTTPS_WS_BLOCKED`, `TLS_UNTRUSTED`). Staff Thai tables: [user.md](user.md). Operator one-page (E4–E6):
+[hardware-checklist.md](hardware-checklist.md).
 
 ### 1. Helper not running
 
@@ -67,9 +67,9 @@ is not trusted (see below). Do not restart the helper for that.
 ./openthaiid              # terminal helper
 ./openthaiid serve        # headless (Windows service / systemd)
 ./openthaiid -synthetic   # practice reader (no hardware)
-make friday-dry-run       # ซ้อมก่อนได้เครื่อง (qualify-smoke + Ready + probe)
+make pre-reader-dry-run       # ซ้อมก่อนได้เครื่อง (qualify-smoke + Ready + probe)
 ./openthaiid doctor       # desk snapshot (helper, ports, PC/SC, probe, TLS yes/no)
-./openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
+./openthaiid qualify -report ./openthaiid-qualify.json   # Qualify kit
 ./openthaiid bind-stress -synthetic -cycles 3            # binding harness smoke (not P2–P10 close)
 ./openthaiid audit        # redacted operator trail JSON
 ./openthaiid update check # GitHub Releases lookup; no download
@@ -85,7 +85,7 @@ Lights: helper running, reader not connected — or **บริการอ่�
   leave **พร้อม** while the service is down and return to **พร้อม** after
   recovery (card seated). Do not reboot.
 - Linux: start `pcscd`, then Reconnect if lights stay down. Windows: start
-  the Smart Card service, then Reconnect. macOS: built-in PC/SC (Friday E6
+  the Smart Card service, then Reconnect. macOS: built-in PC/SC (E6
   is often SKIP).
 - Two readers and none selected: **Use this reader** (Ready page for staff,
   English **Readers** list here). Probe, status, and Fill then use that reader.
@@ -193,9 +193,9 @@ Recorded:
 Never stored: citizen ID, names, address, portrait / photo bytes, raw APDUs,
 or Fill error *messages*. Forbidden payloads are dropped rather than written.
 
-Use this JSON with Copy diagnostics on Friday tickets, next to the
+Use this JSON with Copy diagnostics on hardware tickets, next to the
 redacted `openthaiid qualify` report. See
-[friday-checklist.md](friday-checklist.md) and
+[hardware-checklist.md](hardware-checklist.md) and
 [hardware-qualification.md](hardware-qualification.md).
 
 ## Multi-reader desks
@@ -206,8 +206,8 @@ One reader stays automatic. When PC/SC lists two or more:
 2. Technician tools (English): **Readers** → **Use this reader** (shows opaque `id`).
 3. Confirm Ready / `probeThaiID()` names the selected reader, then Fill.
 
-Staff copy: [user.md](user.md). Friday plug-in step:
-[friday-checklist.md](friday-checklist.md).
+Staff copy: [user.md](user.md). Reader plug-in step:
+[hardware-checklist.md](hardware-checklist.md).
 
 Selection is in-memory on this helper (cleared if that reader is unplugged or
 the helper restarts). The ERP cannot select a reader. Synthetic tests add a
@@ -218,7 +218,7 @@ one. To practice the picker without hardware:
 OPENTHAIID_SYNTHETIC_READERS=2 ./dist/openthaiid -synthetic
 ```
 
-## Friday qualify
+## Hardware qualify
 
 When the ACR39U is on the desk (never `-synthetic` for a hardware claim):
 
@@ -228,13 +228,13 @@ When the ACR39U is on the desk (never `-synthetic` for a hardware claim):
 ```
 
 Type only `pass` / `fail` / `skip`. Attach the printed `report:` JSON and
-the audit JSON. One-page: [friday-checklist.md](friday-checklist.md).
+the audit JSON. One-page: [hardware-checklist.md](hardware-checklist.md).
 Full kit: [hardware-qualification.md](hardware-qualification.md).
 
-## Friday bind-stress (P2–P10)
+## Bind-stress (P2–P10)
 
 Separate from qualify. Repeated PC/SC connect/list/probe without field
-reads or APDU logs. Today on synthetic; Friday omit `-synthetic`.
+reads or APDU logs. Today on synthetic; with hardware omit `-synthetic`.
 
 ```bash
 make bind-stress-smoke
@@ -244,24 +244,24 @@ make bind-stress-smoke
 Sheet: [bind-stress.md](bind-stress.md). Attach the redacted JSON next to
 the qualify report. A pass on this OS/arch does not close other hosts.
 
-Friday **E4** (physical): pull the card during Fill → `CARD_REMOVED`; unplug
+**E4** (physical): pull the card during Fill → `CARD_REMOVED`; unplug
 the reader during Fill → `READER_REMOVED`; opaque native I/O → `READ_FAILED`.
 Staff Thai on the clinic page and in [user.md](user.md); this page stays
-English. One-page recovery table: [friday-checklist.md](friday-checklist.md).
+English. One-page recovery table: [hardware-checklist.md](hardware-checklist.md).
 Synthetic tests already cover the codes — hardware still has to tick E4.
 
-Friday **E5** (physical): browser refresh, helper quit/start, OS sleep/wake.
+**E5** (physical): browser refresh, helper quit/start, OS sleep/wake.
 Helper down → `BRIDGE_UNAVAILABLE` and Test connection fails. After wake,
 Ready re-probes without reading card fields. Do not reboot. Staff: do not
-reboot, **ทดสอบการเชื่อมต่อ** ([user.md](user.md)). Friday table:
-[friday-checklist.md](friday-checklist.md).
+reboot, **ทดสอบการเชื่อมต่อ** ([user.md](user.md)). Hardware checklist:
+[hardware-checklist.md](hardware-checklist.md).
 
-Friday **E6** (physical): stop `pcscd` / Smart Card service if safe →
+**E6** (physical): stop `pcscd` / Smart Card service if safe →
 `PCSC_UNAVAILABLE`, Test connection stays probe-only, **Reconnect card
 service**, Ready says **พร้อม** again. macOS SKIP if you cannot stop PC/SC.
 Synthetic tests cover unavailable → restored without simulating sleep.
-Staff copy: [user.md](user.md). Friday E5/E6 table:
-[friday-checklist.md](friday-checklist.md).
+Staff copy: [user.md](user.md). E5/E6 table:
+[hardware-checklist.md](hardware-checklist.md).
 
 ## Verbose logging
 
@@ -287,7 +287,7 @@ Always-on without a logged-in tray (clinic IT): `openthaiid service install`
 
 See [clinic.md](clinic.md), [erp-integration.md](erp-integration.md),
 [user.md](user.md), [training.md](training.md),
-[friday-checklist.md](friday-checklist.md), and
+[hardware-checklist.md](hardware-checklist.md), and
 [hardware-qualification.md](hardware-qualification.md)
 (`openthaiid qualify`). Binding-audit stress (P2–P10):
 [bind-stress.md](bind-stress.md) (`make bind-stress-smoke`).

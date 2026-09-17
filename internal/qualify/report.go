@@ -21,7 +21,7 @@ const (
 	ResultIncomplete Result = "INCOMPLETE"
 )
 
-// Report is the Friday hardware-qualification record.
+// Report is the hardware-qualification record.
 // It must remain free of citizen ID, names, address text, and portrait bytes.
 type Report struct {
 	Schema      string         `json:"schema"`
