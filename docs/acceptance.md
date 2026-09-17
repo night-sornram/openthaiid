@@ -154,20 +154,24 @@ built on a Mac (`make package-macos`); they are unsigned / not notarized.
 
 ## PC/SC binding audit (`ebfe/scard`)
 
-Successful compilation alone does not close these checks.
+Successful compilation alone does not close these checks. Run the
+harness: [bind-stress.md](bind-stress.md). Synthetic
+`make bind-stress-smoke` proves the script. A hardware close needs
+`./scripts/bind-stress.sh` **without** `-synthetic` on that OS/arch, with
+the ACR39U for P8. Attach the redacted JSON; no APDUs or card fields.
 
 | # | Check | Status |
 |---|---|---|
 | P1 | Pin to immutable git revision + license | Done |
-| P2 | Native layouts / pointer lifetimes on darwin/arm64 | Open |
-| P3 | Native layouts / pointer lifetimes on darwin/amd64 | Open |
-| P4 | Native layouts / pointer lifetimes on linux/amd64 | Open |
-| P5 | Native layouts / pointer lifetimes on linux/arm64 | Open |
-| P6 | Windows WinSCard system-library loading | Open |
-| P7 | Concurrent context and reader-state handling | Partial (separate monitor/read backends; stress open) |
-| P8 | Returned buffer lengths from `Transmit` | Partial (profile MaxResponse bounds in engine) |
-| P9 | Shutdown and blocked-call cleanup (`Cancel` unblocks `GetStatusChange`) | Partial (no context release while worker holds slot) |
-| P10 | GC interaction with cgo pointers under stress | Open |
+| P2 | Native layouts / pointer lifetimes on darwin/arm64 | Open — harness ready; needs Mac + ACR39U |
+| P3 | Native layouts / pointer lifetimes on darwin/amd64 | Open — harness ready; needs Mac Intel + ACR39U |
+| P4 | Native layouts / pointer lifetimes on linux/amd64 | Open — harness ready; needs Linux + ACR39U |
+| P5 | Native layouts / pointer lifetimes on linux/arm64 | Open — harness ready; needs Linux ARM + ACR39U |
+| P6 | Windows WinSCard system-library loading | Open — harness ready; needs Windows + ACR39U |
+| P7 | Concurrent context and reader-state handling | Partial (separate monitor/read backends; `bind-stress` B7; hardware still required) |
+| P8 | Returned buffer lengths from `Transmit` | Partial (profile MaxResponse bounds in engine; `bind-stress` B6 SELECT length-only; hardware still required) |
+| P9 | Shutdown and blocked-call cleanup (`Cancel` unblocks `GetStatusChange`) | Partial (no context release while worker holds slot; `bind-stress` B8; hardware still required) |
+| P10 | GC interaction with cgo pointers under stress | Open — `bind-stress` B9 GC loop; cgo evidence is darwin/linux hardware only |
 
 ## Phase 0 / Phase 1 exit
 

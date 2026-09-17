@@ -53,6 +53,11 @@ make friday-dry-run
 ./scripts/hardware-qualify.sh --operator   # E3 / E4–E7 / M1 prompts; pass|fail|skip only
 # Windows package: Qualify-OpenThaiID.bat
 
+# PC/SC binding-audit stress (no personal fields, no APDUs)
+make bind-stress-smoke
+# Friday with ACR39U (never -synthetic):
+./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json
+
 # Run with real hardware (terminal; technicians)
 ./dist/openthaiid
 
@@ -206,7 +211,7 @@ Browser (HTTPS ERP page)
 
 | Package | Role |
 |---|---|
-| `cmd/openthaiid` | CLI, tray, serve/service, audit, qualify, autostart |
+| `cmd/openthaiid` | CLI, tray, serve/service, audit, qualify, bind-stress, autostart |
 | `internal/desktop` | Tray host, login items, staff-safe status |
 | `internal/card` | Thai profile, APDU engine, TIS-620 parsers |
 | `internal/reader` | Inventory, generations, single-read slot |
@@ -216,6 +221,7 @@ Browser (HTTPS ERP page)
 | `internal/protocol` | Protocol v1 envelopes |
 | `internal/bridge` | Loopback HTTP + WebSocket dispatch |
 | `internal/qualify` | Friday E1–E7 / M1 kit (redacted JSON report) |
+| `internal/bindstress` | PC/SC binding-audit stress (redacted JSON; no APDUs) |
 | `internal/update` | GitHub Releases version check (unsigned; no auto-install) |
 | `sdk/web` | `@openthaiid/web` |
 | `sdk/react` | `@openthaiid/react` hooks wrapping the web SDK |
@@ -259,6 +265,7 @@ index for staff, training, Friday, ERP, and technicians).
 | [docs/compatibility.md](docs/compatibility.md) | OS/browser/reader matrix |
 | [docs/acceptance.md](docs/acceptance.md) | Acceptance gates |
 | [docs/hardware-qualification.md](docs/hardware-qualification.md) | Friday E1–E7 / M1 operator kit (no personal data) |
+| [docs/bind-stress.md](docs/bind-stress.md) | PC/SC bind-stress harness (P2–P10; synthetic today, ACR39U Friday) |
 | [docs/installation.md](docs/installation.md) | Clinic package + source build (`make package-macos` on a Mac) |
 | [docs/signing.md](docs/signing.md) | Unsigned packages; future Authenticode / Developer ID checklist |
 | [docs/dependency-audit.md](docs/dependency-audit.md) | Binding audit checklist |
@@ -269,6 +276,7 @@ index for staff, training, Friday, ERP, and technicians).
 make test          # Go unit + integration (synthetic hardware)
 make smoke-helper  # Linux tray/background + package-free status/quit/autostart
 make qualify-smoke # synthetic E1–E3 kit (no personal fields in the report)
+make bind-stress-smoke # synthetic PC/SC bind-stress (does not close P2–P10)
 make friday-dry-run # synthetic Friday-morning rehearsal (Ready + qualify-smoke + probe)
 make smoke-package # native archive + darwin cross-compile refusal on Linux
 make package       # clinic archive (START-HERE + OS launch files)

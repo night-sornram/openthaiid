@@ -10,7 +10,8 @@ pass. Do **not** enable GitHub Actions (included minutes until ~1 Oct 2026).
 Do **not** implement Laser-id / NHSO.
 
 Local evidence until Actions returns: `make test`, `make qualify-smoke`,
-`make friday-dry-run`, `make smoke-package`, and `make acceptance-firefox`.
+`make bind-stress-smoke`, `make friday-dry-run`, `make smoke-package`, and
+`make acceptance-firefox`.
 
 ---
 
@@ -65,8 +66,8 @@ does not close the three-platform claim.
 | — | Real Safari UI (not Playwright WebKit) | macOS + Safari |
 | — | Loopback TLS headed: Firefox/Safari **https** ERP Fill with a **locally trusted** helper cert (`wss://127.0.0.1:17892`) | Clinic PC + mkcert (or imported self-signed). Software listener + SDK selection are in this tree. |
 | — | Real-card layout checks (community hypotheses) | Gender `1`/`2`; English-name `#` layout; 7-part address `#` order; portrait JPEG SOI/EOI trim — see `docs/provenance.md` |
-| P2–P6, P10 | `ebfe/scard` binding audit (layouts, WinSCard load, cgo stress) | Cross-build + review on the Friday hosts |
-| P7–P9 | Concurrent context / Transmit lengths / `Cancel` vs `GetStatusChange` | Code is Partial; hardware stress still open |
+| P2–P6, P10 | `ebfe/scard` binding audit (layouts, WinSCard load, cgo stress) | Cross-build + **run the harness** on the Friday hosts. Today: `make bind-stress-smoke`. Friday: `./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json` (never `-synthetic`). [docs/bind-stress.md](docs/bind-stress.md) |
+| P7–P9 | Concurrent context / Transmit lengths / `Cancel` vs `GetStatusChange` | Code is Partial; **harness is runnable**. Synthetic smoke is not a close. Hardware: same script, card seated for P8. [docs/bind-stress.md](docs/bind-stress.md) |
 
 Untested configurations stay unverified.
 
@@ -119,6 +120,7 @@ Until then, run locally:
 ```bash
 make test
 make qualify-smoke
+make bind-stress-smoke
 make friday-dry-run
 make smoke-package
 make acceptance-firefox   # Linux

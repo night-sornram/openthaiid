@@ -82,6 +82,24 @@ Default: 100 E2 reads. E3 is automatic on `-synthetic`; on hardware, run
 are **printed in hardware mode** even without `-operator`. `-skip-operator`
 (the default) leaves those rows SKIP; `-operator` records pass/fail/skip.
 
+## PC/SC bind-stress (P2–P10)
+
+Qualify (E1–E7) is clinic reads. Binding-audit stress is a **different
+script**: connect/disconnect, reader list, probe, synthetic present/absent.
+Harness: [bind-stress.md](bind-stress.md).
+
+```bash
+# Today, no reader (does not close P2–P10):
+make bind-stress-smoke
+./scripts/bind-stress.sh --synthetic --cycles 3
+
+# Friday, ACR39U on this PC (never -synthetic):
+./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json
+```
+
+Attach the printed `report:` JSON. Same PII rule as qualify. Synthetic
+does not claim native layouts / WinSCard / cgo GC.
+
 ## E1–E7 (physical)
 
 Use one Thai ID you are allowed to handle. Look at the ERP / example

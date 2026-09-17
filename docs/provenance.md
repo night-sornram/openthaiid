@@ -124,7 +124,8 @@ Alternative (not default): `ElMostafaIdrassi/goscard` (Apache-2.0, purego ABI)
 
 ### Binding audit checklist
 
-Before production use of `ebfe/scard`:
+Before production use of `ebfe/scard` (harness:
+[bind-stress.md](bind-stress.md); synthetic does not close these):
 
 - [ ] Native structure sizes and pointer lifetimes on target architectures
 - [ ] Concurrent context and reader-state handling

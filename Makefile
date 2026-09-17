@@ -1,4 +1,4 @@
-.PHONY: build test race vet fmt doctor sdk sdk-test tidy package package-macos clean check acceptance test-repeat smoke-helper qualify-smoke smoke-package friday-dry-run
+.PHONY: build test race vet fmt doctor sdk sdk-test tidy package package-macos clean check acceptance test-repeat smoke-helper qualify-smoke smoke-package friday-dry-run bind-stress-smoke
 
 VERSION ?= 0.1.0-rc.7
 
@@ -59,6 +59,11 @@ smoke-helper: build
 qualify-smoke: build
 	chmod +x scripts/smoke-qualify.sh scripts/hardware-qualify.sh
 	./scripts/smoke-qualify.sh
+
+# Synthetic PC/SC bind-stress (no ACR39U). Does not close P2–P10.
+bind-stress-smoke: build
+	chmod +x scripts/smoke-bind-stress.sh scripts/bind-stress.sh
+	./scripts/smoke-bind-stress.sh
 
 # Synthetic Friday-morning rehearsal (no ACR39U). Not a hardware pass.
 friday-dry-run: build

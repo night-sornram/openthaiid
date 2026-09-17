@@ -70,6 +70,7 @@ is not trusted (see below). Do not restart the helper for that.
 make friday-dry-run       # ซ้อมก่อนได้เครื่อง (qualify-smoke + Ready + probe)
 ./openthaiid doctor       # desk snapshot (helper, ports, PC/SC, probe, TLS yes/no)
 ./openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
+./openthaiid bind-stress -synthetic -cycles 3            # binding harness smoke (not P2–P10 close)
 ./openthaiid audit        # redacted operator trail JSON
 ./openthaiid update check # GitHub Releases lookup; no download
 ```
@@ -230,6 +231,19 @@ Type only `pass` / `fail` / `skip`. Attach the printed `report:` JSON and
 the audit JSON. One-page: [friday-checklist.md](friday-checklist.md).
 Full kit: [hardware-qualification.md](hardware-qualification.md).
 
+## Friday bind-stress (P2–P10)
+
+Separate from qualify. Repeated PC/SC connect/list/probe without field
+reads or APDU logs. Today on synthetic; Friday omit `-synthetic`.
+
+```bash
+make bind-stress-smoke
+./scripts/bind-stress.sh --report ./openthaiid-bind-stress.json   # ACR39U; never -synthetic
+```
+
+Sheet: [bind-stress.md](bind-stress.md). Attach the redacted JSON next to
+the qualify report. A pass on this OS/arch does not close other hosts.
+
 Friday **E4** (physical): pull the card during Fill → `CARD_REMOVED`; unplug
 the reader during Fill → `READER_REMOVED`; opaque native I/O → `READ_FAILED`.
 Staff Thai on the clinic page and in [user.md](user.md); this page stays
@@ -275,4 +289,5 @@ See [clinic.md](clinic.md), [erp-integration.md](erp-integration.md),
 [user.md](user.md), [training.md](training.md),
 [friday-checklist.md](friday-checklist.md), and
 [hardware-qualification.md](hardware-qualification.md)
-(`openthaiid qualify`).
+(`openthaiid qualify`). Binding-audit stress (P2–P10):
+[bind-stress.md](bind-stress.md) (`make bind-stress-smoke`).

@@ -7,17 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Docs-only Friday playbook against tagged **v0.1.0-rc.7**. Helper version
-stays `0.1.0-rc.7`. No new software features. Do not retag `v0.1.0-rc.7`.
-Do not enable GitHub Actions (minutes until ~1 Oct 2026).
+PC/SC / `ebfe/scard` **bind-stress** harness against tagged **v0.1.0-rc.7**.
+Helper version stays `0.1.0-rc.7`. Do not retag `v0.1.0-rc.7`. Do not
+enable GitHub Actions (minutes until ~1 Oct 2026). No Laser-id / NHSO.
+
+### Added
+
+- Binding-audit stress helper: `openthaiid bind-stress`,
+  `scripts/bind-stress.sh` / `.ps1`, `make bind-stress-smoke`. Repeated
+  context connect/disconnect, reader list, presence probe, and synthetic
+  card present/absent. Redacted JSON
+  (`openthaiid.bindstress.v1`) refuses PII and raw APDUs. Synthetic smoke
+  does **not** close P2–P10. Friday: omit `-synthetic` on each host.
+  [docs/bind-stress.md](docs/bind-stress.md).
 
 ### Changed
 
-- Rewrite [NOT_DONE.md](NOT_DONE.md) as Friday-morning triage: **done in
-  software (rc.7)**, **do Friday with ACR39U** (E1–E7, M1, real-card layout),
-  **blocked without cited APDU** (Laser-id/NHSO), **blocked without user
-  certs** (Store/notarize), **paused until Actions minutes** (~1 Oct 2026).
-  Coordinator commands are for the *next* tag only.
+- Friday playbook and technician/qualify docs point at the bind-stress
+  harness so P2–P10 is run-the-script, not invent-the-script.
+  [NOT_DONE.md](NOT_DONE.md),
+  [docs/hardware-qualification.md](docs/hardware-qualification.md),
+  [docs/technician.md](docs/technician.md).
 
 ## [0.1.0-rc.7] — software release candidate
 

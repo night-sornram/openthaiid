@@ -19,7 +19,7 @@
 | ฝึกก่อนได้เครื่องจริง (`make friday-dry-run` / `openthaiid -synthetic`) | [training.md](training.md) |
 | เช้าวันศุกร์มี ACR39U (พร้อม → qualify → กรอกข้อมูล → ส่งวินิจฉัย) | [friday-checklist.md](friday-checklist.md) |
 | แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) |
-| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) · HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md) · โต๊ะพร้อมหรือยัง: `openthaiid doctor` · ตรวจเวอร์ชัน: `openthaiid update check` |
+| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) · HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md) · โต๊ะพร้อมหรือยัง: `openthaiid doctor` · ตรวจเวอร์ชัน: `openthaiid update check` · P2–P10: [bind-stress.md](bind-stress.md) |
 
 หน้า พร้อม ของตัวช่วย: `http://127.0.0.1:17891/`
 ไฟสามดวงมีคำว่า **ปกติ / รอ / ยังไม่พร้อม** ไม่ใช้สีอย่างเดียว
@@ -83,7 +83,7 @@ until ~1 Oct 2026). No Laser-id / NHSO.
 | Practice before the reader arrives | [training.md](training.md) (`make friday-dry-run`) |
 | Friday with an ACR39U | [friday-checklist.md](friday-checklist.md) |
 | Clinic IT / ERP | [erp-integration.md](erp-integration.md) |
-| Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) · helper TLS: [loopback-tls.md](loopback-tls.md) · desk ready?: `openthaiid doctor` · version check: `openthaiid update check` |
+| Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) · helper TLS: [loopback-tls.md](loopback-tls.md) · desk ready?: `openthaiid doctor` · version check: `openthaiid update check` · P2–P10: [bind-stress.md](bind-stress.md) |
 
 Ready page: `http://127.0.0.1:17891/`. The three lights include **OK /
 Waiting / Not ready** text (not color alone). **Use this reader**, **Test
