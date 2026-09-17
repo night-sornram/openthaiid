@@ -1,12 +1,12 @@
 # Friday readiness (pre-hardware)
 
-Last updated after **v0.1.0-rc.8** prep: Friday NOT_DONE playbook (#37),
-PC/SC bind-stress harness (#38). Physical ACR39U execution (including
-Friday E4–E6 on hardware) is still blocked. This tree is **tag-ready**
-for `v0.1.0-rc.8` after review. Do not retag `v0.1.0-rc.7`.
+Last updated after **v0.1.0-rc.9** prep: SDK version align + HTTPS ERP
+sample (#40). Physical ACR39U execution (including Friday E4–E6 on
+hardware) is still blocked. This tree is **tag-ready** for
+`v0.1.0-rc.9` after review. Do not retag `v0.1.0-rc.8`.
 This file is the **Friday morning playbook**, not a software backlog.
 
-Do **not** retag `v0.1.0-rc.7`. Do **not** enable GitHub Actions (included
+Do **not** retag `v0.1.0-rc.8`. Do **not** enable GitHub Actions (included
 minutes until ~1 Oct 2026). Do **not** implement Laser-id / NHSO.
 
 Local evidence until Actions returns: `make test`, `make qualify-smoke`,
@@ -15,7 +15,7 @@ Local evidence until Actions returns: `make test`, `make qualify-smoke`,
 
 ---
 
-## Done in software (rc.8)
+## Done in software (rc.9)
 
 Already shipped. Do not re-open these as Friday software todos.
 
@@ -30,15 +30,17 @@ Already shipped. Do not re-open these as Friday software todos.
 - Operator GitHub Releases **check** (`openthaiid update check`, Ready **ตรวจเวอร์ชัน**)
 - Honest Firefox/Safari HTTPS Fill errors (`HTTPS_WS_BLOCKED` / `TLS_UNTRUSTED`)
 - Optional technician-managed loopback HTTPS/WSS (`docs/loopback-tls.md`)
-- Go module hygiene (rc.6); helper version string `0.1.0-rc.8`
+- Go module hygiene (rc.6); helper version string `0.1.0-rc.9`
 - Staff Friday **desk card** (`docs/friday-desk-card.md`)
 - Technician **`openthaiid doctor`** desk snapshot (`GET /v1/helper/doctor`)
 - Friday playbook (`NOT_DONE.md` split: software done / ACR39U / APDU / certs / Actions)
 - PC/SC **bind-stress** harness (`openthaiid bind-stress`, `make bind-stress-smoke`)
-- Published GitHub Release **v0.1.0-rc.7** (linux-amd64 + windows-amd64 archives)
+- SDK packages aligned at `0.1.0-rc.9` (`@openthaiid/web` / `@openthaiid/react`, unpublished)
+- HTTPS clinic ERP sample (`examples/clinic-patient/clinic-https.json`)
+- Published GitHub Release **v0.1.0-rc.8** (linux-amd64 + windows-amd64 archives)
 
 Authoritative software matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.8]`.
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.9]`.
 
 ---
 
@@ -74,9 +76,9 @@ does not close the three-platform claim.
 Untested configurations stay unverified.
 
 Darwin clinic archive: produce with `make package-macos` **on a Mac** and
-attach to the **v0.1.0-rc.8** release after it is tagged (unsigned / not
+attach to the **v0.1.0-rc.9** release after it is tagged (unsigned / not
 notarized). Linux builders cannot cross-compile `ebfe/scard` + Cocoa. That
-is a Mac build step, not a reason to retag `v0.1.0-rc.7`.
+is a Mac build step, not a reason to retag `v0.1.0-rc.8`.
 
 ---
 
@@ -137,44 +139,44 @@ tag). Not a Friday software task.
 ## Coordinator — next tag only
 
 Tree is tag-ready on `dev` after this PR. A human should tag
-`v0.1.0-rc.8` after review. This PR does **not** create the git tag.
+`v0.1.0-rc.9` after review. This PR does **not** create the git tag.
 
-- Do **not** retag `v0.1.0-rc.7`.
+- Do **not** retag `v0.1.0-rc.8`.
 - Do **not** enable GitHub Actions.
 
 ```bash
 git checkout dev && git pull origin dev
-git tag -a v0.1.0-rc.8 -m "OpenThaiID v0.1.0-rc.8"
-git push origin v0.1.0-rc.8
+git tag -a v0.1.0-rc.9 -m "OpenThaiID v0.1.0-rc.9"
+git push origin v0.1.0-rc.9
 
 # Linux + Windows archives (Linux builder). Darwin must be on a Mac.
-VERSION=0.1.0-rc.8 OS=linux ARCH=amd64 ./scripts/package.sh
-VERSION=0.1.0-rc.8 OS=windows ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.9 OS=linux ARCH=amd64 ./scripts/package.sh
+VERSION=0.1.0-rc.9 OS=windows ARCH=amd64 ./scripts/package.sh
 # On a Mac only:
-#   VERSION=0.1.0-rc.8 make package-macos
+#   VERSION=0.1.0-rc.9 make package-macos
 
 # Checksums of the archives (package.sh already writes SHA256SUMS *inside*
 # each archive for the binary):
 (
   cd dist
-  sha256sum openthaiid-0.1.0-rc.8-linux-amd64.tar.gz \
-    openthaiid-0.1.0-rc.8-windows-amd64.zip \
+  sha256sum openthaiid-0.1.0-rc.9-linux-amd64.tar.gz \
+    openthaiid-0.1.0-rc.9-windows-amd64.zip \
     > SHA256SUMS
 )
 # append the darwin archive SHA when produced on a Mac
 
-# Release notes: the [0.1.0-rc.8] section only (not the whole CHANGELOG).
-sed -n '/^## \[0.1.0-rc.8\]/,/^## \[0.1.0-rc.7\]/{ /^## \[0.1.0-rc.7\]/d; p; }' \
-  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.8-notes.md
+# Release notes: the [0.1.0-rc.9] section only (not the whole CHANGELOG).
+sed -n '/^## \[0.1.0-rc.9\]/,/^## \[0.1.0-rc.8\]/{ /^## \[0.1.0-rc.8\]/d; p; }' \
+  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.9-notes.md
 
-gh release create v0.1.0-rc.8 \
+gh release create v0.1.0-rc.9 \
   --repo night-sornram/openthaiid \
   --prerelease \
   --target dev \
-  --title "v0.1.0-rc.8" \
-  --notes-file /tmp/openthaiid-0.1.0-rc.8-notes.md \
-  dist/openthaiid-0.1.0-rc.8-linux-amd64.tar.gz \
-  dist/openthaiid-0.1.0-rc.8-windows-amd64.zip \
+  --title "v0.1.0-rc.9" \
+  --notes-file /tmp/openthaiid-0.1.0-rc.9-notes.md \
+  dist/openthaiid-0.1.0-rc.9-linux-amd64.tar.gz \
+  dist/openthaiid-0.1.0-rc.9-windows-amd64.zip \
   dist/SHA256SUMS
-# add dist/openthaiid-0.1.0-rc.8-darwin-<arch>.tar.gz when available
+# add dist/openthaiid-0.1.0-rc.9-darwin-<arch>.tar.gz when available
 ```

@@ -1,6 +1,6 @@
 {
   "name": "@openthaiid/react",
-  "version": "0.1.0-rc.8",
+  "version": "0.1.0-rc.9",
   "description": "React hooks for the OpenThaiID web SDK",
   "license": "Apache-2.0",
   "type": "module",
@@ -25,7 +25,7 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "@openthaiid/web": "0.1.0-rc.8",
+    "@openthaiid/web": "0.1.0-rc.9",
     "react": ">=18"
   },
   "devDependencies": {
