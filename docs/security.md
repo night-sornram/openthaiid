@@ -149,6 +149,7 @@ Endpoints:
 | `GET /` | Ready / technician page | no | HTML; CSRF token in page |
 | `GET /healthz` | probes | no | liveness only; no readers or card state |
 | `GET /v1/helper/summary` | tray, `openthaiid status` | no | no PII; foreign `Origin` rejected |
+| `GET /v1/helper/doctor` | `openthaiid doctor`, Technician **Desk snapshot** | no | no PII / no key paths; foreign `Origin` rejected; does not call GitHub |
 | `POST /v1/helper/shutdown` | `openthaiid quit` | yes | foreign `Origin` rejected; browser `Origin` needs CSRF |
 | `GET /v1/manager/status` | Ready page | no | CSRF + manager origin; no PII |
 | `GET /v1/manager/audit` | technician export | no | CSRF + manager origin; redacted events |

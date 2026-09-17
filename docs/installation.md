@@ -135,7 +135,7 @@ Built-in PC/SC is sufficient. Xcode CLT required for cgo builds.
 ```bash
 go build -o dist/openthaiid ./cmd/openthaiid
 ./dist/openthaiid version
-./dist/openthaiid doctor
+./dist/openthaiid doctor   # redacted desk snapshot; never reads personal fields
 ```
 
 Package a clinic folder (binary + START-HERE + OS launch files):

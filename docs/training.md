@@ -23,7 +23,8 @@ make friday-dry-run
 ```
 
 คำสั่งนี้สร้างตัวช่วยถ้ายังไม่มี เปิด `-synthetic` รัน qualify-smoke ตรวจ
-หน้า พร้อม / `GET /v1/helper/summary` / ทดสอบการเชื่อมต่อ (`bridge.probe`)
+หน้า พร้อม / `GET /v1/helper/summary` / ทดสอบการเชื่อมต่อ (`bridge.probe`) /
+`openthaiid doctor`
 แล้วพิมพ์สรุปผ่าน ไทย/อังกฤษ ชี้ไปที่ [getting-started.md](getting-started.md)
 กับ [friday-checklist.md](friday-checklist.md) — ไม่พิมพ์เลขบัตร ชื่อ หรือรูป
 

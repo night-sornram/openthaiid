@@ -322,6 +322,7 @@ const els = {
   refresh: document.getElementById("refresh"),
   reconnect: document.getElementById("reconnect"),
   copyDiag: document.getElementById("copy-diag"),
+  deskSnapshot: document.getElementById("desk-snapshot"),
   verbose: document.getElementById("verbose"),
   lastErrors: document.getElementById("last-errors"),
   trainingCard: document.getElementById("training-card"),
@@ -1227,6 +1228,33 @@ async function revokeAll() {
   }
 }
 
+async function copyDeskSnapshot() {
+  const btn = els.deskSnapshot;
+  if (!btn) return;
+  let text = "";
+  try {
+    const resp = await fetch("/v1/helper/doctor", { headers, cache: "no-store" });
+    if (!resp.ok) throw new Error("doctor");
+    const body = await resp.json();
+    text = (body && body.text) || "";
+  } catch {
+    text = "";
+  }
+  if (!text) {
+    window.alert("Could not load desk snapshot. Is OpenThaiID still running?");
+    return;
+  }
+  const copied = await copyText(text, "Desk snapshot");
+  if (!copied) {
+    btn.textContent = "Desk snapshot";
+    return;
+  }
+  btn.textContent = "Copied";
+  setTimeout(() => {
+    btn.textContent = "Desk snapshot";
+  }, 1500);
+}
+
 async function copyDiagnostics() {
   const data = window.__lastStatus;
   if (!data) return;
@@ -1304,6 +1332,7 @@ els.checkUpdate?.addEventListener("click", () => void checkGitHubReleases());
 els.techCheckUpdate?.addEventListener("click", () => void checkGitHubReleases());
 els.revokeAll.addEventListener("click", () => void revokeAll());
 els.copyDiag.addEventListener("click", () => void copyDiagnostics());
+els.deskSnapshot?.addEventListener("click", () => void copyDeskSnapshot());
 els.copyAudit?.addEventListener("click", () => void copyAuditJSON());
 els.exportAudit?.addEventListener("click", () => downloadAuditJSON());
 els.verbose.addEventListener("change", () => void setVerbose(els.verbose.checked));

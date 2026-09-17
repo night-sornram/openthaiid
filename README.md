@@ -41,7 +41,7 @@ Always-on without a tray: `openthaiid service install`.
 # Build
 make build
 
-# Check PC/SC (never reads personal fields)
+# Check PC/SC + helper desk snapshot (never reads personal fields)
 ./dist/openthaiid doctor
 
 # Friday qualification kit (no personal fields; synthetic smoke or real reader)

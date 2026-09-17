@@ -75,6 +75,7 @@ type Server struct {
 	updateMu    sync.Mutex
 	updateBusy  bool
 	updateStamp []time.Time
+	lastUpdate  *update.PublicJSON
 }
 
 // UpdateCheckFunc looks up GitHub Releases. Tests inject a mock so unit tests
@@ -208,6 +209,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("GET /favicon.ico", s.handleFavicon)
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
 	mux.HandleFunc("GET /v1/helper/summary", s.handleHelperSummary)
+	mux.HandleFunc("GET /v1/helper/doctor", s.handleHelperDoctor)
 	mux.HandleFunc("POST /v1/helper/shutdown", s.handleHelperShutdown)
 	mux.HandleFunc("GET /v1/ws", s.handleWS)
 	mux.HandleFunc("GET /v1/manager/status", s.handleManagerStatus)

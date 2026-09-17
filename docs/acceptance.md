@@ -35,7 +35,7 @@ workflow on `dev` for an on-demand full matrix.
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
 | A1 | All five OS/arch artifacts build and start | Full-lane CI matrix + version smoke (PRs build linux/amd64) | Done (PR #1 run 35054867099); re-confirm on full lane |
-| A2 | `openthaiid doctor` reports PC/SC status without reading personal fields | CLI output | Done |
+| A2 | `openthaiid doctor` reports a redacted desk snapshot (helper, ports, PC/SC, probe, TLS yes/no) without personal fields; exit 1 only on helper-down / no PC/SC | CLI + unit tests | Done |
 | A3 | `openthaiid version` prints module version (injected at release build) | CLI + package.sh verify | Done |
 
 ## Protocol and authorization

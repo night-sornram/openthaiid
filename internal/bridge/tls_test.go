@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -18,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,6 +97,19 @@ func TestOptionalLoopbackTLSListener(t *testing.T) {
 		t.Fatalf("plain ws must still work: %v", err)
 	}
 	plainConn.Close(websocket.StatusNormalClosure, "")
+
+	doc := mustJSONGet(t, http.DefaultClient, httpBase+"/v1/helper/doctor")
+	if doc["tls"] != "yes" {
+		t.Fatalf("doctor tls %+v", doc)
+	}
+	rawDoc, _ := json.Marshal(doc)
+	if bytes.Contains(rawDoc, []byte(".pem")) || bytes.Contains(rawDoc, []byte("PRIVATE KEY")) || bytes.Contains(rawDoc, []byte("tlsKeyFile")) {
+		t.Fatalf("doctor leaked key material: %s", rawDoc)
+	}
+	text, _ := doc["text"].(string)
+	if !strings.Contains(text, "tls=yes") || strings.Contains(text, ".pem") {
+		t.Fatalf("doctor text tls: %s", text)
+	}
 }
 
 func TestTLSStartFailsWithoutCertFiles(t *testing.T) {

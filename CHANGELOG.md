@@ -13,10 +13,23 @@ human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
 in this candidate.
 
 Summarizes merges since `[0.1.0-rc.5]`: Go module hygiene (#32), Friday
-staff desk card (#33). Earlier version check / Firefox/Safari honesty /
-loopback helper TLS stay in `[0.1.0-rc.5]` (not repeated here).
+staff desk card (#33), technician `openthaiid doctor` desk snapshot.
+Earlier version check / Firefox/Safari honesty / loopback helper TLS stay
+in `[0.1.0-rc.5]` (not repeated here).
 
 ### Added
+
+- `openthaiid doctor` technician **desk snapshot** (pre-hardware): helper
+  version, HTTP/TLS listen ports, PC/SC reader list / selected reader,
+  `bridge.probe`, Ready URL, TLS yes/no (**no** private-key paths), and the
+  last GitHub version-check if one already ran (otherwise `not checked`,
+  offline-safe). Next step is Thai + English. Exit 1 only when the helper is
+  down or PC/SC is unavailable; soft update-check failures stay soft. Loopback
+  `GET /v1/helper/doctor` (same Origin rule as summary; does not call GitHub)
+  and Technician tools **Desk snapshot**. Tests cover redaction and exit codes
+  with fakes. Pointers: [technician.md](docs/technician.md),
+  [friday-checklist.md](docs/friday-checklist.md),
+  [getting-started.md](docs/getting-started.md).
 
 - Staff-only Friday morning **printable desk card** (Thai-first, one page):
   [docs/friday-desk-card.md](docs/friday-desk-card.md) with a print-ready

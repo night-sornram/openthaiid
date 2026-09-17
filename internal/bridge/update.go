@@ -43,6 +43,7 @@ func (s *Server) handleManagerUpdateCheck(w http.ResponseWriter, r *http.Request
 	}
 	view := res.Public()
 	view.Current = current
+	s.setLastUpdate(view)
 	s.writeJSON(w, http.StatusOK, view)
 }
 
@@ -88,4 +89,21 @@ func (s *Server) endUpdateCheck() {
 	s.updateMu.Lock()
 	s.updateBusy = false
 	s.updateMu.Unlock()
+}
+
+func (s *Server) setLastUpdate(v update.PublicJSON) {
+	s.updateMu.Lock()
+	cp := v
+	s.lastUpdate = &cp
+	s.updateMu.Unlock()
+}
+
+func (s *Server) copyLastUpdate() *update.PublicJSON {
+	s.updateMu.Lock()
+	defer s.updateMu.Unlock()
+	if s.lastUpdate == nil {
+		return nil
+	}
+	cp := *s.lastUpdate
+	return &cp
 }

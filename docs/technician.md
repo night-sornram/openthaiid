@@ -14,7 +14,8 @@ includes citizen ID, names, dates, or address values.
 
 The helper listens only on `127.0.0.1` (never the LAN). What is on that
 port: Ready HTML (`/`), liveness (`/healthz`), staff lights
-(`GET /v1/helper/summary`, no personal fields), quit
+(`GET /v1/helper/summary`, no personal fields), desk snapshot
+(`GET /v1/helper/doctor`, same loopback rule; no GitHub call), quit
 (`POST /v1/helper/shutdown`, websites cannot call it), technician JSON
 under `/v1/manager/*` (CSRF + this PC’s origin; refresh/reconnect are
 rate-limited), and the WebSocket (`/v1/ws`) for the ERP after Allow.
@@ -54,6 +55,11 @@ is not trusted (see below). Do not restart the helper for that.
 - After OS sleep/wake the Ready page re-probes (same `bridge.probe` / status
   path — never `card.read`). Do not reboot the PC.
 - `openthaiid status` prints helper / reader / card without personal fields.
+- `openthaiid doctor` prints one redacted desk snapshot (helper version, HTTP/TLS
+  ports, readers, `bridge.probe`, Ready URL, TLS yes/no with **no key paths**,
+  last version-check if one already ran). Exit 1 only if the helper is down or
+  PC/SC is unavailable. Soft GitHub failures stay soft. Technician tools
+  **Desk snapshot** copies the same text.
 - There is no cloud service to restart.
 
 ```bash
@@ -62,7 +68,7 @@ is not trusted (see below). Do not restart the helper for that.
 ./openthaiid serve        # headless (Windows service / systemd)
 ./openthaiid -synthetic   # practice reader (no hardware)
 make friday-dry-run       # ซ้อมก่อนได้เครื่อง (qualify-smoke + Ready + probe)
-./openthaiid doctor       # card service only; never reads personal fields
+./openthaiid doctor       # desk snapshot (helper, ports, PC/SC, probe, TLS yes/no)
 ./openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
 ./openthaiid audit        # redacted operator trail JSON
 ./openthaiid update check # GitHub Releases lookup; no download

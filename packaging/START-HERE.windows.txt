@@ -71,6 +71,7 @@ Menu / Desktop shortcuts. It does not enable autostart unless you pass
 -Autostart. It does not install a Windows service.
 
 Technicians: run openthaiid.exe in a terminal, or Technician tools.
+`openthaiid.exe doctor` prints a redacted desk snapshot (no personal fields).
 See docs\getting-started.md, docs\friday-desk-card.md (staff print card),
 docs\technician.md, docs\friday-checklist.md,
 docs\user.md

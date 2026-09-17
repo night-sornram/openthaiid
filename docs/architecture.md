@@ -52,6 +52,7 @@ One Go process owns:
    WebSocket (`/v1/ws`, subprotocol `openthaiid.v1`). The default HTML view
    is clinic-staff status; technician controls are toggled, not the home
    screen. `GET /v1/helper/summary` is staff-safe lights (no personal data);
+   `GET /v1/helper/doctor` is the technician desk snapshot (`openthaiid doctor`);
    `POST /v1/helper/shutdown` is loopback-only and rejects foreign `Origin`.
    Optional second listener: HTTPS/WSS on `127.0.0.1:17892` when a technician
    supplies a local cert (Firefox/Safari https ERP) —

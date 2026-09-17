@@ -17,7 +17,7 @@
 | ฝึกก่อนได้เครื่องจริง (`make friday-dry-run` / `openthaiid -synthetic`) | [training.md](training.md) |
 | เช้าวันศุกร์มี ACR39U (พร้อม → qualify → กรอกข้อมูล → ส่งวินิจฉัย) | [friday-checklist.md](friday-checklist.md) |
 | แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) |
-| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) · HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md) · ตรวจเวอร์ชัน: `openthaiid update check` |
+| ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) · HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md) · โต๊ะพร้อมหรือยัง: `openthaiid doctor` · ตรวจเวอร์ชัน: `openthaiid update check` |
 
 หน้า พร้อม ของตัวช่วย: `http://127.0.0.1:17891/`
 ไฟสามดวงมีคำว่า **ปกติ / รอ / ยังไม่พร้อม** ไม่ใช้สีอย่างเดียว
@@ -56,7 +56,8 @@ Firefox / Safari ใช้หน้า พร้อม ได้; กรอก�
 ติดตั้งแพ็กเกจคลินิก: [installation.md](installation.md) (`START-HERE.txt`)
 ชุดทดสอบฮาร์ดแวร์เต็ม: [hardware-qualification.md](hardware-qualification.md)
 เว็บคลินิกปิดตัวช่วยไม่ได้ — ตาราง HTTP บน `127.0.0.1`: [security.md](security.md)
-ช่างเทคนิคตรวจว่ามี GitHub Release ใหม่หรือยัง (ไม่ดาวน์โหลดอัตโนมัติ):
+ช่างเทคนิคดูว่าโต๊ะพร้อมหรือยังด้วย `openthaiid doctor` (ไม่พิมพ์ข้อมูลบนบัตร)
+แล้วตรวจว่ามี GitHub Release ใหม่หรือยัง (ไม่ดาวน์โหลดอัตโนมัติ):
 หน้า พร้อม กด **ตรวจเวอร์ชัน** หรือ `openthaiid update check`
 ไม่มีเน็ตก็กรอกข้อมูลได้ตามปกติ
 
@@ -78,7 +79,7 @@ No GitHub Actions in this round (minutes exhausted). No Laser-id / NHSO.
 | Practice before the reader arrives | [training.md](training.md) (`make friday-dry-run`) |
 | Friday with an ACR39U | [friday-checklist.md](friday-checklist.md) |
 | Clinic IT / ERP | [erp-integration.md](erp-integration.md) |
-| Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) · helper TLS: [loopback-tls.md](loopback-tls.md) · version check: `openthaiid update check` |
+| Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) · helper TLS: [loopback-tls.md](loopback-tls.md) · desk ready?: `openthaiid doctor` · version check: `openthaiid update check` |
 
 Ready page: `http://127.0.0.1:17891/`. The three lights include **OK /
 Waiting / Not ready** text (not color alone). **Use this reader**, **Test
@@ -94,5 +95,6 @@ Without hardware: `make friday-dry-run` then [training.md](training.md)
 [friday-checklist.md](friday-checklist.md). Package install:
 [installation.md](installation.md). A clinic website cannot stop the
 helper — loopback HTTP inventory: [security.md](security.md). Technicians can
-check for a newer GitHub Release (no download) with Ready **ตรวจเวอร์ชัน**
+check whether the desk is ready with `openthaiid doctor` (no personal fields),
+then look for a newer GitHub Release (no download) with Ready **ตรวจเวอร์ชัน**
 or `openthaiid update check`; offline does not block Fill.

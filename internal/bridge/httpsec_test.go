@@ -35,6 +35,7 @@ func TestLoopbackMutationsRejectForeignOrigin(t *testing.T) {
 		{http.MethodPost, "/v1/manager/log-level", []byte(`{"level":"info"}`)},
 		{http.MethodPost, "/v1/helper/shutdown", nil},
 		{http.MethodGet, "/v1/helper/summary", nil},
+		{http.MethodGet, "/v1/helper/doctor", nil},
 		{http.MethodPost, "/v1/manager/update/check", nil},
 	}
 	for _, tc := range cases {
@@ -76,6 +77,7 @@ func TestLoopbackMutationsRejectCrossSiteFetch(t *testing.T) {
 		{http.MethodGet, "/v1/manager/audit", nil},
 		{http.MethodPost, "/v1/helper/shutdown", nil},
 		{http.MethodGet, "/v1/helper/summary", nil},
+		{http.MethodGet, "/v1/helper/doctor", nil},
 		{http.MethodPost, "/v1/manager/update/check", nil},
 	}
 	for _, tc := range cases {
@@ -249,6 +251,7 @@ func TestLoopbackJSONOmitsPII(t *testing.T) {
 		path   string
 	}{
 		{http.MethodGet, "/v1/helper/summary"},
+		{http.MethodGet, "/v1/helper/doctor"},
 		{http.MethodGet, "/v1/manager/status"},
 		{http.MethodGet, "/v1/manager/audit"},
 		{http.MethodPost, "/v1/manager/reconnect"},
@@ -266,14 +269,14 @@ func TestLoopbackJSONOmitsPII(t *testing.T) {
 			t.Fatalf("%s %s status %d body=%s", tc.method, tc.path, resp.StatusCode, raw)
 		}
 		assertNoForbiddenJSON(t, raw)
-		if tc.path == "/v1/helper/summary" {
+		if tc.path == "/v1/helper/summary" || tc.path == "/v1/helper/doctor" {
 			var s map[string]any
 			if err := json.Unmarshal(raw, &s); err != nil {
 				t.Fatal(err)
 			}
-			for _, leak := range []string{"pending", "trusted", "audit", "lastErrors", "citizenId", "fields"} {
+			for _, leak := range []string{"pending", "trusted", "audit", "lastErrors", "citizenId", "fields", "tlsKeyFile", "tlsCertFile"} {
 				if _, ok := s[leak]; ok {
-					t.Fatalf("summary must not include %s: %s", leak, raw)
+					t.Fatalf("%s must not include %s: %s", tc.path, leak, raw)
 				}
 			}
 		}
