@@ -5,16 +5,34 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-rc.9] — software release candidate (unreleased tag)
+## [Unreleased]
+
+Post-tag notes on `dev` after **v0.1.0-rc.9**. Helper / SDK versions stay
+`0.1.0-rc.9`. Do not bump to rc.10 for test-only changes. Do not retag
+`v0.1.0-rc.9`.
+
+### Changed
+
+- SDK reconnect tests (#42): fake timers + fixed jitter so `make sdk-test`
+  does not race first-attempt backoff. No production reconnect change.
+
+### Docs
+
+- [NOT_DONE.md](NOT_DONE.md): pre-hardware software is complete as of
+  post-#42 / rc.9+. Remaining software-ish leftovers are optional Darwin
+  packaging on a Mac host and headed clinic-PC browser checks.
+
+## [0.1.0-rc.9] — software release candidate
 
 Software RC against `dev` while ACR39U hardware is in transit. **Do not
 enable GitHub Actions** (minutes exhausted). Physical E1–E7 and
-Apple/Microsoft code signing are **not** in this candidate. Tag
-`v0.1.0-rc.9` only after human review. Do not retag `v0.1.0-rc.8`.
+Apple/Microsoft code signing are **not** in this candidate. Tagged
+`v0.1.0-rc.9`. Do not retag `v0.1.0-rc.8`.
 
 Summarizes merges since `[0.1.0-rc.8]`: SDK version align + HTTPS ERP
 sample (#40). Earlier Friday playbook / bind-stress stay in `[0.1.0-rc.8]`
-(not repeated here).
+(not repeated here). Post-tag SDK reconnect flake (#42) is in
+`[Unreleased]`.
 
 ### Added
 
@@ -31,10 +49,6 @@ sample (#40). Earlier Friday playbook / bind-stress stay in `[0.1.0-rc.8]`
 - `@openthaiid/web` and `@openthaiid/react` package versions (and the React
   peer on `@openthaiid/web`) aligned with the helper line `0.1.0-rc.9`.
   Still unpublished.
-- `@openthaiid/web` reconnect unit tests drive first-attempt backoff with
-  fake timers and fixed jitter (`Math.random` → 0, delay 500ms) so
-  `make sdk-test` is not racing `vi.waitFor`’s 1s default against a
-  500–999ms reconnect delay.
 
 ### Security
 
@@ -45,7 +59,8 @@ sample (#40). Earlier Friday playbook / bind-stress stay in `[0.1.0-rc.8]`
 
 - Physical ACR39U acceptance (E1–E7 / M1)
 - Signed / notarized store installers
-- A published GitHub Release until a human tags this RC
+- Darwin clinic archive (Mac host `make package-macos`; attach to the
+  existing `v0.1.0-rc.9` GitHub Release)
 - Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.8] — software release candidate

@@ -1,13 +1,26 @@
 # Friday readiness (pre-hardware)
 
-Last updated after **v0.1.0-rc.9** prep: SDK version align + HTTPS ERP
-sample (#40). Physical ACR39U execution (including Friday E4–E6 on
-hardware) is still blocked. This tree is **tag-ready** for
-`v0.1.0-rc.9` after review. Do not retag `v0.1.0-rc.8`.
-This file is the **Friday morning playbook**, not a software backlog.
+Last updated after **v0.1.0-rc.9** (tagged + GitHub Release) plus merged
+SDK reconnect flake fix (#42). Physical ACR39U execution (including Friday
+E4–E6 on hardware) is still blocked.
 
-Do **not** retag `v0.1.0-rc.8`. Do **not** enable GitHub Actions (included
+**Pre-hardware software is complete** as of post-#42 / rc.9+. There is no
+remaining software backlog that can be finished without ACR39U, without
+user signing certs, without cited Laser-id/NHSO APDU, and without enabling
+Actions.
+
+The only open software-ish leftovers are:
+
+- optional Darwin clinic archive (`make package-macos` on a Mac host)
+  attached to the existing **v0.1.0-rc.9** release (unsigned / not notarized)
+- headed browser checks that need the clinic PC (real Safari UI; loopback
+  TLS Firefox/Safari **https** ERP Fill with a locally trusted helper cert)
+
+Do **not** retag `v0.1.0-rc.9`. Do **not** bump to `v0.1.0-rc.10` for the
+#42 test-only flake fix. Do **not** enable GitHub Actions (included
 minutes until ~1 Oct 2026). Do **not** implement Laser-id / NHSO.
+
+This file is the **Friday morning playbook**, not a software backlog.
 
 Local evidence until Actions returns: `make test`, `make qualify-smoke`,
 `make bind-stress-smoke`, `make friday-dry-run`, `make smoke-package`, and
@@ -15,7 +28,7 @@ Local evidence until Actions returns: `make test`, `make qualify-smoke`,
 
 ---
 
-## Done in software (rc.9)
+## Done in software (rc.9+)
 
 Already shipped. Do not re-open these as Friday software todos.
 
@@ -37,10 +50,12 @@ Already shipped. Do not re-open these as Friday software todos.
 - PC/SC **bind-stress** harness (`openthaiid bind-stress`, `make bind-stress-smoke`)
 - SDK packages aligned at `0.1.0-rc.9` (`@openthaiid/web` / `@openthaiid/react`, unpublished)
 - HTTPS clinic ERP sample (`examples/clinic-patient/clinic-https.json`)
-- Published GitHub Release **v0.1.0-rc.8** (linux-amd64 + windows-amd64 archives)
+- SDK reconnect unit-test flake (#42; fake timers; no production reconnect change)
+- Published GitHub Release **v0.1.0-rc.9** (linux-amd64 + windows-amd64 archives;
+  Darwin still a Mac-host attach)
 
 Authoritative software matrix: [docs/acceptance.md](docs/acceptance.md).
-Release notes: [CHANGELOG.md](CHANGELOG.md) `[0.1.0-rc.9]`.
+Release notes: [CHANGELOG.md](CHANGELOG.md) `[Unreleased]` + `[0.1.0-rc.9]`.
 
 ---
 
@@ -76,9 +91,9 @@ does not close the three-platform claim.
 Untested configurations stay unverified.
 
 Darwin clinic archive: produce with `make package-macos` **on a Mac** and
-attach to the **v0.1.0-rc.9** release after it is tagged (unsigned / not
+attach to the existing **v0.1.0-rc.9** release (unsigned / not
 notarized). Linux builders cannot cross-compile `ebfe/scard` + Cocoa. That
-is a Mac build step, not a reason to retag `v0.1.0-rc.8`.
+is a Mac build step, not a reason to retag `v0.1.0-rc.9` or bump to rc.10.
 
 ---
 
@@ -136,47 +151,31 @@ tag). Not a Friday software task.
 
 ---
 
-## Coordinator — next tag only
+## Coordinator — Darwin attach only (no next tag)
 
-Tree is tag-ready on `dev` after this PR. A human should tag
-`v0.1.0-rc.9` after review. This PR does **not** create the git tag.
+`v0.1.0-rc.9` is already tagged and published (linux-amd64 + windows-amd64).
+This PR does **not** create a git tag and does **not** bump to rc.10.
+Wait for ACR39U for E1–E7 / M1 / P2–P10 hardware closes.
 
-- Do **not** retag `v0.1.0-rc.8`.
+- Do **not** retag `v0.1.0-rc.9`.
 - Do **not** enable GitHub Actions.
+- Optional leftover: Darwin archive on a Mac, then attach to the existing
+  release (replace SHA256SUMS so it includes the darwin line).
 
 ```bash
+# On a Mac only. Do not retag. Do not create v0.1.0-rc.10.
 git checkout dev && git pull origin dev
-git tag -a v0.1.0-rc.9 -m "OpenThaiID v0.1.0-rc.9"
-git push origin v0.1.0-rc.9
+VERSION=0.1.0-rc.9 make package-macos
 
-# Linux + Windows archives (Linux builder). Darwin must be on a Mac.
-VERSION=0.1.0-rc.9 OS=linux ARCH=amd64 ./scripts/package.sh
-VERSION=0.1.0-rc.9 OS=windows ARCH=amd64 ./scripts/package.sh
-# On a Mac only:
-#   VERSION=0.1.0-rc.9 make package-macos
-
-# Checksums of the archives (package.sh already writes SHA256SUMS *inside*
-# each archive for the binary):
 (
   cd dist
-  sha256sum openthaiid-0.1.0-rc.9-linux-amd64.tar.gz \
-    openthaiid-0.1.0-rc.9-windows-amd64.zip \
-    > SHA256SUMS
+  curl -fsSL -o SHA256SUMS \
+    https://github.com/night-sornram/openthaiid/releases/download/v0.1.0-rc.9/SHA256SUMS
+  sha256sum openthaiid-0.1.0-rc.9-darwin-*.tar.gz >> SHA256SUMS
 )
-# append the darwin archive SHA when produced on a Mac
 
-# Release notes: the [0.1.0-rc.9] section only (not the whole CHANGELOG).
-sed -n '/^## \[0.1.0-rc.9\]/,/^## \[0.1.0-rc.8\]/{ /^## \[0.1.0-rc.8\]/d; p; }' \
-  CHANGELOG.md > /tmp/openthaiid-0.1.0-rc.9-notes.md
-
-gh release create v0.1.0-rc.9 \
+gh release upload v0.1.0-rc.9 \
   --repo night-sornram/openthaiid \
-  --prerelease \
-  --target dev \
-  --title "v0.1.0-rc.9" \
-  --notes-file /tmp/openthaiid-0.1.0-rc.9-notes.md \
-  dist/openthaiid-0.1.0-rc.9-linux-amd64.tar.gz \
-  dist/openthaiid-0.1.0-rc.9-windows-amd64.zip \
+  dist/openthaiid-0.1.0-rc.9-darwin-*.tar.gz \
   dist/SHA256SUMS
-# add dist/openthaiid-0.1.0-rc.9-darwin-<arch>.tar.gz when available
 ```

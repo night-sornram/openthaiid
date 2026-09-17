@@ -157,8 +157,15 @@ grep -q '## \[0.1.0-rc.9\]' CHANGELOG.md
 grep -q "clinic-https.json" CHANGELOG.md
 grep -q "@openthaiid/web" CHANGELOG.md
 grep -q "preferLoopbackTls" CHANGELOG.md
-if grep -q '## \[Unreleased\]' CHANGELOG.md; then
-  echo "ERROR: Unreleased notes must be folded into [0.1.0-rc.9]" >&2
+grep -q '## \[Unreleased\]' CHANGELOG.md
+grep -q "#42" CHANGELOG.md
+grep -q "pre-hardware software is complete" CHANGELOG.md
+if awk '/^## \[0.1.0-rc.9\]/{p=1} /^## \[0.1.0-rc.8\]/{p=0} p && /unreleased tag/{found=1} END{exit found?0:1}' CHANGELOG.md; then
+  echo "ERROR: [0.1.0-rc.9] must not still say unreleased tag (already tagged)" >&2
+  exit 1
+fi
+if ! awk '/^## \[Unreleased\]/{u=1} /^## \[0.1.0-rc.9\]/{u=0} u && /#42/{found=1} END{exit found?0:1}' CHANGELOG.md; then
+  echo "ERROR: #42 flake note must live under [Unreleased], not folded into tagged rc.9" >&2
   exit 1
 fi
 if grep -qE "1234567890121|สมชาย|BEGIN PRIVATE KEY" examples/clinic-patient/clinic-https.json; then
@@ -212,38 +219,51 @@ if grep -qiE "laser-id|NHSO" docs/friday-desk-card.md docs/friday-desk-card.html
 fi
 
 echo "== NOT_DONE Friday playbook (not a stale software backlog) =="
-grep -q "Done in software (rc.9)" NOT_DONE.md
+grep -q "Done in software (rc.9" NOT_DONE.md
 grep -q "Do Friday with ACR39U" NOT_DONE.md
 grep -q "Blocked without cited APDU" NOT_DONE.md
 grep -q "Blocked without user certs" NOT_DONE.md
 grep -q "Paused until Actions minutes" NOT_DONE.md
-grep -q "next tag only" NOT_DONE.md
+grep -q "Darwin attach only" NOT_DONE.md
+grep -q "software is complete as of post-#42" NOT_DONE.md
 grep -q "v0.1.0-rc.9" NOT_DONE.md
-grep -q "git tag -a v0.1.0-rc.9" NOT_DONE.md
-grep -q "tag-ready" NOT_DONE.md
 grep -q "E1" NOT_DONE.md
 grep -q "M1" NOT_DONE.md
 grep -q "1 Oct 2026" NOT_DONE.md
-if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.8|v0\\.1\\.0-rc\\.8.*tag-ready" NOT_DONE.md; then
-  echo "ERROR: NOT_DONE must not still call rc.8 tag-ready (already tagged)" >&2
+grep -q "#42" NOT_DONE.md
+if grep -q "git tag -a v0.1.0-rc.9" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not retag v0.1.0-rc.9" >&2
+  exit 1
+fi
+if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.9|v0\\.1\\.0-rc\\.9.*tag-ready" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not still call rc.9 tag-ready (already tagged)" >&2
   exit 1
 fi
 if grep -q "git tag -a v0.1.0-rc.8" NOT_DONE.md; then
   echo "ERROR: NOT_DONE must not retag v0.1.0-rc.8" >&2
   exit 1
 fi
-if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.7|v0\\.1\\.0-rc\\.7.*tag-ready" NOT_DONE.md; then
-  echo "ERROR: NOT_DONE must not still call rc.7 tag-ready (already tagged)" >&2
+if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.8|v0\\.1\\.0-rc\\.8.*tag-ready" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not still call rc.8 tag-ready (already tagged)" >&2
   exit 1
 fi
 if grep -q "git tag -a v0.1.0-rc.7" NOT_DONE.md; then
   echo "ERROR: NOT_DONE must not retag v0.1.0-rc.7" >&2
   exit 1
 fi
+if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.7|v0\\.1\\.0-rc\\.7.*tag-ready" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not still call rc.7 tag-ready (already tagged)" >&2
+  exit 1
+fi
 grep -q "NOT_DONE.md" README.md
 grep -q "NOT_DONE.md" docs/getting-started.md
 grep -q "NOT_DONE.md" docs/friday-checklist.md
 grep -q "NOT_DONE.md" docs/hardware-qualification.md
+grep -q "post-#42 / rc.9+" docs/hardware-qualification.md
+if grep -q "rc.7 is done in" docs/hardware-qualification.md; then
+  echo "ERROR: hardware-qualification must not still say rc.7 is done in software" >&2
+  exit 1
+fi
 grep -q '## \[0.1.0-rc.9\]' CHANGELOG.md
 grep -q '## \[0.1.0-rc.8\]' CHANGELOG.md
 grep -q "SDK version align" CHANGELOG.md
