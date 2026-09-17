@@ -5,17 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-rc.9] — software release candidate (unreleased tag)
 
-Software work after tagged `[0.1.0-rc.8]` while ACR39U is in transit. Helper
-version stays `0.1.0-rc.8`. **Do not enable GitHub Actions.** Do not retag
-`v0.1.0-rc.8`.
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Physical E1–E7 and
+Apple/Microsoft code signing are **not** in this candidate. Tag
+`v0.1.0-rc.9` only after human review. Do not retag `v0.1.0-rc.8`.
 
-### Changed
-
-- `@openthaiid/web` and `@openthaiid/react` package versions (and the React
-  peer on `@openthaiid/web`) aligned with the helper line `0.1.0-rc.8`.
-  Still unpublished.
+Summarizes merges since `[0.1.0-rc.8]`: SDK version align + HTTPS ERP
+sample (#40). Earlier Friday playbook / bind-stress stay in `[0.1.0-rc.8]`
+(not repeated here).
 
 ### Added
 
@@ -24,6 +23,26 @@ version stays `0.1.0-rc.8`. **Do not enable GitHub Actions.** Do not retag
   (`preferLoopbackTls` / `wss://127.0.0.1:17892/v1/ws`). Pointers:
   [docs/loopback-tls.md](docs/loopback-tls.md),
   [docs/compatibility.md](docs/compatibility.md). No secrets or PII.
+  smoke-package asserts the sample and SDK package versions.
+
+### Changed
+
+- Helper version string defaults to `0.1.0-rc.9`.
+- `@openthaiid/web` and `@openthaiid/react` package versions (and the React
+  peer on `@openthaiid/web`) aligned with the helper line `0.1.0-rc.9`.
+  Still unpublished.
+
+### Security
+
+- The HTTPS clinic sample contains no citizen ID, names, address, photo
+  bytes, or private keys.
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.8] — software release candidate
 

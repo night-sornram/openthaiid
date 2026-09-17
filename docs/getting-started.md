@@ -6,7 +6,7 @@
 **ห้าม** ส่งเลขบัตร ชื่อ ที่อยู่ วันเกิด รูปถ่าย ภาพหน้าจอฟอร์ม หรือ HAR
 ที่มียอด `card.read`
 
-ซอฟต์แวร์พร้อมที่ **v0.1.0-rc.8** — เช้าวันศุกร์คือ ACR39U จริง
+ซอฟต์แวร์พร้อมที่ **v0.1.0-rc.9** — เช้าวันศุกร์คือ ACR39U จริง
 ([NOT_DONE.md](../NOT_DONE.md)). ไม่มี GitHub Actions ในรอบนี้ (นาทีหมดถึง
 ~1 ต.ค. 2026) และไม่มี Laser-id / NHSO
 
@@ -72,7 +72,7 @@ One index for this morning. Open this page first, then the linked guide.
 Do **not** send citizen ID, names, address, date of birth, photos, filled-form
 screenshots, or HARs that contain `card.read` payloads.
 
-Software is **v0.1.0-rc.8**. Friday is physical ACR39U
+Software is **v0.1.0-rc.9**. Friday is physical ACR39U
 ([NOT_DONE.md](../NOT_DONE.md)). No GitHub Actions in this round (minutes
 until ~1 Oct 2026). No Laser-id / NHSO.
 

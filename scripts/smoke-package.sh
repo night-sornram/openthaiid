@@ -7,7 +7,7 @@ cd "$ROOT"
 chmod +x "$ROOT/scripts/package.sh"
 
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-VERSION="${VERSION:-0.1.0-rc.8}"
+VERSION="${VERSION:-0.1.0-rc.9}"
 
 echo "== native package =="
 VERSION="$VERSION" ./scripts/package.sh
@@ -138,13 +138,13 @@ grep -q "loopback-tls.md" packaging/START-HERE.darwin.txt
 grep -q "compatibility.md" packaging/START-HERE.linux.txt
 grep -q "compatibility.md" packaging/START-HERE.windows.txt
 grep -q "compatibility.md" packaging/START-HERE.darwin.txt
-grep -q "0.1.0-rc.8" cmd/openthaiid/main.go
-grep -q "0.1.0-rc.8" Makefile
+grep -q "0.1.0-rc.9" cmd/openthaiid/main.go
+grep -q "0.1.0-rc.9" Makefile
 
 echo "== SDK package versions + https ERP clinic sample =="
-grep -q '"version": "0.1.0-rc.8"' sdk/web/package.json
-grep -q '"version": "0.1.0-rc.8"' sdk/react/package.json
-grep -q '"@openthaiid/web": "0.1.0-rc.8"' sdk/react/package.json
+grep -q '"version": "0.1.0-rc.9"' sdk/web/package.json
+grep -q '"version": "0.1.0-rc.9"' sdk/react/package.json
+grep -q '"@openthaiid/web": "0.1.0-rc.9"' sdk/react/package.json
 test -f examples/clinic-patient/clinic-https.json
 grep -q '"preferLoopbackTls": true' examples/clinic-patient/clinic-https.json
 grep -q "wss://127.0.0.1:17892/v1/ws" examples/clinic-patient/clinic-https.json
@@ -153,7 +153,14 @@ grep -q "compatibility.md" examples/clinic-patient/clinic-https.json
 grep -q "clinic-https.json" docs/erp-integration.md
 grep -q "clinic-https.json" docs/loopback-tls.md
 grep -q "clinic-https.json" docs/compatibility.md
-grep -q '## \[Unreleased\]' CHANGELOG.md
+grep -q '## \[0.1.0-rc.9\]' CHANGELOG.md
+grep -q "clinic-https.json" CHANGELOG.md
+grep -q "@openthaiid/web" CHANGELOG.md
+grep -q "preferLoopbackTls" CHANGELOG.md
+if grep -q '## \[Unreleased\]' CHANGELOG.md; then
+  echo "ERROR: Unreleased notes must be folded into [0.1.0-rc.9]" >&2
+  exit 1
+fi
 if grep -qE "1234567890121|สมชาย|BEGIN PRIVATE KEY" examples/clinic-patient/clinic-https.json; then
   echo "ERROR: clinic-https.json must not contain PII or private keys" >&2
   exit 1
@@ -205,18 +212,26 @@ if grep -qiE "laser-id|NHSO" docs/friday-desk-card.md docs/friday-desk-card.html
 fi
 
 echo "== NOT_DONE Friday playbook (not a stale software backlog) =="
-grep -q "Done in software (rc.8)" NOT_DONE.md
+grep -q "Done in software (rc.9)" NOT_DONE.md
 grep -q "Do Friday with ACR39U" NOT_DONE.md
 grep -q "Blocked without cited APDU" NOT_DONE.md
 grep -q "Blocked without user certs" NOT_DONE.md
 grep -q "Paused until Actions minutes" NOT_DONE.md
 grep -q "next tag only" NOT_DONE.md
-grep -q "v0.1.0-rc.8" NOT_DONE.md
-grep -q "git tag -a v0.1.0-rc.8" NOT_DONE.md
+grep -q "v0.1.0-rc.9" NOT_DONE.md
+grep -q "git tag -a v0.1.0-rc.9" NOT_DONE.md
 grep -q "tag-ready" NOT_DONE.md
 grep -q "E1" NOT_DONE.md
 grep -q "M1" NOT_DONE.md
 grep -q "1 Oct 2026" NOT_DONE.md
+if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.8|v0\\.1\\.0-rc\\.8.*tag-ready" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not still call rc.8 tag-ready (already tagged)" >&2
+  exit 1
+fi
+if grep -q "git tag -a v0.1.0-rc.8" NOT_DONE.md; then
+  echo "ERROR: NOT_DONE must not retag v0.1.0-rc.8" >&2
+  exit 1
+fi
 if grep -qE "tag-ready.*v0\\.1\\.0-rc\\.7|v0\\.1\\.0-rc\\.7.*tag-ready" NOT_DONE.md; then
   echo "ERROR: NOT_DONE must not still call rc.7 tag-ready (already tagged)" >&2
   exit 1
@@ -229,7 +244,10 @@ grep -q "NOT_DONE.md" README.md
 grep -q "NOT_DONE.md" docs/getting-started.md
 grep -q "NOT_DONE.md" docs/friday-checklist.md
 grep -q "NOT_DONE.md" docs/hardware-qualification.md
+grep -q '## \[0.1.0-rc.9\]' CHANGELOG.md
 grep -q '## \[0.1.0-rc.8\]' CHANGELOG.md
+grep -q "SDK version align" CHANGELOG.md
+grep -q "clinic-https.json" CHANGELOG.md
 grep -q "bind-stress" CHANGELOG.md
 grep -q "Friday NOT_DONE playbook" CHANGELOG.md
 grep -q "bind-stress.md" CHANGELOG.md
