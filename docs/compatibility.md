@@ -57,6 +57,9 @@ Workable clinic paths on Firefox/Safari today:
 3. Enable optional helper TLS once per PC ([loopback-tls.md](loopback-tls.md)), **or**
 4. Use the Ready page (always `http://127.0.0.1`) for lights / Allow / version check; Fill still needs a browser that can open the loopback WebSocket.
 
+HTTPS ERP JSON sample (`preferLoopbackTls` / wss):
+`examples/clinic-patient/clinic-https.json`.
+
 Do not tell clinics to set `network.websocket.allowInsecureFromHTTPS` — that
 pref is **acceptance-harness only**.
 

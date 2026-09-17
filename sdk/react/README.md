@@ -109,7 +109,8 @@ guidance by default; `error.code` is unchanged (`formatStaffError`, `{ lang: "en
 Clinic ERP screens should keep a JSON config (`request` + `map`) and call it
 from a button — do not connect on render. Parse with
 `parseAutofillClinicConfig`; attach callbacks in code. Samples live in
-`examples/clinic-patient/` (`kyc-minimal.json`, `clinic-full.json`).
+`examples/clinic-patient/` (`kyc-minimal.json`, `clinic-full.json`,
+`clinic-https.json` for https ERP + `preferLoopbackTls` / wss).
 
 ```tsx
 import { autofillThaiID, parseAutofillClinicConfig, staffApprovalGuidance } from "@openthaiid/react";

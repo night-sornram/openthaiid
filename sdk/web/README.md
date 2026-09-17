@@ -126,7 +126,8 @@ For a Create Patient screen, keep one JSON config (`request` + `map`) and call
 it from the button. Schema:
 `schema/autofill-clinic-config.schema.json` (package export
 `@openthaiid/web/schema/autofill-clinic-config.json`). Samples:
-`examples/clinic-patient/kyc-minimal.json` and `clinic-full.json`.
+`examples/clinic-patient/kyc-minimal.json`, `clinic-full.json`, and
+`clinic-https.json` (https ERP + `preferLoopbackTls` / wss).
 Hospital ERP drop-in: `docs/erp-integration.md`.
 
 ```js

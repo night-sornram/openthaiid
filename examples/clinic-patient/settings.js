@@ -1,7 +1,8 @@
 /**
  * Clinic ERP drop-in settings for "Create new patient".
  *
- * Copy this object (or load `kyc-minimal.json` / `clinic-full.json`) and pass
+ * Copy this object (or load `kyc-minimal.json` / `clinic-full.json` /
+ * `clinic-https.json`) and pass
  * it to `autofillThaiID(config)` from a button click. Do not call it on page
  * load. JSON Schema: `sdk/web/schema/autofill-clinic-config.schema.json`.
  *
