@@ -12,6 +12,7 @@
 ฝึกซ้อมโดยไม่มีเครื่อง: [training.md](training.md) (`make friday-dry-run` /
 `-synthetic`) — ซ้อมก่อนได้เครื่อง ไม่ใช่ผ่าน ACR39U
 ชุดเต็ม: [hardware-qualification.md](hardware-qualification.md)
+ช่างเทคนิค P2–P10 (PC/SC bind-stress): [bind-stress.md](bind-stress.md)
 เว็บคลินิกปิดตัวช่วยไม่ได้: [security.md](security.md)
 Firefox / Safari กรอกจากหน้าคลินิก **HTTPS**: [compatibility.md](compatibility.md)
 · HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md)

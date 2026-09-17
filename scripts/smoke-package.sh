@@ -100,6 +100,20 @@ grep -q "friday-dry-run" docs/security.md
 grep -q "security.md" docs/technician.md
 grep -q "getting-started.md" docs/hardware-qualification.md
 grep -q "friday-dry-run" docs/hardware-qualification.md
+grep -q "bind-stress.md" docs/hardware-qualification.md
+grep -q "bind-stress" NOT_DONE.md
+grep -q "bind-stress.md" docs/technician.md
+grep -q "bind-stress.md" docs/friday-checklist.md
+grep -q "bind-stress.md" docs/acceptance.md
+grep -q "bind-stress.md" docs/dependency-audit.md
+grep -q "bind-stress-smoke" Makefile
+test -f scripts/bind-stress.sh
+test -f scripts/bind-stress.ps1
+test -f scripts/smoke-bind-stress.sh
+test -f docs/bind-stress.md
+grep -q "openthaiid.bindstress.v1" docs/bind-stress.md
+grep -q "bind-stress.md" docs/getting-started.md
+grep -q "bind-stress.md" README.md
 grep -q "security.md" docs/friday-checklist.md
 grep -q "friday-dry-run" packaging/START-HERE.linux.txt
 grep -q "friday-dry-run" packaging/START-HERE.windows.txt

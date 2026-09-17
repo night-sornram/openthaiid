@@ -19,6 +19,9 @@ does not add extra modules to `go.sum`.
 ### ebfe/scard audit
 
 Compilation and local synthetic tests do **not** close these items.
+Runnable harness (synthetic smoke today; hardware Friday):
+[bind-stress.md](bind-stress.md). `make bind-stress-smoke` /
+`./scripts/bind-stress.sh`. Reports never include APDUs or personal fields.
 
 - [x] Pin to immutable git revision
 - [x] Record license
@@ -29,15 +32,21 @@ Compilation and local synthetic tests do **not** close these items.
 - [ ] Windows system-library loading (WinSCard)
 - [ ] Concurrent context and reader-state handling
       *Partial: monitor and read use separate Backend/context instances; a
-      single native worker owns each read. Hardware stress still required.*
+      single native worker owns each read. `bind-stress` B7 is the stress
+      loop. Hardware still required.*
 - [ ] Returned buffer lengths from `Transmit`
       *Partial: engine rejects bodies larger than the profile `MaxResponse`
-      bound. Native length reporting still needs platform verification.*
+      bound. `bind-stress` B6 records SELECT response length only (never
+      bytes). Native length reporting still needs platform verification.*
 - [ ] Shutdown and blocked-call behavior (`Cancel` unblocks `GetStatusChange`)
       *Partial: reader manager never releases a PC/SC context while a worker
-      holds the read slot; Stop returns at its deadline. Confirm scard.Cancel
-      behavior on each OS with a blocked GetStatusChange.*
+      holds the read slot; Stop returns at its deadline. `bind-stress` B8
+      calls CancelWait during WaitForChange. Confirm on each OS with a
+      blocked GetStatusChange.*
 - [ ] GC interaction with cgo pointers under stress
+      *`bind-stress` B9 GCs between cycles. Synthetic is Go heap only.
+      darwin/linux hardware is the cgo evidence. Windows WinSCard is not
+      cgo.*
 
 If a confirmed defect is found and upstream will not fix promptly, maintain a
 narrow, attributed fork. Do not silently switch libraries.

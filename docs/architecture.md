@@ -100,6 +100,7 @@ flowchart LR
 | `internal/config` | Typed configuration and validation |
 | `internal/update` | GitHub Releases version check (unsigned lookup; CLI download/apply stay explicit) |
 | `internal/qualify` | Friday E1–E7 / M1 kit (`openthaiid qualify`; redacted JSON report) |
+| `internal/bindstress` | PC/SC bind-stress (`openthaiid bind-stress`; redacted JSON, no APDUs) |
 | `sdk/web` | `@openthaiid/web` (includes clinic JSON Schema + `parseAutofillClinicConfig`) |
 | `sdk/react` | `@openthaiid/react` hooks wrapping `@openthaiid/web` |
 | `examples/vanilla` | Minimal demonstration app |
