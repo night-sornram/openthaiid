@@ -151,8 +151,8 @@ empty catalog). Set `OPENTHAIID_GITHUB_TOKEN` (or `GITHUB_TOKEN`) in the
 **helper** environment — never in the ERP page. `/releases/latest` is not
 used; that endpoint 404s when every published release is a prerelease.
 
-Do not enable GitHub Actions for this. Store-signed auto-update is not
-implemented ([signing.md](signing.md)).
+Do not enable GitHub Actions for this (minutes until ~1 Oct 2026).
+Store-signed auto-update is not implemented ([signing.md](signing.md)).
 
 ## Firefox / Safari clinic pages
 

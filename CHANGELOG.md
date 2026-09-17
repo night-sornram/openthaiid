@@ -5,12 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-rc.7] — software release candidate (unreleased tag)
+## [Unreleased]
+
+Docs-only Friday playbook against tagged **v0.1.0-rc.7**. Helper version
+stays `0.1.0-rc.7`. No new software features. Do not retag `v0.1.0-rc.7`.
+Do not enable GitHub Actions (minutes until ~1 Oct 2026).
+
+### Changed
+
+- Rewrite [NOT_DONE.md](NOT_DONE.md) as Friday-morning triage: **done in
+  software (rc.7)**, **do Friday with ACR39U** (E1–E7, M1, real-card layout),
+  **blocked without cited APDU** (Laser-id/NHSO), **blocked without user
+  certs** (Store/notarize), **paused until Actions minutes** (~1 Oct 2026).
+  Coordinator commands are for the *next* tag only.
+
+## [0.1.0-rc.7] — software release candidate
 
 Software RC against `dev` while ACR39U hardware is in transit. **Do not
-enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.7` only after
-human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
-in this candidate. Do not retag `v0.1.0-rc.6`.
+enable GitHub Actions** (minutes exhausted). Physical E1–E7 and
+Apple/Microsoft code signing are **not** in this candidate. Tagged
+`v0.1.0-rc.7`. Do not retag `v0.1.0-rc.6`.
 
 Summarizes merges since `[0.1.0-rc.6]`: technician `openthaiid doctor`
 desk snapshot (#35). Earlier Go module hygiene / Friday staff desk card
@@ -46,7 +60,6 @@ stay in `[0.1.0-rc.6]` (not repeated here).
 
 - Physical ACR39U acceptance (E1–E7 / M1)
 - Signed / notarized store installers
-- A published GitHub Release until a human tags this RC
 - Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.6] — software release candidate

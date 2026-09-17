@@ -280,19 +280,23 @@ cd sdk/react && npm test
 make acceptance    # node-pty + Playwright (Chrome/Edge) against real bridge
 ```
 
-GitHub Actions is split to conserve included minutes: **pull requests** run
-Ubuntu Go tests (`-count=5` on formerly flaky packages), linux/amd64 build,
-the Web + React SDKs, and Chrome acceptance (allow/deny/unanswered). The **full**
-five-target build + Chrome×Linux/macOS/Windows + Edge×Windows matrix, and
-`-count=50`, run on push to `dev`/`main` and via **workflow_dispatch**.
-Docs-only changes skip CI. See [docs/acceptance.md](docs/acceptance.md).
+GitHub Actions stays **disabled** until included minutes reset (~1 Oct 2026).
+Do not enable the workflow to prove a docs PR. When minutes return, the
+split is: **pull requests** run Ubuntu Go tests (`-count=5` on formerly
+flaky packages), linux/amd64 build, the Web + React SDKs, and Firefox
+acceptance (allow/deny/unanswered). The **full** five-target build +
+Chrome×macOS/Windows + Edge×Windows matrix, and `-count=50`, run on push
+to `dev`/`main` and via **workflow_dispatch**. Docs-only changes skip CI.
+See [docs/acceptance.md](docs/acceptance.md). Friday hardware vs software:
+[NOT_DONE.md](NOT_DONE.md).
 
 Browser acceptance uses Playwright channels (`chrome`, `msedge`) and a real
 PTY via node-pty for terminal approval. Approval policies: allow, deny,
 unanswered. See [acceptance/README.md](acceptance/README.md).
 
 Hardware acceptance (ACR39U on Windows/Linux/macOS) is still required before
-a production release claim. The operator kit is
+a production release claim. Friday vs already-shipped software:
+[NOT_DONE.md](NOT_DONE.md). The operator kit is
 [docs/hardware-qualification.md](docs/hardware-qualification.md). See
 [docs/acceptance.md](docs/acceptance.md) for the current evidence status.
 

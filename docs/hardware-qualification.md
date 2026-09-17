@@ -9,6 +9,9 @@ text, dates of birth, or portrait / photo bytes (including Base64 and
 `data:image` URLs). Tickets get **pass/fail**, **milliseconds**, **error
 codes**, and the technician diagnostics copy below.
 
+Software vs Friday split: [NOT_DONE.md](../NOT_DONE.md) (rc.7 is done in
+software; this kit is the ACR39U work).
+
 Synthetic `openthaiid qualify -synthetic` proves the kit, not the reader.
 Friday-morning index: [getting-started.md](getting-started.md).
 One-command software rehearsal: `make friday-dry-run` (ซ้อมก่อนได้เครื่อง).
