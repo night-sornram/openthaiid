@@ -4,7 +4,7 @@ Last updated after **v0.1.0-rc.9** (tagged + GitHub Release) plus merged
 SDK reconnect flake fix (#42). Physical ACR39U execution (including Friday
 E4–E6 on hardware) is still blocked.
 
-**Pre-hardware software is complete** as of post-#42 / rc.9+. There is no
+**Pre-hardware software is complete as of post-#42 / rc.9+.** There is no
 remaining software backlog that can be finished without ACR39U, without
 user signing certs, without cited Laser-id/NHSO APDU, and without enabling
 Actions.
