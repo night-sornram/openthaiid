@@ -73,6 +73,10 @@ This page’s copy-paste config lives in `settings.js`
 
 - `kyc-minimal.json` — `citizenId` + `thaiName` + `birthDate`
 - `clinic-full.json` — clinic allowlist (`gender` + `address` too)
+- `clinic-https.json` — same KYC fields for an **https://** ERP page
+  (`preferLoopbackTls`; wss `wss://127.0.0.1:17892/v1/ws`). Technician TLS:
+  [docs/loopback-tls.md](../../docs/loopback-tls.md). Browser matrix:
+  [docs/compatibility.md](../../docs/compatibility.md). No secrets or PII.
 
 Schema: `sdk/web/schema/autofill-clinic-config.schema.json`.
 Hospital/clinic ERP steps: [docs/erp-integration.md](../../docs/erp-integration.md).

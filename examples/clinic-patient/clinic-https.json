@@ -1,0 +1,16 @@
+{
+  "$schema": "../../sdk/web/schema/autofill-clinic-config.schema.json",
+  "$comment": "HTTPS clinic ERP Fill. Technician enables loopback TLS once per PC (docs/loopback-tls.md). Firefox/Safari block ws:// from https (docs/compatibility.md). preferLoopbackTls selects wss://127.0.0.1:17892/v1/ws; an explicit endpoint with that URL also works. No secrets, PII, or private keys. Ready stays http://127.0.0.1:17891/.",
+  "kind": "openthaiid.autofill-clinic",
+  "request": ["citizenId", "thaiName", "birthDate"],
+  "map": {
+    "citizenId": "#patient-cid",
+    "thaiName.givenName": "#patient-given",
+    "thaiName.familyName": "#patient-family",
+    "birthDate": "#patient-dob"
+  },
+  "dateFormat": "iso",
+  "discover": false,
+  "lang": "th",
+  "preferLoopbackTls": true
+}

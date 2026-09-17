@@ -93,6 +93,9 @@ cert or use Chrome/Edge / an http ERP.
 
 Use this when clinic IT enabled helper TLS and the page is https (including
 Chrome). An explicit `"endpoint": "wss://127.0.0.1:17892/v1/ws"` also works.
+Copy-paste sample (no secrets):
+[examples/clinic-patient/clinic-https.json](../examples/clinic-patient/clinic-https.json).
+Browser matrix: [compatibility.md](compatibility.md).
 
 ## Restart
 

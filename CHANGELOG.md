@@ -5,12 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-rc.8] — software release candidate (unreleased tag)
+## [Unreleased]
+
+Software work after tagged `[0.1.0-rc.8]` while ACR39U is in transit. Helper
+version stays `0.1.0-rc.8`. **Do not enable GitHub Actions.** Do not retag
+`v0.1.0-rc.8`.
+
+### Changed
+
+- `@openthaiid/web` and `@openthaiid/react` package versions (and the React
+  peer on `@openthaiid/web`) aligned with the helper line `0.1.0-rc.8`.
+  Still unpublished.
+
+### Added
+
+- HTTPS clinic ERP sample
+  [`examples/clinic-patient/clinic-https.json`](examples/clinic-patient/clinic-https.json)
+  (`preferLoopbackTls` / `wss://127.0.0.1:17892/v1/ws`). Pointers:
+  [docs/loopback-tls.md](docs/loopback-tls.md),
+  [docs/compatibility.md](docs/compatibility.md). No secrets or PII.
+
+## [0.1.0-rc.8] — software release candidate
 
 Software RC against `dev` while ACR39U hardware is in transit. **Do not
 enable GitHub Actions** (minutes exhausted). Physical E1–E7 and
-Apple/Microsoft code signing are **not** in this candidate. Tag
-`v0.1.0-rc.8` only after human review. Do not retag `v0.1.0-rc.7`.
+Apple/Microsoft code signing are **not** in this candidate. Tagged
+`v0.1.0-rc.8`. Do not retag `v0.1.0-rc.7`.
 
 Summarizes merges since `[0.1.0-rc.7]`: Friday NOT_DONE playbook (#37),
 PC/SC bind-stress harness (#38). Earlier technician `openthaiid doctor`

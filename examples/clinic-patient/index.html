@@ -349,6 +349,7 @@
             <button type="button" id="upload-config">Upload JSON</button>
             <button type="button" id="load-kyc-minimal">Load KYC sample</button>
             <button type="button" id="load-clinic-full">Load clinic sample</button>
+            <button type="button" id="load-clinic-https">Load HTTPS sample</button>
           </div>
           <input id="upload-config-file" type="file" accept="application/json,.json" hidden />
           <p class="hint">
@@ -356,6 +357,11 @@
             <a href="./kyc-minimal.json">kyc-minimal.json</a>
             ·
             <a href="./clinic-full.json">clinic-full.json</a>
+            ·
+            <a href="./clinic-https.json">clinic-https.json</a>
+            (<code>preferLoopbackTls</code> / wss — see
+            <a href="../../docs/loopback-tls.md">loopback-tls.md</a>,
+            <a href="../../docs/compatibility.md">compatibility.md</a>)
             · schema
             <code>sdk/web/schema/autofill-clinic-config.schema.json</code>
           </p>

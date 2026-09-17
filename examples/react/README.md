@@ -53,5 +53,5 @@ default set.
 
 For a Create Patient form, pass the same `request` + `map` JSON config used by
 `autofillThaiID` from a button (`examples/clinic-patient/kyc-minimal.json` /
-`clinic-full.json`, parsed with `parseAutofillClinicConfig`). You do not need
+`clinic-full.json` / `clinic-https.json`, parsed with `parseAutofillClinicConfig`). You do not need
 a React-specific SDK fork; `useThaiIDAutofill(config)` is optional.

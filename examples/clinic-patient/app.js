@@ -30,6 +30,7 @@ const uploadBtn = document.getElementById("upload-config");
 const uploadFile = document.getElementById("upload-config-file");
 const loadKycBtn = document.getElementById("load-kyc-minimal");
 const loadClinicBtn = document.getElementById("load-clinic-full");
+const loadHttpsBtn = document.getElementById("load-clinic-https");
 
 const qs = new URLSearchParams(location.search);
 const endpoint = qs.get("ws") || undefined;
@@ -44,6 +45,8 @@ let currentDateFormat = "iso";
 let currentDateLocale = undefined;
 let currentDiscover = false;
 let currentConfigLang = pageLang;
+let currentPreferLoopbackTls = undefined;
+let currentJsonEndpoint = undefined;
 let customGenderLabels = null;
 
 function showBanner(kind, text) {
@@ -80,7 +83,8 @@ function currentConfig() {
     genderLabels: genderLabels(),
     discover: currentDiscover,
     lang: currentConfigLang,
-    ...(endpoint ? { endpoint } : {}),
+    ...(typeof currentPreferLoopbackTls === "boolean" ? { preferLoopbackTls: currentPreferLoopbackTls } : {}),
+    ...(endpoint || currentJsonEndpoint ? { endpoint: endpoint || currentJsonEndpoint } : {}),
   });
 }
 
@@ -135,6 +139,8 @@ function applyClinicConfig(cfg, sourceLabel) {
   currentDateLocale = cfg.dateLocale;
   if (typeof cfg.discover === "boolean") currentDiscover = cfg.discover;
   if (cfg.lang) currentConfigLang = cfg.lang;
+  currentPreferLoopbackTls = typeof cfg.preferLoopbackTls === "boolean" ? cfg.preferLoopbackTls : undefined;
+  currentJsonEndpoint = cfg.endpoint;
   const customOpt = genderLabelsSelect.querySelector('option[value="custom"]');
   if (cfg.genderLabels) {
     customGenderLabels = cfg.genderLabels;
@@ -289,6 +295,15 @@ loadClinicBtn.addEventListener("click", async () => {
   } catch (err) {
     const message = err && err.message ? err.message : String(err);
     showBanner("error", `Could not load clinic sample: ${message}`);
+  }
+});
+
+loadHttpsBtn.addEventListener("click", async () => {
+  try {
+    await loadClinicJson("./clinic-https.json", "Loaded clinic-https.json (preferLoopbackTls)");
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    showBanner("error", `Could not load HTTPS sample: ${message}`);
   }
 });
 

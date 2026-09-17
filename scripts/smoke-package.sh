@@ -141,6 +141,24 @@ grep -q "compatibility.md" packaging/START-HERE.darwin.txt
 grep -q "0.1.0-rc.8" cmd/openthaiid/main.go
 grep -q "0.1.0-rc.8" Makefile
 
+echo "== SDK package versions + https ERP clinic sample =="
+grep -q '"version": "0.1.0-rc.8"' sdk/web/package.json
+grep -q '"version": "0.1.0-rc.8"' sdk/react/package.json
+grep -q '"@openthaiid/web": "0.1.0-rc.8"' sdk/react/package.json
+test -f examples/clinic-patient/clinic-https.json
+grep -q '"preferLoopbackTls": true' examples/clinic-patient/clinic-https.json
+grep -q "wss://127.0.0.1:17892/v1/ws" examples/clinic-patient/clinic-https.json
+grep -q "loopback-tls.md" examples/clinic-patient/clinic-https.json
+grep -q "compatibility.md" examples/clinic-patient/clinic-https.json
+grep -q "clinic-https.json" docs/erp-integration.md
+grep -q "clinic-https.json" docs/loopback-tls.md
+grep -q "clinic-https.json" docs/compatibility.md
+grep -q '## \[Unreleased\]' CHANGELOG.md
+if grep -qE "1234567890121|สมชาย|BEGIN PRIVATE KEY" examples/clinic-patient/clinic-https.json; then
+  echo "ERROR: clinic-https.json must not contain PII or private keys" >&2
+  exit 1
+fi
+
 echo "== openthaiid doctor technician desk snapshot links =="
 grep -q "openthaiid doctor" docs/technician.md
 grep -q "GET /v1/helper/doctor" docs/technician.md

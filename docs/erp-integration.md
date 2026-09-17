@@ -20,6 +20,10 @@ OpenThaiID เป็นไลบรารีที่เรียกจากห
      (`citizenId`, `thaiName`, `birthDate`)
    - ชุดคลินิก: [`examples/clinic-patient/clinic-full.json`](../examples/clinic-patient/clinic-full.json)
      (เพิ่ม `gender` + `address`; `englishName` / `portrait` แมปไว้แต่ไม่ขอจนกว่าจะใส่ใน `request`)
+   - หน้า HTTPS: [`examples/clinic-patient/clinic-https.json`](../examples/clinic-patient/clinic-https.json)
+     (`preferLoopbackTls` → `wss://127.0.0.1:17892/v1/ws`;
+     [loopback-tls.md](loopback-tls.md), [compatibility.md](compatibility.md)
+     — ไม่มีรหัสลับในไฟล์ตัวอย่าง)
 4. **แก้ `map`** ให้ชี้ selector ของฟอร์มใน ERP (`#hn` / เบอร์โทรอย่าแมป — ชิปบัตรไม่มี)
 5. **ตรวจ JSON** ด้วยสคีมา
    [`sdk/web/schema/autofill-clinic-config.schema.json`](../sdk/web/schema/autofill-clinic-config.schema.json)
@@ -96,6 +100,10 @@ itself. Do not store personal field values in the config file.
 3. Copy a sample config:
    - Minimal 3-field KYC: `examples/clinic-patient/kyc-minimal.json`
    - Fuller clinic set: `examples/clinic-patient/clinic-full.json`
+   - HTTPS ERP page: `examples/clinic-patient/clinic-https.json`
+     (`preferLoopbackTls` / `wss://127.0.0.1:17892/v1/ws`;
+     [loopback-tls.md](loopback-tls.md), [compatibility.md](compatibility.md).
+     No secrets or PII in the sample.)
 4. Point `map` at your form selectors. Leave phone / HN unmapped.
 5. Validate against
    `sdk/web/schema/autofill-clinic-config.schema.json`

@@ -39,6 +39,10 @@ const schema = readJson("sdk/web/schema/autofill-clinic-config.schema.json") as 
 
 const kycMinimal = readJson("examples/clinic-patient/kyc-minimal.json");
 const clinicFull = readJson("examples/clinic-patient/clinic-full.json");
+const clinicHttps = readJson("examples/clinic-patient/clinic-https.json") as {
+  $comment?: string;
+  preferLoopbackTls?: boolean;
+};
 
 describe("AUTOFILL_SLOTS", () => {
   it("parses every advertised slot", () => {
@@ -88,6 +92,23 @@ describe("parseAutofillClinicConfig", () => {
     expect(cfg.preferLoopbackTls).toBe(true);
     expect(clinicConfigToAutofillOptions(cfg).preferLoopbackTls).toBe(true);
     expect(serializeAutofillClinicConfig(cfg).preferLoopbackTls).toBe(true);
+  });
+
+  it("parses the https ERP sample (preferLoopbackTls, no secrets)", () => {
+    const cfg = parseAutofillClinicConfig(clinicHttps);
+    expect(cfg.preferLoopbackTls).toBe(true);
+    expect(cfg.endpoint).toBeUndefined();
+    expect(cfg.request).toEqual([...DEFAULT_FIELDS]);
+    expect(cfg.map).toEqual({
+      citizenId: "#patient-cid",
+      "thaiName.givenName": "#patient-given",
+      "thaiName.familyName": "#patient-family",
+      birthDate: "#patient-dob",
+    });
+    expect(clinicConfigToAutofillOptions(cfg).preferLoopbackTls).toBe(true);
+    expect(clinicHttps.$comment).toContain("docs/loopback-tls.md");
+    expect(clinicHttps.$comment).toContain("docs/compatibility.md");
+    expect(clinicHttps.$comment).toContain("wss://127.0.0.1:17892/v1/ws");
   });
 
   it("parses a JSON string", () => {
@@ -200,7 +221,7 @@ describe("clinic config samples", () => {
   });
 
   it("do not embed personal field values", () => {
-    for (const sample of [kycMinimal, clinicFull]) {
+    for (const sample of [kycMinimal, clinicFull, clinicHttps]) {
       const text = JSON.stringify(sample);
       expect(text).not.toMatch(/\d{13}/);
       expect(text).not.toContain("สมชาย");
