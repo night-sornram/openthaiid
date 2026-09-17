@@ -24,6 +24,9 @@ Happy path
    use the ไทย / English toggle if you need English. Technician tools
    stay English.
 
+Friday staff desk card (print one Thai page): docs/friday-desk-card.md
+Operator qualify sheet: docs/friday-checklist.md
+
 If Gatekeeper still blocks an unsigned app, run the raw binary from Terminal:
 
   ./openthaiid tray -open
@@ -56,7 +59,8 @@ Technicians
 ./openthaiid qualify -operator -report ./openthaiid-qualify.json
                              same, and record pass/fail/skip from the keyboard
                              (never type citizen ID, names, address, or photo)
-See docs/getting-started.md, docs/technician.md, docs/friday-checklist.md,
+See docs/getting-started.md, docs/friday-desk-card.md (staff print card),
+docs/technician.md, docs/friday-checklist.md,
 docs/user.md
 (multi-reader, CARD_REMOVED / sleep-wake / PC/SC recovery),
 docs/security.md (loopback HTTP inventory),

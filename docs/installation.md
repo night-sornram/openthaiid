@@ -185,7 +185,8 @@ Cross-compilation notes:
 ./dist/openthaiid service status
 ./dist/openthaiid qualify -report ./openthaiid-qualify.json   # Friday kit
 ./dist/openthaiid audit        # redacted operator trail JSON
-# One-page sheet: docs/friday-checklist.md  Practice: docs/training.md
+# One-page staff card: docs/friday-desk-card.md
+# Operator qualify sheet: docs/friday-checklist.md  Practice: docs/training.md
 # Technician: docs/technician.md
 ```
 

@@ -28,6 +28,8 @@ Clinic staff: start at [docs/getting-started.md](docs/getting-started.md)
 developer terminal; multi-reader **ใช้เครื่องนี้**; card-removed / sleep-wake
 recovery). Practice without a reader: [docs/training.md](docs/training.md)
 (`make friday-dry-run`, then `openthaiid -synthetic`).
+Friday staff desk card (print one Thai page):
+[docs/friday-desk-card.md](docs/friday-desk-card.md).
 Friday with ACR39U: [docs/friday-checklist.md](docs/friday-checklist.md).
 Technicians: [docs/technician.md](docs/technician.md).
 Clinic IT packaging: [docs/installation.md](docs/installation.md).
@@ -242,11 +244,12 @@ index for staff, training, Friday, ERP, and technicians).
 | Document | Contents |
 |---|---|
 | [docs/getting-started.md](docs/getting-started.md) | Friday-morning hub: which guide to open |
+| [docs/friday-desk-card.md](docs/friday-desk-card.md) | Staff-only printable Thai desk card (plug → Ready → Test connection → Fill) |
 | [docs/clinic.md](docs/clinic.md) | Clinic IT + ERP: install on the PC, no cloud stack |
 | [docs/erp-integration.md](docs/erp-integration.md) | Drop-in JSON config + schema for an existing hospital/clinic ERP |
 | [docs/user.md](docs/user.md) | Clinic staff: start helper (tray), plug reader, Fill; multi-reader and recovery tables |
 | [docs/training.md](docs/training.md) | Practice Fill with `-synthetic` before ACR39U arrives (`make friday-dry-run`) |
-| [docs/friday-checklist.md](docs/friday-checklist.md) | One-page Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
+| [docs/friday-checklist.md](docs/friday-checklist.md) | Operator Friday: Ready → qualify → Fill → E4–E6 recovery → what to send |
 | [docs/technician.md](docs/technician.md) | Debug checklist when Fill fails (audit JSON, multi-reader, E4–E6, Firefox/Safari HTTPS, service, qualify) |
 | [docs/loopback-tls.md](docs/loopback-tls.md) | Optional local HTTPS/WSS for Firefox/Safari https ERP |
 | [docs/architecture.md](docs/architecture.md) | Process model and concurrency |

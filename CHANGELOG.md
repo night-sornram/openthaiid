@@ -11,6 +11,18 @@ Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
 enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 `v0.1.0-rc.5` is tagged and published as a GitHub prerelease.
 
+### Added
+
+- Staff-only Friday morning **printable desk card** (Thai-first, one page):
+  [docs/friday-desk-card.md](docs/friday-desk-card.md) with a print-ready
+  sibling [friday-desk-card.html](docs/friday-desk-card.html) (large type,
+  A4). Plug reader → open Ready → **ทดสอบการเชื่อมต่อ** → open ERP → Fill
+  → if stuck call a technician. Tiny tips for card-removed, sleep/wake,
+  and https ERP TLS (ask tech — do not list browser options). Linked from
+  getting-started, friday-checklist, training, user, START-HERE. Qualify /
+  diagnostics stay on [friday-checklist.md](docs/friday-checklist.md).
+  Helper version stays `0.1.0-rc.5`. No Ready print-stylesheet change.
+
 ### Changed
 
 - Go module hygiene (`go mod tidy`) after bumping **direct** dependencies

@@ -13,6 +13,7 @@
 | ใคร | เปิดเอกสารนี้ |
 |---|---|
 | เจ้าหน้าที่คลินิก (ทุกวัน — เปิดตัวช่วย เสียบเครื่องอ่าน กดกรอกข้อมูล) | [user.md](user.md) |
+| เช้าวันศุกร์ — บัตรโต๊ะเจ้าหน้าที่ (พิมพ์หนึ่งหน้า) | [friday-desk-card.md](friday-desk-card.md) |
 | ฝึกก่อนได้เครื่องจริง (`make friday-dry-run` / `openthaiid -synthetic`) | [training.md](training.md) |
 | เช้าวันศุกร์มี ACR39U (พร้อม → qualify → กรอกข้อมูล → ส่งวินิจฉัย) | [friday-checklist.md](friday-checklist.md) |
 | แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) |
@@ -40,15 +41,17 @@ Firefox / Safari ใช้หน้า พร้อม ได้; กรอก�
    ไม่ต้องมี ACR39U และ**ไม่ใช่**ผ่านฮาร์ดแวร์ ถ้าผ่าน ให้เปิด [training.md](training.md)
 2. เจ้าหน้าที่ฝึกกดกรอกข้อมูลตาม [user.md](user.md)
 3. แผนก IT ผูกหน้า ERP ตาม [erp-integration.md](erp-integration.md)
-4. เช้าวันศุกร์ที่มีเครื่องจริง ใช้หนึ่งหน้า [friday-checklist.md](friday-checklist.md)
+4. เช้าวันศุกร์ที่มีเครื่องจริง พิมพ์ [friday-desk-card.md](friday-desk-card.md) ที่โต๊ะ
+   แล้วใช้ชุด qualify [friday-checklist.md](friday-checklist.md)
 
 ## ถ้ามี ACR39U เช้านี้
 
-1. เสียบเครื่องอ่าน เปิด OpenThaiID (**ไม่ใช้** `-synthetic`)
-2. หน้า พร้อม ขึ้น **พร้อม** หลังเสียบบัตร — ถ้ามีหลายเครื่อง กด **ใช้เครื่องนี้**
-3. กด **ทดสอบการเชื่อมต่อ** (ไม่อ่านข้อมูลบนบัตร)
-4. ตาม [friday-checklist.md](friday-checklist.md) — qualify แล้วกรอกข้อมูล
-5. ถ้ากรอกไม่ขึ้น เปิด [technician.md](technician.md) ส่ง Copy diagnostics / audit JSON เท่านั้น
+1. พิมพ์ [friday-desk-card.md](friday-desk-card.md) หนึ่งหน้า วางที่โต๊ะเจ้าหน้าที่
+2. เสียบเครื่องอ่าน เปิด OpenThaiID (**ไม่ใช้** `-synthetic`)
+3. หน้า พร้อม ขึ้น **พร้อม** หลังเสียบบัตร — ถ้ามีหลายเครื่อง กด **ใช้เครื่องนี้**
+4. กด **ทดสอบการเชื่อมต่อ** (ไม่อ่านข้อมูลบนบัตร)
+5. ตาม [friday-checklist.md](friday-checklist.md) — qualify แล้วกรอกข้อมูล
+6. ถ้ากรอกไม่ขึ้น เปิด [technician.md](technician.md) ส่ง Copy diagnostics / audit JSON เท่านั้น
 
 ติดตั้งแพ็กเกจคลินิก: [installation.md](installation.md) (`START-HERE.txt`)
 ชุดทดสอบฮาร์ดแวร์เต็ม: [hardware-qualification.md](hardware-qualification.md)
@@ -71,6 +74,7 @@ No GitHub Actions in this round (minutes exhausted). No Laser-id / NHSO.
 | Who | Open |
 |---|---|
 | Clinic staff (every day) | [user.md](user.md) |
+| Friday staff desk card (print one Thai page) | [friday-desk-card.md](friday-desk-card.md) |
 | Practice before the reader arrives | [training.md](training.md) (`make friday-dry-run`) |
 | Friday with an ACR39U | [friday-checklist.md](friday-checklist.md) |
 | Clinic IT / ERP | [erp-integration.md](erp-integration.md) |
@@ -85,7 +89,8 @@ Use Chrome/Edge, an http ERP, or a trusted local cert. Do not disable
 browser security.
 
 Without hardware: `make friday-dry-run` then [training.md](training.md)
-(ซ้อมก่อนได้เครื่อง). With ACR39U: follow
+(ซ้อมก่อนได้เครื่อง). With ACR39U: print
+[friday-desk-card.md](friday-desk-card.md) for the staff desk, then follow
 [friday-checklist.md](friday-checklist.md). Package install:
 [installation.md](installation.md). A clinic website cannot stop the
 helper — loopback HTTP inventory: [security.md](security.md). Technicians can
