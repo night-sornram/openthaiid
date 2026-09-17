@@ -5,11 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-rc.6] — software release candidate (unreleased tag)
 
-Physical ACR39U qualification (E1–E7) still waits on the reader. **Do not
-enable GitHub Actions.** Packages remain **unsigned** (not notarized).
-`v0.1.0-rc.5` is tagged and published as a GitHub prerelease.
+Software RC against `dev` while ACR39U hardware is in transit. **Do not
+enable GitHub Actions** (minutes exhausted). Tag `v0.1.0-rc.6` only after
+human review. Physical E1–E7 and Apple/Microsoft code signing are **not**
+in this candidate.
+
+Summarizes merges since `[0.1.0-rc.5]`: Go module hygiene (#32), Friday
+staff desk card (#33). Earlier version check / Firefox/Safari honesty /
+loopback helper TLS stay in `[0.1.0-rc.5]` (not repeated here).
 
 ### Added
 
@@ -19,15 +24,17 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
   A4). Plug reader → open Ready → **ทดสอบการเชื่อมต่อ** → open ERP → Fill
   → if stuck call a technician. Tiny tips for card-removed, sleep/wake,
   and https ERP TLS (ask tech — do not list browser options). Linked from
-  getting-started, friday-checklist, training, user, START-HERE. Qualify /
-  diagnostics stay on [friday-checklist.md](docs/friday-checklist.md).
-  Helper version stays `0.1.0-rc.5`. No Ready print-stylesheet change.
+  getting-started, friday-checklist, training, user, START-HERE,
+  hardware-qualification, clinic, installation, and friday-dry-run.
+  Qualify / diagnostics stay on
+  [friday-checklist.md](docs/friday-checklist.md). No Ready
+  print-stylesheet change.
 
 ### Changed
 
+- Helper version string defaults to `0.1.0-rc.6`.
 - Go module hygiene (`go mod tidy`) after bumping **direct** dependencies
-  already on a compatible major. Helper version stays `0.1.0-rc.5`. No
-  public SDK API change.
+  already on a compatible major. No public SDK API change.
   - `github.com/coder/websocket` `v1.8.12` → `v1.8.15` (1.8.x: handshake
     after close, Origin scheme matching, single-frame compression, fewer
     per-frame allocs). LICENSE file is now Coder ISC (was MIT / Anmol
@@ -49,7 +56,15 @@ enable GitHub Actions.** Packages remain **unsigned** (not notarized).
 ### Security
 
 - `govulncheck ./...` reports no known vulnerabilities on this module
-  graph (Go 1.27.1 toolchain).
+  graph (Go 1.27.1 toolchain). Desk card and friday-dry-run never print
+  citizen ID, names, address, or photo bytes.
+
+### Not claimed
+
+- Physical ACR39U acceptance (E1–E7 / M1)
+- Signed / notarized store installers
+- A published GitHub Release until a human tags this RC
+- Laser-id / NHSO / other DFs (not in the cited APDU.md revision)
 
 ## [0.1.0-rc.5] — software release candidate (unreleased tag)
 
