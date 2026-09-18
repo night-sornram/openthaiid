@@ -10,7 +10,7 @@
   </head>
   <body>
     <header class="top">
-      <div>
+      <div class="brand">
         <h1 data-i18n="title">ตัวช่วย OpenThaiID</h1>
         <p class="sub" data-i18n="subtitle">บนเครื่องนี้ · เสียบเครื่องอ่าน แล้วกด กรอกข้อมูล ในหน้าคลินิก</p>
       </div>
@@ -19,7 +19,7 @@
           <button type="button" id="lang-th" class="btn lang-btn" aria-pressed="true">ไทย</button>
           <button type="button" id="lang-en" class="btn lang-btn" aria-pressed="false">English</button>
         </div>
-        <button type="button" id="tech-toggle" class="btn" aria-pressed="false">
+        <button type="button" id="tech-toggle" class="btn btn-tech-toggle" aria-pressed="false">
           ช่างเทคนิค / Technician
         </button>
       </div>
@@ -105,13 +105,16 @@
         <ul id="user-pending" class="list"></ul>
       </section>
 
-      <section id="technician" class="tech" hidden>
-        <h2 class="tech-title">Technician / developer</h2>
-        <p class="help">
-          Manual controls and diagnostics for fixing problems. Personal card
-          values (citizen ID, names, dates, address) are never shown.
-          เครื่องมือช่างเทคนิค — ไม่แสดงเลขบัตร ชื่อ หรือที่อยู่
-        </p>
+      <section id="technician" class="tech" hidden aria-labelledby="technician-heading">
+        <header class="tech-intro">
+          <p class="tech-kicker">Settings · ตั้งค่า</p>
+          <h2 id="technician-heading" class="tech-title">Technician / developer</h2>
+          <p class="help">
+            Manual controls and diagnostics for fixing problems. Personal card
+            values (citizen ID, names, dates, address) are never shown.
+            เครื่องมือช่างเทคนิค — ไม่แสดงเลขบัตร ชื่อ หรือที่อยู่
+          </p>
+        </header>
 
         <section class="card" aria-labelledby="conn-heading">
           <div class="card-head">
@@ -143,13 +146,6 @@
               <dd id="version">…</dd>
             </div>
             <div>
-              <dt>GitHub Releases</dt>
-              <dd>
-                <button type="button" id="tech-check-update" class="btn">Check GitHub Releases</button>
-                <p id="tech-update-result" class="help" hidden></p>
-              </dd>
-            </div>
-            <div>
               <dt>OS</dt>
               <dd id="os">…</dd>
             </div>
@@ -161,12 +157,19 @@
               <dt>ERP connections</dt>
               <dd id="connections">…</dd>
             </div>
+            <div class="fact-wide">
+              <dt>GitHub Releases</dt>
+              <dd>
+                <button type="button" id="tech-check-update" class="btn">Check GitHub Releases</button>
+                <p id="tech-update-result" class="help" hidden></p>
+              </dd>
+            </div>
           </dl>
         </section>
 
         <section class="card" aria-labelledby="readers-heading">
           <h3 id="readers-heading">Readers</h3>
-          <p id="readers-empty" class="muted">Checking readers…</p>
+          <p id="readers-empty" class="empty-note">Checking readers…</p>
           <ul id="readers" class="readers"></ul>
         </section>
 
@@ -185,7 +188,9 @@
         <section class="card" aria-labelledby="trust-heading">
           <div class="card-head">
             <h3 id="trust-heading">Approved websites</h3>
-            <button type="button" id="revoke-all" class="btn btn-danger" hidden>Revoke all</button>
+            <div class="actions">
+              <button type="button" id="revoke-all" class="btn btn-danger btn-staff" hidden>Revoke all</button>
+            </div>
           </div>
           <p class="help">
             Trust lives in memory on this PC until OpenThaiID stops or the grant
@@ -197,8 +202,10 @@
         <section class="card" aria-labelledby="diag-heading">
           <div class="card-head">
             <h3 id="diag-heading">Diagnostics</h3>
-            <button type="button" id="copy-diag" class="btn">Copy diagnostics</button>
-            <button type="button" id="desk-snapshot" class="btn">Desk snapshot</button>
+            <div class="actions">
+              <button type="button" id="copy-diag" class="btn">Copy diagnostics</button>
+              <button type="button" id="desk-snapshot" class="btn">Desk snapshot</button>
+            </div>
           </div>
           <p class="help">
             Versions, OS, card-service state, and last errors — never personal
@@ -207,7 +214,7 @@
           </p>
           <label class="check">
             <input type="checkbox" id="verbose" />
-            Detailed logs on this PC (until restart; default is quiet)
+            <span>Detailed logs on this PC (until restart; default is quiet)</span>
           </label>
           <pre id="last-errors" class="diag"></pre>
         </section>
@@ -226,7 +233,7 @@
             Citizen ID, names, address, portrait, and raw APDUs are never stored.
             Paste this JSON into a ticket with Copy diagnostics.
           </p>
-          <p id="audit-empty" class="muted">No operator events yet.</p>
+          <p id="audit-empty" class="empty-note">No operator events yet.</p>
           <ul id="audit-events" class="audit-list"></ul>
         </section>
       </section>

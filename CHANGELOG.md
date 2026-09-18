@@ -13,6 +13,10 @@ Post-tag notes on `dev` after **v0.1.0-rc.9**. Helper / SDK versions stay
 
 ### Changed
 
+- Ready-page technician / settings panel: clearer layout, spacing,
+  typography, and visual hierarchy. Staff Ready path is unchanged
+  (lights still include text status, not color alone; large tap targets
+  stay). No CSRF, Origin, or protocol change.
 - SDK reconnect tests (#42): fake timers + fixed jitter so `make sdk-test`
   does not race first-attempt backoff. No production reconnect change.
 
