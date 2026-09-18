@@ -358,7 +358,7 @@ code {
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(15.25rem, 1fr));
   gap: 0.6rem 0.7rem;
   margin: 0.85rem 0 0;
 }
@@ -403,7 +403,8 @@ dt {
 dd {
   margin: 0.2rem 0 0;
   font-weight: 650;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   line-height: 1.35;
 }
 
