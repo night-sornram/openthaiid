@@ -197,7 +197,8 @@ func (b *osBackend) Open(ctx context.Context, readerID string) (CardConnection, 
 	if err != nil {
 		return nil, err
 	}
-	sc, err := pcscCtx.Connect(name, scard.ShareShared, scard.ProtocolAny)
+	// Thai ID cards are T=0-only (no TD1 in ATR); see backend_unix.go Open.
+	sc, err := pcscCtx.Connect(name, scard.ShareShared, scard.ProtocolT0)
 	if err != nil {
 		return nil, mapNativeConnectError(err)
 	}

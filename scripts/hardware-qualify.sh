@@ -72,7 +72,7 @@ fi
 echo "See docs/hardware-checklist.md (one page) and docs/hardware-qualification.md for E4–E7 and M1."
 echo "report will be: $REPORT"
 set +e
-"$BIN" "${args[@]}" "${EXTRA[@]}"
+"$BIN" "${args[@]}" ${EXTRA[@]+"${EXTRA[@]}"}
 status=$?
 set -e
 

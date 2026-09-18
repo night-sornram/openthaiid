@@ -226,7 +226,9 @@ func (b *osBackend) Open(ctx context.Context, readerID string) (CardConnection, 
 	if err != nil {
 		return nil, err
 	}
-	sc, err := pcscCtx.Connect(name, scard.ShareShared, scard.ProtocolAny)
+	// Thai ID cards are T=0-only (no TD1 in ATR). macOS PC/SC negotiates T=1
+	// for them under ProtocolAny, and every Transmit then times out.
+	sc, err := pcscCtx.Connect(name, scard.ShareShared, scard.ProtocolT0)
 	if err != nil {
 		return nil, mapNativeConnectError(err)
 	}

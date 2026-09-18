@@ -75,6 +75,9 @@ func openthaiidTrayAutostartOn() C.int {
 	return 0
 }
 
+// HideConsole is a no-op off Windows.
+func HideConsole() {}
+
 func showAlert(title, body string) {
 	t := C.CString(title)
 	b := C.CString(body)

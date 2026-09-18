@@ -125,11 +125,14 @@ func (ThaiCitizenMVP) ReadCommands(fields []Field) ([]APDU, error) {
 	}
 
 	var cmds []APDU
+	// Retrieve: some card revisions (e.g. "TH NID 15") answer SELECT with
+	// 61xx and hold the FCI until GET RESPONSE; others return 9000 directly.
 	cmds = append(cmds, APDU{
 		Name:        "SELECT",
 		Command:     append([]byte(nil), thaiSelectAPDU...),
 		ExpectSW:    []uint16{StatusOK},
 		MaxResponse: 256,
+		Retrieve:    true,
 	})
 
 	if want[FieldCitizenID] {

@@ -65,7 +65,7 @@ fi
 
 echo "report will be: $REPORT"
 set +e
-"$BIN" "${args[@]}" "${EXTRA[@]}"
+"$BIN" "${args[@]}" ${EXTRA[@]+"${EXTRA[@]}"}
 status=$?
 set -e
 

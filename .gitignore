@@ -38,3 +38,5 @@ acceptance/reports-*/
 acceptance/logs/
 acceptance/logs-*/
 acceptance/localhost-*.pem
+
+.playwright-mcp
