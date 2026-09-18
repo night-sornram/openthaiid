@@ -70,6 +70,15 @@
         <p id="live-note" class="live-note" hidden></p>
       </section>
 
+      <section class="card pending-card" id="user-pending-card" aria-labelledby="user-pending-heading" hidden>
+        <h2 id="user-pending-heading" data-i18n="allowHeading">เว็บคลินิกขอใช้บัตรประชาชน</h2>
+        <p class="help" data-i18n="allowHelp">
+          อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกมีรหัส ให้รหัสตรงกัน
+        </p>
+        <ul id="user-pending" class="list"></ul>
+      </section>
+      <p id="decision-note" class="decision-note" hidden></p>
+
       <section class="card" id="staff-readers-card" hidden>
         <h2 id="staff-readers-heading" data-i18n="readersHeading">เลือกเครื่องอ่าน</h2>
         <p class="help" data-i18n="readersHelp">
@@ -94,15 +103,6 @@
           <li data-i18n="training4">กลับมาที่นี่ แล้วกด อนุญาต สำหรับหน้านั้น (ให้รหัสตรงกันถ้ามี)</li>
           <li data-i18n="training5">ช่องในหน้าคลินิกมีข้อมูลบัตรจำลอง — นั่นไม่ใช่ผู้ป่วยจริง</li>
         </ol>
-      </section>
-
-      <section class="card" id="user-pending-card" aria-labelledby="user-pending-heading" hidden>
-        <h2 id="user-pending-heading" data-i18n="allowHeading">เว็บไซต์ต้องการอ่านบัตร</h2>
-        <p class="help" data-i18n="allowHelp">
-          อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกแสดงรหัส ให้รหัสตรงกัน
-          เว็บไซต์อนุมัติตัวเองไม่ได้
-        </p>
-        <ul id="user-pending" class="list"></ul>
       </section>
 
       <section id="technician" class="tech" hidden aria-labelledby="technician-heading">
@@ -179,10 +179,36 @@
             <span id="pending-count" class="pill">0</span>
           </div>
           <p class="help">
-            Origin + field Allow is still required. Same decision as typing
+            Origin + field Allow is still required for websites that are not
+            on the IT pre-approve list. Same decision as typing
             <code>allow</code> in the terminal.
           </p>
           <ul id="pending" class="list"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="preapprove-heading">
+          <h3 id="preapprove-heading">Trusted clinic websites</h3>
+          <p class="help">
+            IT pre-approve: set the clinic ERP origin once so staff do not
+            need Allow every day. Explicit list only — not “allow all”.
+            Survives helper restart. CSRF and Origin checks on this page stay.
+          </p>
+          <form id="preapprove-form" class="preapprove-form">
+            <label for="preapprove-origin">Clinic website origin</label>
+            <div class="preapprove-row">
+              <input
+                id="preapprove-origin"
+                name="origin"
+                type="url"
+                required
+                placeholder="https://erp.clinic.example"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button type="submit" class="btn">Add trusted site</button>
+            </div>
+          </form>
+          <ul id="preapproved" class="list"></ul>
         </section>
 
         <section class="card" aria-labelledby="trust-heading">
@@ -193,8 +219,9 @@
             </div>
           </div>
           <p class="help">
-            Trust lives in memory on this PC until OpenThaiID stops or the grant
-            expires.
+            Staff Allow grants live in memory until OpenThaiID stops or the
+            grant expires. <strong>Revoke all</strong> clears those only.
+            IT pre-approved clinic sites stay until you remove them above.
           </p>
           <ul id="trusted" class="list"></ul>
         </section>

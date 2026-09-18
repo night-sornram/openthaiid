@@ -38,6 +38,8 @@ const (
 	KindApprovalAllow      = "approval.allow"
 	KindApprovalDeny       = "approval.deny"
 	KindApprovalRevoke     = "approval.revoke"
+	KindTrustPreapprove    = "trust.preapprove"
+	KindTrustUnpreapprove  = "trust.unpreapprove"
 	KindFillFailure        = "fill.failure"
 )
 
@@ -270,6 +272,7 @@ func allowedKind(k string) bool {
 		KindReaderConnected, KindReaderDisconnected, KindReaderSelected,
 		KindCardPresent, KindCardAbsent, KindCardUnsupported,
 		KindApprovalAllow, KindApprovalDeny, KindApprovalRevoke,
+		KindTrustPreapprove, KindTrustUnpreapprove,
 		KindFillFailure:
 		return true
 	default:

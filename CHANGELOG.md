@@ -11,17 +11,38 @@ Post-tag notes on `dev` after **v0.1.0-rc.9**. Helper / SDK versions stay
 `0.1.0-rc.9`. Do not bump to rc.10 for test-only changes. Do not retag
 `v0.1.0-rc.9`.
 
+### Added
+
+- Clinic IT can pre-approve explicit ERP origins at install/config so staff
+  rarely see Allow: `preapprovedOrigins` in `config.json`,
+  `OPENTHAIID_PREAPPROVED_ORIGINS`, `openthaiid trust add|remove|list`,
+  `install.ps1 -ClinicOrigin`, `install-linux.sh --clinic-origin`, and
+  technician **Trusted clinic websites**. Wildcards and “allow all” are
+  rejected. CSRF/Origin manager checks and the `127.0.0.1` bind stay.
+  Extra card fields still prompt staff Allow. Staff Ready stays jargon-free.
+
 ### Changed
 
 - Ready-page technician / settings panel: clearer layout, spacing,
   typography, and visual hierarchy. Staff Ready path is unchanged
   (lights still include text status, not color alone; large tap targets
   stay). No CSRF, Origin, or protocol change.
+- Ready-page staff Allow / site-permission prompt: Thai-first copy
+  (**เว็บคลินิกขอใช้บัตรประชาชน**, **อนุญาต** / **ไม่อนุญาต**), hostname
+  instead of a raw Origin dump, one primary Allow button, and a short
+  after-allow / after-deny note (Ready status polls do not wipe that note).
+  Technician pending/trust still shows Origin and Revoke. CSRF and Origin
+  checks stay. Staff Allow remains for new sites; IT may pre-approve
+  explicit clinic origins.
 - SDK reconnect tests (#42): fake timers + fixed jitter so `make sdk-test`
   does not race first-attempt backoff. No production reconnect change.
 
 ### Docs
 
+- Clinic IT pre-approve path: [installation.md](docs/installation.md),
+  [technician.md](docs/technician.md), START-HERE (Windows/Linux/macOS),
+  [getting-started.md](docs/getting-started.md). IT sets the clinic URL
+  once; staff should not need Allow daily.
 - [NOT_DONE.md](NOT_DONE.md): pre-hardware software is complete as of
   post-#42 / rc.9+. Remaining software-ish leftovers are optional Darwin
   packaging on a Mac host and headed clinic-PC browser checks.

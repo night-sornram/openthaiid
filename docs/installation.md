@@ -58,8 +58,42 @@ openthaiid service install|uninstall|start|stop|status
 openthaiid audit           # redacted operator trail JSON
 ```
 
-Loopback and Allow/Deny are unchanged. See [user.md](user.md) and
-[clinic.md](clinic.md).
+Loopback and Allow/Deny are unchanged unless clinic IT pre-approves the ERP
+origin once (below). See [user.md](user.md) and [clinic.md](clinic.md).
+
+### Pre-approve the clinic website (IT, once)
+
+Staff should not need to click Allow every day. Clinic IT sets the ERP origin
+**once** on each PC. This is an explicit list — not “allow all”. CSRF / Origin
+checks on the Ready technician APIs stay. The helper still binds `127.0.0.1`
+only.
+
+Pick one:
+
+```bash
+# After the helper is installed (writes config.json; live if the helper is up)
+openthaiid trust add https://erp.clinic.example
+openthaiid trust list
+openthaiid trust remove https://erp.clinic.example
+```
+
+```json
+{
+  "preapprovedOrigins": ["https://erp.clinic.example"]
+}
+```
+
+in `%APPDATA%\openthaiid\config.json` (Windows),
+`~/Library/Application Support/openthaiid/config.json` (macOS), or
+`~/.config/openthaiid/config.json` (Linux). Env:
+`OPENTHAIID_PREAPPROVED_ORIGINS=https://erp.clinic.example`.
+
+Windows install: `install.ps1 -ClinicOrigin https://erp.clinic.example`.
+Linux: `./install-linux.sh --clinic-origin https://erp.clinic.example`.
+
+Technician tools (`http://127.0.0.1:17891/#technician`) → **Trusted clinic
+websites**. Staff Ready does not show raw Origin jargon. A new site, or extra
+card fields beyond the default grant, still shows Allow.
 
 ### Windows (clinic)
 
@@ -67,7 +101,9 @@ Loopback and Allow/Deny are unchanged. See [user.md](user.md) and
 - Portable: unzip, double-click `Start-OpenThaiID.bat`.
 - Optional: `powershell -ExecutionPolicy Bypass -File install.ps1`
   copies to `%LOCALAPPDATA%\OpenThaiID` and adds a Start Menu shortcut.
-  `-DesktopShortcut` and `-Autostart` are extra. `uninstall.ps1` reverses that.
+  `-DesktopShortcut` and `-Autostart` are extra. `-ClinicOrigin https://erp.clinic.example`
+  pre-approves that ERP origin once (staff should not need Allow for it).
+  `uninstall.ps1` reverses that.
 - Always-on without a tray (Administrator):
   `powershell -ExecutionPolicy Bypass -File Install-OpenThaiID-Service.ps1`
   (`openthaiid service install`). Remove with
@@ -86,7 +122,8 @@ sudo systemctl enable --now pcscd
 ```
 
 `install-linux.sh` copies the binary to `~/.local/bin` and writes an
-application menu entry. Optional `openthaiid.service` is a systemd --user
+application menu entry. Optional `--clinic-origin https://erp.clinic.example`
+pre-approves that ERP origin once. Optional `openthaiid.service` is a systemd --user
 unit; **do not enable it by default**. Prefer XDG autostart via
 `openthaiid autostart enable` when a signed-in session is enough. For
 always-on without a tray: `openthaiid service install` then

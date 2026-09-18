@@ -14,6 +14,7 @@ type fileShape struct {
 	BindAddress          string   `json:"bindAddress"`
 	EligibleHTTPLoopback *bool    `json:"eligibleHttpLoopback"`
 	OriginAllowList      []string `json:"originAllowList"`
+	PreapprovedOrigins   []string `json:"preapprovedOrigins"`
 	TrustDuration        string   `json:"trustDuration"`
 	SessionDuration      string   `json:"sessionDuration"`
 	ApprovalTimeout      string   `json:"approvalTimeout"`
@@ -55,6 +56,13 @@ func LoadFile(path string) (Config, error) {
 	}
 	if f.OriginAllowList != nil {
 		cfg.OriginAllowList = append([]string(nil), f.OriginAllowList...)
+	}
+	if f.PreapprovedOrigins != nil {
+		canon, err := CanonicalOriginList(f.PreapprovedOrigins)
+		if err != nil {
+			return cfg, err
+		}
+		cfg.PreapprovedOrigins = canon
 	}
 	var err2 error
 	if cfg.TrustDuration, err2 = parseDur(f.TrustDuration, cfg.TrustDuration); err2 != nil {

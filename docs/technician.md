@@ -72,6 +72,7 @@ make pre-reader-dry-run       # ซ้อมก่อนได้เครื่
 ./openthaiid qualify -report ./openthaiid-qualify.json   # Qualify kit
 ./openthaiid bind-stress -synthetic -cycles 3            # binding harness smoke (not P2–P10 close)
 ./openthaiid audit        # redacted operator trail JSON
+./openthaiid trust add https://erp.clinic.example  # IT pre-approve (staff skip Allow)
 ./openthaiid update check # GitHub Releases lookup; no download
 ```
 
@@ -93,14 +94,22 @@ Lights: helper running, reader not connected — or **บริการอ่�
 
 ### 3. Approval pending
 
-ERP is waiting; helper shows **A website wants to read the card**.
+ERP is waiting; helper staff view shows **เว็บคลินิกขอใช้บัตรประชาชน**
+(hostname, not the raw Origin). Technician pending list still shows Origin.
 
-- **Allow** that origin (match the comparison code).
-- **Don’t allow** if the origin is not the clinic ERP.
+- Staff **อนุญาต / Allow** that clinic page (match the comparison code).
+- **ไม่อนุญาต / Don't allow** if it is not the clinic page they use.
 - Pending list with request id, field tokens, and expiry is in technician
   tools. Same decision as `allow <id>` / `deny <id>` in the terminal.
 
 Do not weaken this. The website still cannot approve itself.
+
+Clinic IT should pre-approve the ERP origin **once** so staff rarely see
+Allow: `openthaiid trust add https://erp.clinic.example`, `install.ps1
+-ClinicOrigin`, `config.json` `preapprovedOrigins`, env
+`OPENTHAIID_PREAPPROVED_ORIGINS`, or Technician **Trusted clinic websites**.
+Explicit origins only — not “allow all”. Extra fields still prompt Allow.
+[installation.md](installation.md).
 
 ### 4. Wrong origin
 

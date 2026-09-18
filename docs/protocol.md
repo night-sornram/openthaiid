@@ -13,7 +13,8 @@
   Status includes reader names and card present/absent only — never personal
   field values. Helper lights: `GET /v1/helper/summary`. Desk snapshot:
   `GET /v1/helper/doctor` (same loopback rule; no GitHub). Quit:
-  `POST /v1/helper/shutdown` (foreign Origin rejected).
+  `POST /v1/helper/shutdown` (foreign Origin rejected). IT pre-approve:
+  `GET/POST /v1/helper/trust` (explicit origins; foreign Origin rejected).
   Inventory: [security.md](security.md). Optional HTTPS/WSS:
   [loopback-tls.md](loopback-tls.md). Firefox/Safari matrix:
   [compatibility.md](compatibility.md). Hardware-arrival hub:

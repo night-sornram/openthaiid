@@ -62,6 +62,8 @@ func main() {
 			os.Exit(runService(os.Args[2:]))
 		case "audit":
 			os.Exit(runAudit(os.Args[2:]))
+		case "trust":
+			os.Exit(runTrust(os.Args[2:]))
 		}
 	}
 
@@ -296,6 +298,7 @@ func runHelperCtx(parent context.Context, args []string) {
 			fmt.Printf("HTTPS/WSS:    %s  (technician-managed local cert; Firefox/Safari https ERP)\n", cfg.WSSURL())
 		}
 		fmt.Println("The first time a clinic page asks to read the card, Allow it on the helper page.")
+		fmt.Println("If clinic IT pre-approved the ERP origin, staff should not need Allow for that site.")
 		fmt.Println("Technician commands: status | trust | allow <id> | deny <id> | revoke <origin> | revoke-all | help | quit")
 		fmt.Println("This is an independent open-source project and is not affiliated with or endorsed by the Department of Provincial Administration.")
 	} else if serve {
@@ -407,7 +410,11 @@ func terminalLoop(ctx context.Context, cancel context.CancelFunc, authMgr *auth.
 			}
 		case "trust":
 			for _, g := range authMgr.TrustedOrigins(now()) {
-				fmt.Printf("%s  fields=%v  until=%s\n", g.Origin, g.Fields, g.ExpiresAt.Format(time.RFC3339))
+				tag := ""
+				if g.Persistent {
+					tag = "  IT-preapprove"
+				}
+				fmt.Printf("%s  fields=%v  until=%s%s\n", g.Origin, g.Fields, g.ExpiresAt.Format(time.RFC3339), tag)
 			}
 			if len(authMgr.TrustedOrigins(now())) == 0 {
 				fmt.Println("(no trusted origins)")
@@ -442,7 +449,7 @@ func terminalLoop(ctx context.Context, cancel context.CancelFunc, authMgr *auth.
 			fmt.Printf("revoked %d session(s)\n", n)
 		case "revoke-all":
 			authMgr.RevokeAll()
-			fmt.Println("revoked all grants and sessions")
+			fmt.Println("revoked staff Allow grants; IT pre-approved clinic sites stay")
 		case "quit", "exit":
 			cancel()
 			return
@@ -488,6 +495,8 @@ Usage:
   openthaiid autostart       enable | disable | status   (opt-in start at login)
   openthaiid service         install | uninstall | start | stop | status   (always-on, no tray)
   openthaiid audit           Print the redacted operator audit trail JSON (no personal fields)
+  openthaiid trust           list | add <origin> | remove <origin>
+                             IT pre-approve clinic ERP origins so staff rarely see Allow
   openthaiid update          check | download | apply   (GitHub Releases lookup; unsigned; check does not install)
   openthaiid doctor          Desk snapshot: helper, ports, PC/SC, probe, TLS yes/no
                              (no personal fields, tokens, or key paths). Exit 1 only
@@ -520,11 +529,13 @@ WebSocket:     ws://127.0.0.1:17891/v1/ws
 Optional WSS:  wss://127.0.0.1:17892/v1/ws  (technician-managed local cert)
 
 Clinic staff: install once, start the helper (tray or Start menu), plug reader, Fill.
+Clinic IT:     openthaiid trust add https://erp.clinic.example  (once per PC)
 Technicians:  see docs/technician.md, docs/hardware-checklist.md,
               docs/hardware-qualification.md, and docs/bind-stress.md.
 
 There is no backend or frontend to deploy. The ERP calls autofillThaiID.
-The helper listens on loopback only. Approvals are unchanged.
+The helper listens on loopback only. Approvals are unchanged unless IT
+pre-approves an explicit clinic origin.
 
 This is an independent open-source project and is not affiliated with or
 endorsed by the Department of Provincial Administration.`)

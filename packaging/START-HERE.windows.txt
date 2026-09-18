@@ -18,6 +18,9 @@ Happy path
    Click Fill (กรอกข้อมูล).
 5. The first time, Allow the clinic page on the Ready page
    (http://127.0.0.1:17891/). Match the code if the ERP shows one.
+   Clinic IT: set the ERP origin once so staff skip this —
+   `install.ps1 -ClinicOrigin https://erp.clinic.example` or
+   `openthaiid.exe trust add https://erp.clinic.example`.
 
 Hardware qualification (when the ACR39U arrives)
 -------------------------------------------------------
@@ -69,6 +72,8 @@ There is no tray icon in this mode. Ready page: http://127.0.0.1:17891/
 install.ps1 copies files to %LOCALAPPDATA%\OpenThaiID and can create Start
 Menu / Desktop shortcuts. It does not enable autostart unless you pass
 -Autostart. It does not install a Windows service.
+-ClinicOrigin https://erp.clinic.example pre-approves that clinic website
+once. Staff should not need Allow daily for that site.
 
 Technicians: run openthaiid.exe in a terminal, or Technician tools.
 `openthaiid.exe doctor` prints a redacted desk snapshot (no personal fields).

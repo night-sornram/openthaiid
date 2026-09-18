@@ -40,6 +40,16 @@ func TestValidateRejectsUnsafe(t *testing.T) {
 		t.Fatal("wildcard origin must fail")
 	}
 	cfg = Default()
+	cfg.PreapprovedOrigins = []string{"*"}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("wildcard preapproved origin must fail")
+	}
+	cfg = Default()
+	cfg.PreapprovedOrigins = []string{"https://*.clinic.example"}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("wildcard host in preapprovedOrigins must fail")
+	}
+	cfg = Default()
 	cfg.TLSCertFile = "loopback.pem"
 	if err := cfg.Validate(); err == nil {
 		t.Fatal("tls cert without key must fail")
@@ -148,5 +158,47 @@ func TestLoadTLSFileAndEnv(t *testing.T) {
 	}
 	if cfg.WSSURL() != "wss://127.0.0.1:19000/v1/ws" {
 		t.Fatalf("env wss %s", cfg.WSSURL())
+	}
+}
+
+func TestLoadPreapprovedOriginsAndEnv(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	body := `{
+  "preapprovedOrigins": ["https://ERP.Clinic.Example"]
+}`
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.PreapprovedOrigins) != 1 || cfg.PreapprovedOrigins[0] != "https://erp.clinic.example" {
+		t.Fatalf("file origins %v", cfg.PreapprovedOrigins)
+	}
+
+	t.Setenv("OPENTHAIID_PREAPPROVED_ORIGINS", "https://other.clinic.example, http://127.0.0.1:8000")
+	OverlayEnv(&cfg)
+	if len(cfg.PreapprovedOrigins) != 2 {
+		t.Fatalf("env overlay %v", cfg.PreapprovedOrigins)
+	}
+	if cfg.PreapprovedOrigins[0] != "https://other.clinic.example" || cfg.PreapprovedOrigins[1] != "http://127.0.0.1:8000" {
+		t.Fatalf("canonical env %v", cfg.PreapprovedOrigins)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = AddPreapproved(nil, "*")
+	if err == nil {
+		t.Fatal("AddPreapproved * must fail")
+	}
+	next, err := AddPreapproved(nil, "https://erp.clinic.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := RemovePreapproved(next, "https://ERP.Clinic.Example"); len(got) != 0 {
+		t.Fatalf("remove %v", got)
 	}
 }

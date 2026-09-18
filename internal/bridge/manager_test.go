@@ -77,6 +77,18 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, `id="staff-readers"`) {
 		t.Fatal("missing staff multi-reader list")
 	}
+	if !strings.Contains(page, "เว็บคลินิกขอใช้บัตรประชาชน") {
+		t.Fatal("missing Thai-first staff Allow heading")
+	}
+	if !strings.Contains(page, `id="preapprove-form"`) || !strings.Contains(page, "Trusted clinic websites") {
+		t.Fatal("missing technician IT pre-approve list")
+	}
+	if !strings.Contains(page, `id="decision-note"`) {
+		t.Fatal("missing after-allow / after-deny staff note")
+	}
+	if !strings.Contains(page, `id="user-pending-card"`) {
+		t.Fatal("missing staff pending permission card")
+	}
 	if !strings.Contains(page, `class="light-state"`) {
 		t.Fatal("lights must include text status, not color alone")
 	}
@@ -120,6 +132,27 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(js, "useThisReader") || !strings.Contains(js, "renderStaffReaders") {
 		t.Fatal("missing staff multi-reader picker")
 	}
+	if !strings.Contains(js, "staffSiteLabel") || !strings.Contains(js, "siteOnThisComputer") {
+		t.Fatal("staff Allow prompt must show a hostname / this-computer label, not only the raw origin")
+	}
+	if !strings.Contains(js, "allowConfirmed") || !strings.Contains(js, "denyNext") {
+		t.Fatal("missing after-allow / after-deny staff copy")
+	}
+	if strings.Contains(js, `Come back here and Allow that origin`) {
+		t.Fatal("staff training copy must not say origin")
+	}
+	if strings.Contains(js, `allowHeading: "เว็บไซต์ต้องการอ่านบัตร"`) {
+		t.Fatal("staff Allow heading must not use the old website-wants-to-read-the-card wording")
+	}
+	if !strings.Contains(js, "unpreapprove") || !strings.Contains(js, "/v1/manager/trust/preapprove") {
+		t.Fatal("missing technician pre-approve API wiring")
+	}
+	if !strings.Contains(js, "/v1/manager/approvals/") {
+		t.Fatal("Allow / Deny must still post to manager approval endpoints")
+	}
+	if !strings.Contains(js, "statusEpoch") {
+		t.Fatal("status loads must ignore stale in-flight polls so after-allow/deny notes stay")
+	}
 	if !strings.Contains(js, "lightOk") || !strings.Contains(js, "lightStateWord") {
 		t.Fatal("lights must expose text status words, not color alone")
 	}
@@ -150,6 +183,12 @@ func TestManagerPageAndStatus(t *testing.T) {
 	}
 	if !strings.Contains(css, ".light-state") {
 		t.Fatal("lights must style a text status, not color alone")
+	}
+	if !strings.Contains(css, ".site-name") || !strings.Contains(css, ".btn-allow-primary") {
+		t.Fatal("staff Allow prompt must style a human site name and a primary Allow button")
+	}
+	if !strings.Contains(css, ".btn-deny-quiet") || !strings.Contains(css, ".decision-note") {
+		t.Fatal("staff Deny must be a secondary control; after-allow note needs styles")
 	}
 	if strings.Contains(page, "1234567890121") || strings.Contains(page, "สมชาย") {
 		t.Fatal("manager HTML must not embed card field values")
@@ -286,6 +325,95 @@ func TestManagerAllowDenyAndRevoke(t *testing.T) {
 	kinds := auditKinds(st)
 	if !containsKind(kinds, "approval.allow") || !containsKind(kinds, "approval.deny") || !containsKind(kinds, "approval.revoke") {
 		t.Fatalf("audit kinds %v", kinds)
+	}
+}
+
+func TestManagerPreapproveAndHelperTrust(t *testing.T) {
+	tb := startTestBridge(t, false)
+	token := csrfFrom(t, getBody(t, tb, "/"))
+	origin := "https://erp.clinic.example"
+
+	out := managerPOST(t, tb, token, "/v1/manager/trust/preapprove", map[string]string{"origin": origin})
+	if out["ok"] != true || out["origin"] != origin {
+		t.Fatalf("preapprove=%v", out)
+	}
+	st := managerGET(t, tb, token, "/v1/manager/status")
+	rawList, _ := st["preapprovedOrigins"].([]any)
+	if len(rawList) != 1 || rawList[0] != origin {
+		t.Fatalf("status preapproved=%v", st["preapprovedOrigins"])
+	}
+	trusted, _ := st["trusted"].([]any)
+	if len(trusted) != 1 {
+		t.Fatalf("trusted=%v", trusted)
+	}
+	g0 := trusted[0].(map[string]any)
+	if g0["persistent"] != true {
+		t.Fatalf("grant %+v", g0)
+	}
+	if _, ok := tb.authMgr.GrantFor(auth.MustOrigin(origin), time.Now()); !ok {
+		t.Fatal("live grant missing")
+	}
+	kinds := auditKinds(st)
+	if !containsKind(kinds, "trust.preapprove") {
+		t.Fatalf("audit kinds %v", kinds)
+	}
+
+	resp := loopbackDo(t, tb, http.MethodPost, "/v1/manager/trust/preapprove", token, map[string]string{
+		"Origin": tb.httpBase(),
+	}, []byte(`{"origin":"*"}`))
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("wildcard preapprove status %d body=%s", resp.StatusCode, body)
+	}
+
+	cli, err := http.Get(tb.httpBase() + "/v1/helper/trust")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := io.ReadAll(cli.Body)
+	cli.Body.Close()
+	if cli.StatusCode != http.StatusOK {
+		t.Fatalf("helper trust GET %d %s", cli.StatusCode, raw)
+	}
+	if !bytes.Contains(raw, []byte(origin)) {
+		t.Fatalf("helper trust list %s", raw)
+	}
+
+	payload, _ := json.Marshal(map[string]string{"action": "remove", "origin": origin})
+	req, err := http.NewRequest(http.MethodPost, tb.httpBase()+"/v1/helper/trust", bytes.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp2, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ = io.ReadAll(resp2.Body)
+	resp2.Body.Close()
+	if resp2.StatusCode != http.StatusOK {
+		t.Fatalf("helper trust remove %d %s", resp2.StatusCode, raw)
+	}
+	if _, ok := tb.authMgr.GrantFor(auth.MustOrigin(origin), time.Now()); ok {
+		t.Fatal("grant should be gone after unpreapprove")
+	}
+
+	tb.authMgr.RevokeAll()
+	managerPOST(t, tb, token, "/v1/manager/trust/preapprove", map[string]string{"origin": origin})
+	p, err := tb.authMgr.RequestApproval(auth.MustOrigin("https://other.example"), []card.Field{card.FieldCitizenID}, "c-session", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tb.authMgr.Resolve(p.ID, true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	_ = managerPOST(t, tb, token, "/v1/manager/trust/revoke-all", nil)
+	if _, ok := tb.authMgr.GrantFor(auth.MustOrigin(origin), time.Now()); !ok {
+		t.Fatal("revoke-all must keep IT pre-approved origin")
+	}
+	if _, ok := tb.authMgr.GrantFor(auth.MustOrigin("https://other.example"), time.Now()); ok {
+		t.Fatal("revoke-all must drop staff Allow grant")
 	}
 }
 

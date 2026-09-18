@@ -111,7 +111,8 @@ itself. Do not store personal field values in the config file.
    or `parseAutofillClinicConfig()`.
 6. Call `autofillThaiID({ ...config, root, onApprovalRequired, onError })`
    from a visible click. Callbacks are **code-only**.
-7. Allow that origin on the Ready page the first time.
+7. Allow that origin on the Ready page the first time, **or** have clinic IT
+   pre-approve it once (`openthaiid trust add https://erp.clinic.example`).
 8. Keep `portrait` out of `request` unless the screen needs the photo.
    Do not log photo bytes.
 

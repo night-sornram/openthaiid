@@ -11,6 +11,8 @@ Happy path
 ----------
 1. Optional once: ./install-linux.sh
    (copies to ~/.local/bin and an application menu entry).
+   Clinic IT: ./install-linux.sh --clinic-origin https://erp.clinic.example
+   so staff do not need Allow daily.
 2. Start: ./start-openthaiid.sh
    or:    ./openthaiid tray -open
 3. GNOME/KDE often have no notification-area icon without extra extensions.
@@ -19,6 +21,8 @@ Happy path
 4. Plug in the reader (pcscd). If two readers are listed, pick **ใช้เครื่องนี้**
    on the Ready page before Fill. Open the clinic ERP. Click Fill (กรอกข้อมูล).
 5. The first time, Allow the clinic page on the Ready page.
+   Clinic IT can pre-approve the ERP origin once:
+   ./openthaiid trust add https://erp.clinic.example
 
 Hardware qualification (when the ACR39U arrives)
 -------------------------------------------------------

@@ -49,7 +49,11 @@ describe("staffErrorGuidance", () => {
     expect(staffErrorGuidance({ code: "NO_READER" }).message).toContain("เครื่องอ่าน");
     expect(staffErrorGuidance({ code: "NO_CARD" }).message).toContain("บัตร");
     expect(staffErrorGuidance({ code: "APPROVAL_REQUIRED" }).next).toContain("อนุญาต");
-    expect(staffErrorGuidance({ code: "APPROVAL_DENIED" }).message).toContain("ปฏิเสธ");
+    expect(staffErrorGuidance({ code: "APPROVAL_REQUIRED" }, "en").next).toContain("clinic page");
+    expect(staffErrorGuidance({ code: "APPROVAL_REQUIRED" }, "en").next).not.toMatch(/origin/i);
+    expect(formatStaffError({ code: "AUTH_EXPIRED" }, "en")).not.toMatch(/revok/i);
+    expect(formatStaffError({ code: "AUTH_EXPIRED" })).not.toContain("เพิกถอน");
+    expect(staffErrorGuidance({ code: "APPROVAL_DENIED" }).message).toContain("ไม่อนุญาต");
     expect(staffErrorGuidance({ code: "FIELD_NOT_ALLOWED" }).message).toContain("ช่อง");
   });
 

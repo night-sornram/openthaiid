@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/card"
 )
 
@@ -41,6 +42,12 @@ type Config struct {
 	// OriginAllowList, when non-empty, restricts which origins may request
 	// approval. It does not grant trust by itself.
 	OriginAllowList []string `json:"originAllowList"`
+
+	// PreapprovedOrigins is an explicit clinic-website list. Each origin is
+	// trusted at helper start with Config.Fields so staff do not need Allow
+	// for those pages. Wildcards and empty entries are forbidden. This is
+	// not “allow all”.
+	PreapprovedOrigins []string `json:"preapprovedOrigins"`
 
 	TrustDuration   time.Duration `json:"trustDuration"`
 	SessionDuration time.Duration `json:"sessionDuration"`
@@ -147,8 +154,8 @@ func resolveMaybeRelative(p string) string {
 	return filepath.Join(dir, p)
 }
 
-// OverlayEnv applies OPENTHAIID_TLS_* (and only those) on top of file defaults.
-// Flags still win after this. Does not read card data.
+// OverlayEnv applies OPENTHAIID_TLS_* and OPENTHAIID_PREAPPROVED_ORIGINS on
+// top of file defaults. Flags still win after this. Does not read card data.
 func OverlayEnv(cfg *Config) {
 	if cfg == nil {
 		return
@@ -163,6 +170,14 @@ func OverlayEnv(cfg *Config) {
 		n, err := strconv.Atoi(v)
 		if err == nil {
 			cfg.TLSPort = n
+		}
+	}
+	if v := strings.TrimSpace(os.Getenv("OPENTHAIID_PREAPPROVED_ORIGINS")); v != "" {
+		list := SplitOriginList(v)
+		if canon, err := CanonicalOriginList(list); err == nil {
+			cfg.PreapprovedOrigins = canon
+		} else {
+			cfg.PreapprovedOrigins = list
 		}
 	}
 }
@@ -214,7 +229,90 @@ func (c Config) Validate() error {
 			return fmt.Errorf("wildcard or empty origin in allow list is forbidden")
 		}
 	}
+	if _, err := CanonicalOriginList(c.PreapprovedOrigins); err != nil {
+		return err
+	}
 	return nil
+}
+
+// MaxPreapprovedOrigins caps the explicit IT clinic-website list.
+const MaxPreapprovedOrigins = 32
+
+// CanonicalOriginList normalizes an explicit IT clinic-website list.
+// Wildcards, empty values, and unparseable origins are rejected. Duplicates
+// are dropped. This is not “allow all”.
+func CanonicalOriginList(raw []string) ([]string, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	seen := make(map[string]struct{}, len(raw))
+	out := make([]string, 0, len(raw))
+	for _, o := range raw {
+		o = strings.TrimSpace(o)
+		if o == "" {
+			return nil, fmt.Errorf("wildcard or empty origin in preapprovedOrigins is forbidden")
+		}
+		if o == "*" || strings.Contains(o, "*") {
+			return nil, fmt.Errorf("wildcard or empty origin in preapprovedOrigins is forbidden")
+		}
+		n, err := auth.NormalizeOrigin(o)
+		if err != nil {
+			return nil, fmt.Errorf("invalid preapprovedOrigins %q", o)
+		}
+		s := string(n)
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	if len(out) > MaxPreapprovedOrigins {
+		return nil, fmt.Errorf("too many preapprovedOrigins (max %d)", MaxPreapprovedOrigins)
+	}
+	return out, nil
+}
+
+// AddPreapproved appends one explicit origin to the IT list.
+func AddPreapproved(list []string, origin string) ([]string, error) {
+	return CanonicalOriginList(append(append([]string(nil), list...), origin))
+}
+
+// RemovePreapproved drops origin from the IT list (canonical match).
+func RemovePreapproved(list []string, origin string) []string {
+	want := strings.TrimSpace(origin)
+	if n, err := auth.NormalizeOrigin(origin); err == nil {
+		want = string(n)
+	}
+	out := make([]string, 0, len(list))
+	for _, o := range list {
+		cur := o
+		if n, err := auth.NormalizeOrigin(o); err == nil {
+			cur = string(n)
+		}
+		if cur == want {
+			continue
+		}
+		out = append(out, cur)
+	}
+	return out
+}
+
+// SplitOriginList splits a comma or semicolon env list. Empty parts dropped.
+func SplitOriginList(v string) []string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return nil
+	}
+	parts := strings.FieldsFunc(v, func(r rune) bool { return r == ',' || r == ';' })
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
 // UserDir returns the per-user OpenThaiID directory (config, logs, pid).

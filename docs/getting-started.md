@@ -18,7 +18,7 @@
 | เมื่อได้เครื่องอ่าน — บัตรโต๊ะเจ้าหน้าที่ (พิมพ์หนึ่งหน้า) | [staff-desk-card.md](staff-desk-card.md) |
 | ฝึกก่อนได้เครื่องจริง (`make pre-reader-dry-run` / `openthaiid -synthetic`) | [training.md](training.md) |
 | เมื่อได้เครื่องอ่าน ACR39U (พร้อม → qualify → กรอกข้อมูล → ส่งวินิจฉัย) | [hardware-checklist.md](hardware-checklist.md) |
-| แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) |
+| แผนก IT / ทีม ERP (ไลบรารีในหน้า Create Patient) | [erp-integration.md](erp-integration.md) · ตั้ง URL คลินิกครั้งเดียว: [installation.md](installation.md) |
 | ช่างเทคนิคเมื่อกรอกข้อมูลไม่ขึ้น | [technician.md](technician.md) · HTTP บน loopback: [security.md](security.md) · HTTPS ของตัวช่วย: [loopback-tls.md](loopback-tls.md) · โต๊ะพร้อมหรือยัง: `openthaiid doctor` · ตรวจเวอร์ชัน: `openthaiid update check` · P2–P10: [bind-stress.md](bind-stress.md) |
 
 หน้า พร้อม ของตัวช่วย: `http://127.0.0.1:17891/`
@@ -43,6 +43,8 @@ Firefox / Safari ใช้หน้า พร้อม ได้; กรอก�
    ไม่ต้องมี ACR39U และ**ไม่ใช่**ผ่านฮาร์ดแวร์ ถ้าผ่าน ให้เปิด [training.md](training.md)
 2. เจ้าหน้าที่ฝึกกดกรอกข้อมูลตาม [user.md](user.md)
 3. แผนก IT ผูกหน้า ERP ตาม [erp-integration.md](erp-integration.md)
+   แล้วตั้ง URL คลินิกครั้งเดียวตาม [installation.md](installation.md)
+   (`openthaiid trust add`) — เจ้าหน้าที่ไม่ต้องกดอนุญาตทุกวัน
 4. เมื่อได้เครื่องอ่าน พิมพ์ [staff-desk-card.md](staff-desk-card.md) ที่โต๊ะ
    แล้วใช้ชุด qualify [hardware-checklist.md](hardware-checklist.md)
 
@@ -82,7 +84,7 @@ until ~1 Oct 2026). No Laser-id / NHSO.
 | Staff desk card (print one Thai page) | [staff-desk-card.md](staff-desk-card.md) |
 | Practice before the reader arrives | [training.md](training.md) (`make pre-reader-dry-run`) |
 | When the ACR39U arrives | [hardware-checklist.md](hardware-checklist.md) |
-| Clinic IT / ERP | [erp-integration.md](erp-integration.md) |
+| Clinic IT / ERP | [erp-integration.md](erp-integration.md) · set clinic URL once: [installation.md](installation.md) |
 | Technician when Fill fails | [technician.md](technician.md) · loopback HTTP: [security.md](security.md) · helper TLS: [loopback-tls.md](loopback-tls.md) · desk ready?: `openthaiid doctor` · version check: `openthaiid update check` · P2–P10: [bind-stress.md](bind-stress.md) |
 
 Ready page: `http://127.0.0.1:17891/`. The three lights include **OK /

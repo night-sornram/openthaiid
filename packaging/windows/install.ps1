@@ -2,10 +2,11 @@
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File install.ps1
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Autostart
-#   powershell -ExecutionPolicy Bypass -File install.ps1 -DesktopShortcut
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -ClinicOrigin https://erp.clinic.example
 param(
     [switch]$Autostart,
-    [switch]$DesktopShortcut
+    [switch]$DesktopShortcut,
+    [string]$ClinicOrigin
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,3 +56,9 @@ Write-Host "Installed to $dest"
 Write-Host "Start Menu: OpenThaiID (starts the tray helper and Ready page)."
 Write-Host "Autostart is off unless you passed -Autostart."
 Write-Host "The helper listens only on 127.0.0.1."
+
+if ($ClinicOrigin) {
+    & $exe trust add $ClinicOrigin
+    if ($LASTEXITCODE -ne 0) { throw "trust add failed for $ClinicOrigin" }
+    Write-Host "Clinic IT pre-approved $ClinicOrigin. Staff should not need Allow for that site."
+}
