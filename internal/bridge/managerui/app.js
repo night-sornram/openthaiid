@@ -769,15 +769,14 @@ function allowRow(p, { detailed }) {
   }
   const actions = document.createElement("div");
   actions.className = "actions";
-  actions.style.marginTop = "0.55rem";
   const allow = document.createElement("button");
   allow.type = "button";
-  allow.className = "btn btn-ok";
+  allow.className = "btn btn-ok btn-staff";
   allow.textContent = t("allow");
   allow.addEventListener("click", () => decide(p.id, "allow"));
   const deny = document.createElement("button");
   deny.type = "button";
-  deny.className = "btn btn-danger";
+  deny.className = "btn btn-danger btn-staff";
   deny.textContent = t("deny");
   deny.addEventListener("click", () => decide(p.id, "deny"));
   actions.append(allow, deny);
@@ -810,6 +809,7 @@ function renderStaffReaders(data) {
   clearChildren(els.staffReaders);
   for (const r of readers) {
     const li = document.createElement("li");
+    if (r.selected) li.className = "selected";
     const row = document.createElement("div");
     row.className = "row";
     const left = document.createElement("div");
@@ -818,8 +818,7 @@ function renderStaffReaders(data) {
     name.textContent = r.name || r.readerId;
     left.append(name);
     const bits = document.createElement("div");
-    bits.className = "actions";
-    bits.style.marginTop = "0.35rem";
+    bits.className = "pills";
     bits.append(pill(r.presence === "present" ? t("staffCardPresent") : t("staffNoCard"), presenceKind(r.presence)));
     if (r.selected) bits.append(pill(t("usingThisReader"), "ok"));
     left.append(bits);
@@ -855,6 +854,7 @@ function renderReaders(data) {
   const showSelect = readers.length > 1;
   for (const r of readers) {
     const li = document.createElement("li");
+    if (r.selected) li.className = "selected";
     const row = document.createElement("div");
     row.className = "row";
     const left = document.createElement("div");
@@ -867,8 +867,7 @@ function renderReaders(data) {
     idLine.textContent = `id: ${r.readerId}`;
     left.append(idLine);
     const bits = document.createElement("div");
-    bits.className = "actions";
-    bits.style.marginTop = "0.35rem";
+    bits.className = "pills";
     bits.append(pill(presenceLabel(r.presence), presenceKind(r.presence)));
     if (r.selected) bits.append(pill("Selected", "ok"));
     left.append(bits);
@@ -895,7 +894,7 @@ function renderPending(data) {
   clearChildren(els.pending);
   if (!pending.length) {
     const li = document.createElement("li");
-    li.className = "muted";
+    li.className = "empty";
     li.textContent = "No pending requests.";
     els.pending.append(li);
     return;
@@ -911,7 +910,7 @@ function renderTrusted(data) {
   els.revokeAll.hidden = trusted.length === 0;
   if (!trusted.length) {
     const li = document.createElement("li");
-    li.className = "muted";
+    li.className = "empty";
     li.textContent = "No approved websites yet.";
     els.trusted.append(li);
     return;
@@ -933,7 +932,7 @@ function renderTrusted(data) {
     actions.className = "actions";
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "btn btn-danger";
+    btn.className = "btn btn-danger btn-staff";
     btn.textContent = "Revoke";
     btn.addEventListener("click", () => revoke(g.origin));
     actions.append(btn);

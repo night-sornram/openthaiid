@@ -35,6 +35,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, "Technician / developer") {
 		t.Fatal("missing technician heading")
 	}
+	if !strings.Contains(page, `class="tech-intro"`) || !strings.Contains(page, "Settings · ตั้งค่า") {
+		t.Fatal("missing technician settings intro")
+	}
 	if !strings.Contains(page, `id="technician"`) {
 		t.Fatal("missing technician section")
 	}
@@ -132,6 +135,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	css := getBody(t, tb, "/manager/style.css")
 	if !strings.Contains(css, ".tech[hidden]") {
 		t.Fatal("technician section must stay display:none while hidden")
+	}
+	if !strings.Contains(css, ".tech-intro") || !strings.Contains(css, ".tech-kicker") {
+		t.Fatal("missing technician settings layout")
 	}
 	if !strings.Contains(css, ":focus-visible") {
 		t.Fatal("missing focus-visible styles")
