@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -196,4 +197,128 @@ func helperHealthz(base string) bool {
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
+}
+
+func runTrust(args []string) int {
+	action := "list"
+	originArg := ""
+	rest := args
+	if len(rest) > 0 {
+		switch rest[0] {
+		case "help", "-h", "--help":
+			fmt.Println("usage: openthaiid trust list")
+			fmt.Println("       openthaiid trust add https://erp.clinic.example")
+			fmt.Println("       openthaiid trust remove https://erp.clinic.example")
+			fmt.Println("Clinic IT pre-approves explicit ERP origins so staff rarely see Allow.")
+			fmt.Println("Not “allow all”. The helper still binds 127.0.0.1 only.")
+			return 0
+		case "list", "add", "remove":
+			action = rest[0]
+			rest = rest[1:]
+		}
+	}
+	if action == "add" || action == "remove" {
+		if len(rest) < 1 || strings.HasPrefix(rest[0], "-") {
+			fmt.Fprintf(os.Stderr, "usage: openthaiid trust %s <origin>\n", action)
+			return 1
+		}
+		originArg = rest[0]
+		rest = rest[1:]
+	}
+	base, err := helperBaseFromArgs("trust", rest)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "trust: %v\n", err)
+		return 1
+	}
+	cfgPath := ""
+	if p, err := config.UserConfigPath(); err == nil {
+		cfgPath = p
+	}
+	fs := flag.NewFlagSet("trust-config", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.StringVar(&cfgPath, "config", cfgPath, "")
+	_ = fs.Parse(rest)
+
+	if helperHealthz(base) {
+		client := &http.Client{Timeout: 2 * time.Second}
+		var resp *http.Response
+		if action == "list" {
+			resp, err = client.Get(strings.TrimRight(base, "/") + "/v1/helper/trust")
+		} else {
+			payload, _ := json.Marshal(map[string]string{"action": action, "origin": originArg})
+			resp, err = client.Post(strings.TrimRight(base, "/")+"/v1/helper/trust", "application/json", bytes.NewReader(payload))
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "trust: %v\n", err)
+			return 1
+		}
+		defer resp.Body.Close()
+		raw, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			fmt.Fprintf(os.Stderr, "trust: HTTP %d\n%s\n", resp.StatusCode, raw)
+			return 1
+		}
+		var out struct {
+			OK                 bool     `json:"ok"`
+			Origin             string   `json:"origin"`
+			PreapprovedOrigins []string `json:"preapprovedOrigins"`
+		}
+		if err := json.Unmarshal(raw, &out); err != nil {
+			fmt.Fprintf(os.Stderr, "trust: %v\n", err)
+			return 1
+		}
+		printTrustList(out.PreapprovedOrigins)
+		if action == "add" {
+			fmt.Println("Staff should not need Allow for that clinic site.")
+		}
+		return 0
+	}
+
+	if cfgPath == "" {
+		fmt.Fprintln(os.Stderr, "trust: no config path")
+		return 1
+	}
+	cfg, err := config.LoadFile(cfgPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "trust: %v\n", err)
+		return 1
+	}
+	switch action {
+	case "list":
+		printTrustList(cfg.PreapprovedOrigins)
+		fmt.Println("(helper not running; showing config.json)")
+	case "add":
+		next, err := config.AddPreapproved(cfg.PreapprovedOrigins, originArg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "trust: %v\n", err)
+			return 1
+		}
+		if err := config.SavePreapprovedOrigins(cfgPath, next); err != nil {
+			fmt.Fprintf(os.Stderr, "trust: %v\n", err)
+			return 1
+		}
+		printTrustList(next)
+		fmt.Println("Saved to", cfgPath)
+		fmt.Println("Applies the next time OpenThaiID starts. Staff should not need Allow for that clinic site.")
+	case "remove":
+		next := config.RemovePreapproved(cfg.PreapprovedOrigins, originArg)
+		if err := config.SavePreapprovedOrigins(cfgPath, next); err != nil {
+			fmt.Fprintf(os.Stderr, "trust: %v\n", err)
+			return 1
+		}
+		printTrustList(next)
+		fmt.Println("Saved to", cfgPath)
+		fmt.Println("Applies the next time OpenThaiID starts.")
+	}
+	return 0
+}
+
+func printTrustList(origins []string) {
+	if len(origins) == 0 {
+		fmt.Println("(no IT pre-approved clinic websites)")
+		return
+	}
+	for _, o := range origins {
+		fmt.Println(o)
+	}
 }

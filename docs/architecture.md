@@ -10,7 +10,9 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
   grant is `citizenId`, `thaiName`, and `birthDate`; remaining textual
   fields and optional `portrait` are opt-in and returned only when granted.
 - Explicit operator approval for each new origin and field set (helper page
-  staff Allow, or terminal; technician tools do not bypass this).
+  staff Allow, or terminal). Clinic IT may pre-approve **explicit** ERP
+  origins at install so staff rarely see Allow. Technician tools do not let
+  the ERP approve itself.
 - No card-data persistence, telemetry, or cloud dependency.
 - Hardware behavior separated from browser behavior so synthetic backends can
   exercise the full bridge.
@@ -34,7 +36,8 @@ WebSocket. There is no hosted OpenThaiID frontend or backend.
 - Biometrics, PIN bypass, card writes, arbitrary APDUs.
 - Laser-id / NHSO profiles (no citable APDU.md layout; see provenance).
 - Signed / notarized store installers (no certificates; see `docs/signing.md`).
-- Persistent trust across bridge restarts.
+- Persistent staff Allow grants across helper restarts (session Allow still
+  lives in memory). Clinic IT may pre-approve explicit ERP origins.
 - A hosted multi-tenant OpenThaiID backend.
 
 Portrait JPEG, unsigned GitHub Releases version check, Firefox/WebKit

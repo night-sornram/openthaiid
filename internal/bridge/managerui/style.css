@@ -606,6 +606,50 @@ dd {
   font-weight: 650;
 }
 
+.pill-it {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok);
+  vertical-align: middle;
+}
+
+.preapprove-form {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0.85rem;
+}
+
+.preapprove-form label {
+  font-weight: 650;
+  font-size: 0.92rem;
+}
+
+.preapprove-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.preapprove-row input {
+  flex: 1 1 16rem;
+  min-width: 0;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--card);
+  color: var(--ink);
+}
+
 .pending-card {
   border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
 }

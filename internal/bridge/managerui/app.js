@@ -328,6 +328,9 @@ const els = {
   pending: document.getElementById("pending"),
   pendingCount: document.getElementById("pending-count"),
   trusted: document.getElementById("trusted"),
+  preapproved: document.getElementById("preapproved"),
+  preapproveForm: document.getElementById("preapprove-form"),
+  preapproveOrigin: document.getElementById("preapprove-origin"),
   revokeAll: document.getElementById("revoke-all"),
   refresh: document.getElementById("refresh"),
   reconnect: document.getElementById("reconnect"),
@@ -1004,22 +1007,66 @@ function renderTrusted(data) {
     const origin = document.createElement("div");
     origin.className = "origin";
     origin.textContent = g.origin;
+    if (g.persistent) {
+      const badge = document.createElement("span");
+      badge.className = "pill-it";
+      badge.textContent = "IT pre-approve";
+      origin.append(" ", badge);
+    }
     const fields = document.createElement("p");
     fields.className = "fields";
     const fieldList = Array.isArray(g.fields) ? g.fields.join(", ") : "";
-    fields.textContent = `fields: ${fieldList} · until ${g.expiresAt || ""}`;
+    const until = g.persistent ? "does not expire" : `until ${g.expiresAt || ""}`;
+    fields.textContent = `fields: ${fieldList} · ${until}`;
     left.append(origin, fields);
     const actions = document.createElement("div");
     actions.className = "actions";
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn btn-danger btn-staff";
-    btn.textContent = "Revoke";
-    btn.addEventListener("click", () => revoke(g.origin));
+    btn.textContent = g.persistent ? "Remove from IT list" : "Revoke";
+    btn.addEventListener("click", () => {
+      if (g.persistent) unpreapprove(g.origin);
+      else revoke(g.origin);
+    });
     actions.append(btn);
     row.append(left, actions);
     li.append(row);
     els.trusted.append(li);
+  }
+}
+
+function renderPreapproved(data) {
+  if (!els.preapproved) return;
+  const list = Array.isArray(data.preapprovedOrigins) ? data.preapprovedOrigins : [];
+  clearChildren(els.preapproved);
+  if (!list.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "No IT pre-approved clinic websites yet.";
+    els.preapproved.append(li);
+    return;
+  }
+  for (const origin of list) {
+    const li = document.createElement("li");
+    const row = document.createElement("div");
+    row.className = "row";
+    const left = document.createElement("div");
+    const site = document.createElement("div");
+    site.className = "origin";
+    site.textContent = origin;
+    left.append(site);
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-danger btn-staff";
+    btn.textContent = "Remove";
+    btn.addEventListener("click", () => unpreapprove(origin));
+    actions.append(btn);
+    row.append(left, actions);
+    li.append(row);
+    els.preapproved.append(li);
   }
 }
 
@@ -1091,9 +1138,15 @@ function diagnosticsText(data) {
   for (const p of pending) {
     lines.push(`  - id=${p.id} origin=${p.origin} fields=${(p.fields || []).join(",")}`);
   }
+  const preapproved = data.preapprovedOrigins || [];
   lines.push(`approved: ${trusted.length}`);
   for (const g of trusted) {
-    lines.push(`  - origin=${g.origin} fields=${(g.fields || []).join(",")}`);
+    const tag = g.persistent ? " persistent" : "";
+    lines.push(`  - origin=${g.origin} fields=${(g.fields || []).join(",")}${tag}`);
+  }
+  lines.push(`preapproved: ${preapproved.length}`);
+  for (const o of preapproved) {
+    lines.push(`  - ${o}`);
   }
   lines.push("lastErrors:");
   if (!errs.length) lines.push("  (none)");
@@ -1151,6 +1204,7 @@ function render(data) {
   renderReaders(data);
   renderPending(data);
   renderTrusted(data);
+  renderPreapproved(data);
   renderLastErrors(data);
   renderAudit(data);
 }
@@ -1303,8 +1357,30 @@ async function revoke(origin) {
   }
 }
 
+async function unpreapprove(origin) {
+  try {
+    await api("/v1/manager/trust/unpreapprove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ origin }),
+    });
+    await load();
+  } catch (err) {
+    window.alert(err.message || String(err));
+  }
+}
+
+async function addPreapproved(origin) {
+  await api("/v1/manager/trust/preapprove", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ origin }),
+  });
+  await load();
+}
+
 async function revokeAll() {
-  if (!window.confirm("Revoke every approved website on this PC?")) return;
+  if (!window.confirm("Revoke staff Allow grants on this PC? IT pre-approved clinic sites stay.")) return;
   try {
     await api("/v1/manager/trust/revoke-all", { method: "POST" });
     await load();
@@ -1416,6 +1492,16 @@ els.testConnection?.addEventListener("click", () => void testConnection());
 els.checkUpdate?.addEventListener("click", () => void checkGitHubReleases());
 els.techCheckUpdate?.addEventListener("click", () => void checkGitHubReleases());
 els.revokeAll.addEventListener("click", () => void revokeAll());
+els.preapproveForm?.addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const origin = String(els.preapproveOrigin?.value || "").trim();
+  if (!origin) return;
+  void addPreapproved(origin)
+    .then(() => {
+      if (els.preapproveOrigin) els.preapproveOrigin.value = "";
+    })
+    .catch((err) => window.alert(err.message || String(err)));
+});
 els.copyDiag.addEventListener("click", () => void copyDiagnostics());
 els.deskSnapshot?.addEventListener("click", () => void copyDeskSnapshot());
 els.copyAudit?.addEventListener("click", () => void copyAuditJSON());

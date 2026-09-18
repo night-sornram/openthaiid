@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -92,6 +93,7 @@ func startTestBridgeOpts(t *testing.T, autoAllow bool, seed func(mon, rdb *pcsc.
 		t.Fatal(err)
 	}
 	s := New(cfg, log, authMgr, mgr)
+	s.SetConfigPath(filepath.Join(t.TempDir(), "config.json"))
 	s.SetUpdateCheck(func(ctx context.Context, current string) (*update.CheckResult, error) {
 		return update.Unavailable(current, update.ReasonOffline, update.ReleasesPage), nil
 	})
@@ -819,4 +821,58 @@ func TestIntegrationReadReaderUnpluggedDuringTransmit(t *testing.T) {
 		t.Fatalf("expected READER_REMOVED, got %v", msg)
 	}
 	tb.rdb.UnblockPhase("transmit")
+}
+
+func TestPreapprovedOriginSkipsAllow(t *testing.T) {
+	origin := "https://erp.clinic.example"
+	tb := startTestBridgeOpts(t, false, nil, func(cfg *config.Config) {
+		cfg.PreapprovedOrigins = []string{origin}
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	conn, _ := dial(t, ctx, tb.wsURL, origin)
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: card.DefaultFields,
+	})
+	if tok := readToken(t, ctx, conn, 1); tok == "" {
+		t.Fatal("missing token")
+	}
+	if pending := tb.authMgr.Pending(time.Now()); len(pending) != 0 {
+		t.Fatalf("staff Allow should not appear for IT pre-approved origin: %v", pending)
+	}
+}
+
+func TestPreapprovedFieldExpansionStillPromptsAllow(t *testing.T) {
+	origin := "https://erp.clinic.example"
+	tb := startTestBridgeOpts(t, false, nil, func(cfg *config.Config) {
+		cfg.PreapprovedOrigins = []string{origin}
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	conn, _ := dial(t, ctx, tb.wsURL, origin)
+	defer func() { _ = conn.Close(websocket.StatusNormalClosure, "") }()
+	expanded := append(append([]card.Field(nil), card.DefaultFields...), card.FieldGender)
+	writeReq(t, ctx, conn, 1, "session.open", "", protocol.SessionOpenPayload{
+		Fields: expanded,
+	})
+	sawApproval := false
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		msg := readMsg(t, ctx, conn)
+		typ, _ := msg["type"].(string)
+		if typ == "approval.required" {
+			sawApproval = true
+			break
+		}
+		if msg["id"] != nil && msg["error"] == nil {
+			t.Fatalf("expanded session.open must not succeed without Allow: %v", msg)
+		}
+	}
+	if !sawApproval {
+		t.Fatal("field expansion beyond IT pre-approve must still prompt Allow")
+	}
+	if pending := tb.authMgr.Pending(time.Now()); len(pending) == 0 {
+		t.Fatal("expected pending Allow for extra fields")
+	}
 }

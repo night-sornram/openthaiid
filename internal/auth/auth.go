@@ -23,6 +23,8 @@ type Grant struct {
 	Fields     []card.Field
 	ExpiresAt  time.Time
 	Comparison string
+	// Persistent is an IT pre-approve. It does not expire until removed.
+	Persistent bool
 }
 
 // Session binds a token to an origin grant and bridge instance.
@@ -219,11 +221,20 @@ func (m *Manager) Resolve(id int64, allow bool, now time.Time) (*PendingRequest,
 	close(p.done)
 	delete(m.pending, id)
 	if allow {
+		exp := now.Add(m.trustTTL)
+		persistent := false
+		fields := append([]card.Field(nil), p.Fields...)
+		if existing, ok := m.grants[p.Origin]; ok && existing.Persistent {
+			persistent = true
+			exp = existing.ExpiresAt
+			fields = unionFields(existing.Fields, fields)
+		}
 		m.grants[p.Origin] = &Grant{
 			Origin:     p.Origin,
-			Fields:     append([]card.Field(nil), p.Fields...),
-			ExpiresAt:  now.Add(m.trustTTL),
+			Fields:     fields,
+			ExpiresAt:  exp,
 			Comparison: p.Comparison,
+			Persistent: persistent,
 		}
 	} else {
 		m.denialCooldownUntil = now.Add(5 * time.Second)
@@ -266,7 +277,7 @@ func (m *Manager) GrantFor(origin Origin, now time.Time) (*Grant, bool) {
 	defer m.mu.Unlock()
 	m.gcLocked(now)
 	g, ok := m.grants[origin]
-	if !ok || !now.Before(g.ExpiresAt) {
+	if !ok || (!g.Persistent && !now.Before(g.ExpiresAt)) {
 		return nil, false
 	}
 	cp := *g
@@ -287,7 +298,7 @@ func (m *Manager) OpenSession(origin Origin, fields []card.Field, now time.Time)
 	m.gcLocked(now)
 
 	g, ok := m.grants[origin]
-	if !ok || !now.Before(g.ExpiresAt) {
+	if !ok || (!g.Persistent && !now.Before(g.ExpiresAt)) {
 		return nil, card.NewError(card.ErrApprovalRequired, "origin not trusted")
 	}
 	if !card.Subset(fields, g.Fields) {
@@ -326,7 +337,7 @@ func (m *Manager) Session(token string, origin Origin, now time.Time) (*Session,
 		return nil, card.NewError(card.ErrAuthExpired, "session invalid")
 	}
 	g, ok := m.grants[origin]
-	if !ok || !now.Before(g.ExpiresAt) {
+	if !ok || (!g.Persistent && !now.Before(g.ExpiresAt)) {
 		delete(m.sessions, token)
 		return nil, card.NewError(card.ErrAuthExpired, "grant expired")
 	}
@@ -386,7 +397,12 @@ func (m *Manager) RevokeAll() {
 	}
 	byOrigin := map[Origin][]string{}
 	for tok, s := range m.sessions {
+		g := m.grants[s.Origin]
+		if g != nil && g.Persistent {
+			continue
+		}
 		byOrigin[s.Origin] = append(byOrigin[s.Origin], tok)
+		delete(m.sessions, tok)
 	}
 	for _, p := range m.pending {
 		if !p.decided {
@@ -396,13 +412,17 @@ func (m *Manager) RevokeAll() {
 		}
 	}
 	m.pending = map[int64]*PendingRequest{}
-	for o := range m.grants {
+	kept := map[Origin]*Grant{}
+	for o, g := range m.grants {
+		if g != nil && g.Persistent {
+			kept[o] = g
+			continue
+		}
 		if _, ok := byOrigin[o]; !ok {
 			byOrigin[o] = nil
 		}
 	}
-	m.grants = map[Origin]*Grant{}
-	m.sessions = map[string]*Session{}
+	m.grants = kept
 	m.mu.Unlock()
 	if m.OnRevoke != nil {
 		for o, toks := range byOrigin {
@@ -438,6 +458,9 @@ func (m *Manager) gcLocked(now time.Time) {
 		}
 	}
 	for o, g := range m.grants {
+		if g.Persistent {
+			continue
+		}
 		if !now.Before(g.ExpiresAt) {
 			delete(m.grants, o)
 		}
@@ -448,9 +471,78 @@ func (m *Manager) gcLocked(now time.Time) {
 			continue
 		}
 		g, ok := m.grants[s.Origin]
-		if !ok || !now.Before(g.ExpiresAt) {
+		if !ok || (!g.Persistent && !now.Before(g.ExpiresAt)) {
 			delete(m.sessions, tok)
 		}
+	}
+}
+
+// PersistentUntil is the grant expiry stored for IT pre-approve. gc and
+// OpenSession skip TTL for Persistent grants; session tokens still use
+// sessionTTL.
+func PersistentUntil() time.Time {
+	return time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+}
+
+func unionFields(a, b []card.Field) []card.Field {
+	seen := make(map[card.Field]struct{}, len(a)+len(b))
+	out := make([]card.Field, 0, len(a)+len(b))
+	for _, f := range a {
+		if _, ok := seen[f]; ok {
+			continue
+		}
+		seen[f] = struct{}{}
+		out = append(out, f)
+	}
+	for _, f := range b {
+		if _, ok := seen[f]; ok {
+			continue
+		}
+		seen[f] = struct{}{}
+		out = append(out, f)
+	}
+	return out
+}
+
+func (m *Manager) preapproveLocked(origin Origin, fields []card.Field, now time.Time) error {
+	_ = now
+	fields, err := card.NormalizeFields(fields)
+	if err != nil {
+		return err
+	}
+	if existing, ok := m.grants[origin]; ok {
+		fields = unionFields(existing.Fields, fields)
+	}
+	m.grants[origin] = &Grant{
+		Origin:     origin,
+		Fields:     append([]card.Field(nil), fields...),
+		ExpiresAt:  PersistentUntil(),
+		Persistent: true,
+	}
+	return nil
+}
+
+// Preapprove records an explicit IT clinic-website grant. It does not expire
+// until RevokeOrigin. Wildcards are rejected by NormalizeOrigin.
+func (m *Manager) Preapprove(origin Origin, fields []card.Field, now time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.gcLocked(now)
+	return m.preapproveLocked(origin, fields, now)
+}
+
+// ApplyPreapproved seeds persistent grants for each explicit origin. Invalid
+// entries are skipped. This is not “allow all”.
+func (m *Manager) ApplyPreapproved(origins []string, fields []card.Field, now time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.gcLocked(now)
+	for _, raw := range origins {
+		o, err := NormalizeOrigin(raw)
+		if err != nil {
+			continue
+		}
+		_ = m.preapproveLocked(o, fields, now)
 	}
 }
 

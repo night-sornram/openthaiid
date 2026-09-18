@@ -133,6 +133,8 @@ service (`openthaiid service install`), skip step 1.
 The first time that clinic page asks to read a card, OpenThaiID shows
 **เว็บคลินิกขอใช้บัตรประชาชน / The clinic website wants to use the ID card**.
 Allow only the clinic page you are using. Match the code if the ERP shows one.
+If clinic IT already trusted the clinic website at install, you usually will
+not see this.
 
 Do not send screenshots of the patient’s card or of filled form fields.
 

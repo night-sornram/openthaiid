@@ -1,7 +1,29 @@
 #!/usr/bin/env bash
 # Install the helper for the current user (no root). Does not enable autostart.
+# Optional: ./install-linux.sh --clinic-origin https://erp.clinic.example
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+CLINIC_ORIGIN=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --clinic-origin)
+      CLINIC_ORIGIN="${2:-}"
+      shift 2
+      ;;
+    --clinic-origin=*)
+      CLINIC_ORIGIN="${1#*=}"
+      shift
+      ;;
+    -h|--help)
+      echo "usage: ./install-linux.sh [--clinic-origin https://erp.clinic.example]"
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
 BIN_SRC="$HERE/openthaiid"
 if [ ! -x "$BIN_SRC" ]; then
   echo "openthaiid binary not found next to install-linux.sh" >&2
@@ -46,6 +68,10 @@ echo "Start at login is off. Opt in with: $BIN_DIR/openthaiid autostart enable"
 echo "Always-on without a tray: $BIN_DIR/openthaiid service install"
 echo "  (systemd --user; survive logout with: loginctl enable-linger \$USER)"
 echo "The helper listens only on 127.0.0.1."
+if [ -n "$CLINIC_ORIGIN" ]; then
+  "$BIN_DIR/openthaiid" trust add "$CLINIC_ORIGIN"
+  echo "Clinic IT pre-approved $CLINIC_ORIGIN. Staff should not need Allow for that site."
+fi
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
   echo "Note: add $BIN_DIR to PATH if the command is not found."
 fi

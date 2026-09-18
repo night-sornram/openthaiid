@@ -151,13 +151,16 @@ Endpoints:
 | `GET /v1/helper/summary` | tray, `openthaiid status` | no | no PII; foreign `Origin` rejected |
 | `GET /v1/helper/doctor` | `openthaiid doctor`, Technician **Desk snapshot** | no | no PII / no key paths; foreign `Origin` rejected; does not call GitHub |
 | `POST /v1/helper/shutdown` | `openthaiid quit` | yes | foreign `Origin` rejected; browser `Origin` needs CSRF |
+| `GET /v1/helper/trust` | `openthaiid trust list` | no | foreign `Origin` rejected; origins only, no PII |
+| `POST /v1/helper/trust` | `openthaiid trust add\|remove` | yes | foreign `Origin` rejected; browser `Origin` needs CSRF; explicit origin only |
 | `GET /v1/manager/status` | Ready page | no | CSRF + manager origin; no PII |
 | `GET /v1/manager/audit` | technician export | no | CSRF + manager origin; redacted events |
 | `POST /v1/manager/refresh` | technician | yes | CSRF + manager origin; rate-limited |
 | `POST /v1/manager/reconnect` | technician | yes | CSRF + manager origin; rate-limited |
 | `POST /v1/manager/reader/select` | Ready page | yes | CSRF + manager origin; ERP cannot select |
 | `POST /v1/manager/approvals/{id}/allow\|deny` | operator | yes | CSRF + manager origin; ERP cannot allow itself |
-| `POST /v1/manager/trust/revoke` `revoke-all` | operator | yes | CSRF + manager origin |
+| `POST /v1/manager/trust/revoke` `revoke-all` | operator | yes | CSRF + manager origin; revoke-all keeps IT pre-approved sites |
+| `POST /v1/manager/trust/preapprove` `unpreapprove` | technician / IT | yes | CSRF + manager origin; explicit origin only; not “allow all” |
 | `POST /v1/manager/log-level` | technician | yes | CSRF + manager origin |
 | `POST /v1/manager/update/check` | Ready / technician / tray-adjacent | no (lookup only) | CSRF + manager origin; rate-limited; never on page load; no download |
 | `GET /v1/ws` | ERP JavaScript | via protocol | eligible `Origin`; approval before card fields |

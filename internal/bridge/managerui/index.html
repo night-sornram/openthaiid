@@ -179,10 +179,36 @@
             <span id="pending-count" class="pill">0</span>
           </div>
           <p class="help">
-            Origin + field Allow is still required. Same decision as typing
+            Origin + field Allow is still required for websites that are not
+            on the IT pre-approve list. Same decision as typing
             <code>allow</code> in the terminal.
           </p>
           <ul id="pending" class="list"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="preapprove-heading">
+          <h3 id="preapprove-heading">Trusted clinic websites</h3>
+          <p class="help">
+            IT pre-approve: set the clinic ERP origin once so staff do not
+            need Allow every day. Explicit list only — not “allow all”.
+            Survives helper restart. CSRF and Origin checks on this page stay.
+          </p>
+          <form id="preapprove-form" class="preapprove-form">
+            <label for="preapprove-origin">Clinic website origin</label>
+            <div class="preapprove-row">
+              <input
+                id="preapprove-origin"
+                name="origin"
+                type="url"
+                required
+                placeholder="https://erp.clinic.example"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button type="submit" class="btn">Add trusted site</button>
+            </div>
+          </form>
+          <ul id="preapproved" class="list"></ul>
         </section>
 
         <section class="card" aria-labelledby="trust-heading">
@@ -193,8 +219,9 @@
             </div>
           </div>
           <p class="help">
-            Trust lives in memory on this PC until OpenThaiID stops or the grant
-            expires.
+            Staff Allow grants live in memory until OpenThaiID stops or the
+            grant expires. <strong>Revoke all</strong> clears those only.
+            IT pre-approved clinic sites stay until you remove them above.
           </p>
           <ul id="trusted" class="list"></ul>
         </section>

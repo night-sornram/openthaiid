@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/night-sornram/openthaiid/internal/auth"
 	"github.com/night-sornram/openthaiid/internal/desktop"
 	"github.com/night-sornram/openthaiid/internal/doctor"
 	"github.com/night-sornram/openthaiid/internal/pcsc"
@@ -27,19 +28,8 @@ func (s *Server) handleHelperShutdown(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if !s.helperLoopbackAllowed(r) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	if !s.requireHelperMutation(w, r) {
 		return
-	}
-	origin := strings.TrimSpace(r.Header.Get("Origin"))
-	if origin != "" {
-		// Browser request: CSRF so a same-origin-looking form cannot stop
-		// the helper. openthaiid quit sends no Origin and still works.
-		got := r.Header.Get(managerTokenHeader)
-		if subtle.ConstantTimeCompare([]byte(got), []byte(s.managerToken)) != 1 {
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
-		}
 	}
 	s.writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 	s.mu.Lock()
@@ -47,6 +37,85 @@ func (s *Server) handleHelperShutdown(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 	if fn != nil {
 		go fn()
+	}
+}
+
+func (s *Server) requireHelperMutation(w http.ResponseWriter, r *http.Request) bool {
+	if !s.helperLoopbackAllowed(r) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return false
+	}
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin != "" {
+		got := r.Header.Get(managerTokenHeader)
+		if subtle.ConstantTimeCompare([]byte(got), []byte(s.managerToken)) != 1 {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Server) handleHelperTrust(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		if !s.helperLoopbackAllowed(r) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		s.writeJSON(w, http.StatusOK, map[string]any{
+			"ok":                 true,
+			"preapprovedOrigins": s.copyPreapproved(),
+		})
+		return
+	case http.MethodPost:
+		if !s.requireHelperMutation(w, r) {
+			return
+		}
+		var body struct {
+			Action string `json:"action"`
+			Origin string `json:"origin"`
+		}
+		if err := decodeManagerBody(r, &body); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		switch strings.ToLower(strings.TrimSpace(body.Action)) {
+		case "list", "":
+			s.writeJSON(w, http.StatusOK, map[string]any{
+				"ok":                 true,
+				"preapprovedOrigins": s.copyPreapproved(),
+			})
+		case "add":
+			origin, err := s.addPreapprovedOrigin(body.Origin)
+			if err != nil {
+				s.writeTrustError(w, err)
+				return
+			}
+			s.writeJSON(w, http.StatusOK, map[string]any{
+				"ok":                 true,
+				"origin":             origin,
+				"preapprovedOrigins": s.copyPreapproved(),
+			})
+		case "remove":
+			origin, err := s.removePreapprovedOrigin(body.Origin)
+			if err != nil {
+				s.writeTrustError(w, err)
+				return
+			}
+			n := s.auth.RevokeOrigin(auth.Origin(origin))
+			s.writeJSON(w, http.StatusOK, map[string]any{
+				"ok":                 true,
+				"origin":             origin,
+				"revoked":            n,
+				"preapprovedOrigins": s.copyPreapproved(),
+			})
+		default:
+			http.Error(w, "bad request", http.StatusBadRequest)
+		}
+		return
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 

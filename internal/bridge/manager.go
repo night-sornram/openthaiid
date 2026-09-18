@@ -44,27 +44,28 @@ type probeView struct {
 }
 
 type managerStatus struct {
-	Version       string             `json:"version"`
-	InstanceID    string             `json:"instanceId"`
-	Running       bool               `json:"running"`
-	Synthetic     bool               `json:"synthetic"`
-	ListenAddr    string             `json:"listenAddr"`
-	ManagerURL    string             `json:"managerUrl"`
-	WSURL         string             `json:"wsUrl"`
-	TLS           bool               `json:"tls"`
-	TLSAddr       string             `json:"tlsAddr,omitempty"`
-	WSSURL        string             `json:"wssUrl,omitempty"`
-	HTTPSURL      string             `json:"httpsUrl,omitempty"`
-	OS            string             `json:"os"`
-	LogLevel      string             `json:"logLevel"`
-	Connections   int                `json:"connections"`
-	Backend       managerBackend     `json:"backend"`
-	Readers       []managerReader    `json:"readers"`
-	Pending       []managerPending   `json:"pending"`
-	Trusted       []managerGrant     `json:"trusted"`
-	TrustDuration string             `json:"trustDuration"`
-	LastErrors    []managerLastError `json:"lastErrors"`
-	Audit         []audit.Event      `json:"audit"`
+	Version            string             `json:"version"`
+	InstanceID         string             `json:"instanceId"`
+	Running            bool               `json:"running"`
+	Synthetic          bool               `json:"synthetic"`
+	ListenAddr         string             `json:"listenAddr"`
+	ManagerURL         string             `json:"managerUrl"`
+	WSURL              string             `json:"wsUrl"`
+	TLS                bool               `json:"tls"`
+	TLSAddr            string             `json:"tlsAddr,omitempty"`
+	WSSURL             string             `json:"wssUrl,omitempty"`
+	HTTPSURL           string             `json:"httpsUrl,omitempty"`
+	OS                 string             `json:"os"`
+	LogLevel           string             `json:"logLevel"`
+	Connections        int                `json:"connections"`
+	Backend            managerBackend     `json:"backend"`
+	Readers            []managerReader    `json:"readers"`
+	Pending            []managerPending   `json:"pending"`
+	Trusted            []managerGrant     `json:"trusted"`
+	PreapprovedOrigins []string           `json:"preapprovedOrigins"`
+	TrustDuration      string             `json:"trustDuration"`
+	LastErrors         []managerLastError `json:"lastErrors"`
+	Audit              []audit.Event      `json:"audit"`
 }
 
 // managerLastError is an operational failure for technicians. Messages never
@@ -97,9 +98,10 @@ type managerPending struct {
 }
 
 type managerGrant struct {
-	Origin    string   `json:"origin"`
-	Fields    []string `json:"fields"`
-	ExpiresAt string   `json:"expiresAt"`
+	Origin     string   `json:"origin"`
+	Fields     []string `json:"fields"`
+	ExpiresAt  string   `json:"expiresAt"`
+	Persistent bool     `json:"persistent,omitempty"`
 }
 
 func newManagerToken() string {
@@ -362,6 +364,10 @@ func (s *Server) handleManagerRevoke(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	if _, err := s.removePreapprovedOrigin(string(origin)); err != nil {
+		s.writeTrustError(w, err)
+		return
+	}
 	n := s.auth.RevokeOrigin(origin)
 	s.writeJSON(w, http.StatusOK, map[string]any{"ok": true, "revoked": n, "status": s.managerStatus()})
 }
@@ -504,9 +510,10 @@ func (s *Server) managerStatus() managerStatus {
 	outTrust := make([]managerGrant, 0, len(grants))
 	for _, g := range grants {
 		outTrust = append(outTrust, managerGrant{
-			Origin:    string(g.Origin),
-			Fields:    fieldsToStrings(g.Fields),
-			ExpiresAt: g.ExpiresAt.UTC().Format(time.RFC3339),
+			Origin:     string(g.Origin),
+			Fields:     fieldsToStrings(g.Fields),
+			ExpiresAt:  g.ExpiresAt.UTC().Format(time.RFC3339),
+			Persistent: g.Persistent,
 		})
 	}
 
@@ -518,27 +525,28 @@ func (s *Server) managerStatus() managerStatus {
 	connections := len(s.clients)
 	s.clientsMu.Unlock()
 	return managerStatus{
-		Version:       version,
-		InstanceID:    s.InstanceID(),
-		Running:       true,
-		Synthetic:     s.synthetic || backend.Name == "synthetic",
-		ListenAddr:    s.Addr(),
-		ManagerURL:    "http://" + s.Addr() + "/",
-		WSURL:         s.cfg.WSURL(),
-		TLS:           s.cfg.TLSEnabled(),
-		TLSAddr:       s.TLSAddr(),
-		WSSURL:        s.cfg.WSSURL(),
-		HTTPSURL:      s.cfg.HTTPSURL(),
-		OS:            runtime.GOOS + "/" + runtime.GOARCH,
-		LogLevel:      s.currentLogLevel(),
-		Connections:   connections,
-		Backend:       backend,
-		Readers:       readers,
-		Pending:       outPending,
-		Trusted:       outTrust,
-		TrustDuration: s.cfg.TrustDuration.String(),
-		LastErrors:    s.copyLastErrors(),
-		Audit:         s.copyAudit(),
+		Version:            version,
+		InstanceID:         s.InstanceID(),
+		Running:            true,
+		Synthetic:          s.synthetic || backend.Name == "synthetic",
+		ListenAddr:         s.Addr(),
+		ManagerURL:         "http://" + s.Addr() + "/",
+		WSURL:              s.cfg.WSURL(),
+		TLS:                s.cfg.TLSEnabled(),
+		TLSAddr:            s.TLSAddr(),
+		WSSURL:             s.cfg.WSSURL(),
+		HTTPSURL:           s.cfg.HTTPSURL(),
+		OS:                 runtime.GOOS + "/" + runtime.GOARCH,
+		LogLevel:           s.currentLogLevel(),
+		Connections:        connections,
+		Backend:            backend,
+		Readers:            readers,
+		Pending:            outPending,
+		Trusted:            outTrust,
+		PreapprovedOrigins: s.copyPreapproved(),
+		TrustDuration:      s.cfg.TrustDuration.String(),
+		LastErrors:         s.copyLastErrors(),
+		Audit:              s.copyAudit(),
 	}
 }
 

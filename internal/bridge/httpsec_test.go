@@ -32,8 +32,12 @@ func TestLoopbackMutationsRejectForeignOrigin(t *testing.T) {
 		{http.MethodPost, "/v1/manager/reconnect", nil},
 		{http.MethodPost, "/v1/manager/reader/select", []byte(`{"readerId":"r1"}`)},
 		{http.MethodPost, "/v1/manager/trust/revoke-all", nil},
+		{http.MethodPost, "/v1/manager/trust/preapprove", []byte(`{"origin":"https://erp.clinic.example"}`)},
+		{http.MethodPost, "/v1/manager/trust/unpreapprove", []byte(`{"origin":"https://erp.clinic.example"}`)},
 		{http.MethodPost, "/v1/manager/log-level", []byte(`{"level":"info"}`)},
 		{http.MethodPost, "/v1/helper/shutdown", nil},
+		{http.MethodPost, "/v1/helper/trust", []byte(`{"action":"add","origin":"https://erp.clinic.example"}`)},
+		{http.MethodGet, "/v1/helper/trust", nil},
 		{http.MethodGet, "/v1/helper/summary", nil},
 		{http.MethodGet, "/v1/helper/doctor", nil},
 		{http.MethodPost, "/v1/manager/update/check", nil},
@@ -76,6 +80,7 @@ func TestLoopbackMutationsRejectCrossSiteFetch(t *testing.T) {
 		{http.MethodPost, "/v1/manager/reader/select", []byte(`{"readerId":"r1"}`)},
 		{http.MethodGet, "/v1/manager/audit", nil},
 		{http.MethodPost, "/v1/helper/shutdown", nil},
+		{http.MethodPost, "/v1/helper/trust", []byte(`{"action":"add","origin":"https://erp.clinic.example"}`)},
 		{http.MethodGet, "/v1/helper/summary", nil},
 		{http.MethodGet, "/v1/helper/doctor", nil},
 		{http.MethodPost, "/v1/manager/update/check", nil},
@@ -111,6 +116,7 @@ func TestManagerPOSTRejectsMissingOrigin(t *testing.T) {
 		"/v1/manager/reconnect",
 		"/v1/manager/reader/select",
 		"/v1/manager/trust/revoke-all",
+		"/v1/manager/trust/preapprove",
 		"/v1/manager/update/check",
 	} {
 		resp := loopbackDo(t, tb, http.MethodPost, path, token, nil, nil)
@@ -274,7 +280,7 @@ func TestLoopbackJSONOmitsPII(t *testing.T) {
 			if err := json.Unmarshal(raw, &s); err != nil {
 				t.Fatal(err)
 			}
-			for _, leak := range []string{"pending", "trusted", "audit", "lastErrors", "citizenId", "fields", "tlsKeyFile", "tlsCertFile"} {
+			for _, leak := range []string{"pending", "trusted", "preapprovedOrigins", "audit", "lastErrors", "citizenId", "fields", "tlsKeyFile", "tlsCertFile"} {
 				if _, ok := s[leak]; ok {
 					t.Fatalf("%s must not include %s: %s", tc.path, leak, raw)
 				}

@@ -70,6 +70,9 @@ type Server struct {
 	deviceBusy  bool
 	deviceStamp []time.Time
 
+	configPath string
+	trustMu    sync.Mutex
+
 	// updateGate bounds operator GitHub Releases checks (never on Ready load).
 	updateCheck UpdateCheckFunc
 	updateMu    sync.Mutex
@@ -187,6 +190,10 @@ func (s *Server) Start(ctx context.Context) error {
 	if err := s.cfg.Validate(); err != nil {
 		return err
 	}
+	if canon, err := config.CanonicalOriginList(s.cfg.PreapprovedOrigins); err == nil {
+		s.cfg.PreapprovedOrigins = canon
+	}
+	s.auth.ApplyPreapproved(s.cfg.PreapprovedOrigins, s.cfg.Fields, time.Now())
 	certFile, keyFile := "", ""
 	if s.cfg.TLSEnabled() {
 		certFile = s.cfg.ResolvedTLSCertFile()
@@ -211,6 +218,8 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("GET /v1/helper/summary", s.handleHelperSummary)
 	mux.HandleFunc("GET /v1/helper/doctor", s.handleHelperDoctor)
 	mux.HandleFunc("POST /v1/helper/shutdown", s.handleHelperShutdown)
+	mux.HandleFunc("GET /v1/helper/trust", s.handleHelperTrust)
+	mux.HandleFunc("POST /v1/helper/trust", s.handleHelperTrust)
 	mux.HandleFunc("GET /v1/ws", s.handleWS)
 	mux.HandleFunc("GET /v1/manager/status", s.handleManagerStatus)
 	mux.HandleFunc("POST /v1/manager/refresh", s.handleManagerRefresh)
@@ -219,6 +228,8 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /v1/manager/approvals/{id}/deny", s.handleManagerDeny)
 	mux.HandleFunc("POST /v1/manager/trust/revoke", s.handleManagerRevoke)
 	mux.HandleFunc("POST /v1/manager/trust/revoke-all", s.handleManagerRevokeAll)
+	mux.HandleFunc("POST /v1/manager/trust/preapprove", s.handleManagerPreapprove)
+	mux.HandleFunc("POST /v1/manager/trust/unpreapprove", s.handleManagerUnpreapprove)
 	mux.HandleFunc("POST /v1/manager/log-level", s.handleManagerLogLevel)
 	mux.HandleFunc("POST /v1/manager/reconnect", s.handleManagerReconnect)
 	mux.HandleFunc("POST /v1/manager/update/check", s.handleManagerUpdateCheck)
@@ -351,9 +362,24 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) eligibleAllowList() []auth.Origin {
 	var out []auth.Origin
+	seen := map[auth.Origin]struct{}{}
+	add := func(raw string) {
+		no, err := auth.NormalizeOrigin(raw)
+		if err != nil {
+			return
+		}
+		if _, ok := seen[no]; ok {
+			return
+		}
+		seen[no] = struct{}{}
+		out = append(out, no)
+	}
 	for _, o := range s.cfg.OriginAllowList {
-		if no, err := auth.NormalizeOrigin(o); err == nil {
-			out = append(out, no)
+		add(o)
+	}
+	if len(s.cfg.OriginAllowList) > 0 {
+		for _, o := range s.copyPreapproved() {
+			add(o)
 		}
 	}
 	return out

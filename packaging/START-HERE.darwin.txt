@@ -22,7 +22,8 @@ Happy path
 4. The first time, Allow the clinic page on the Ready page
    (http://127.0.0.1:17891/). Staff lights default to Thai (พร้อม);
    use the ไทย / English toggle if you need English. Technician tools
-   stay English.
+   stay English. Clinic IT can pre-approve the ERP origin once so staff
+   skip Allow: ./openthaiid trust add https://erp.clinic.example
 
 Staff desk card (print one Thai page): docs/staff-desk-card.md
 Operator qualify sheet: docs/hardware-checklist.md

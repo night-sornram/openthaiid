@@ -16,7 +16,8 @@ A small local helper on the PC talks to a PC/SC reader and exposes selected
 Thai ID fields (`citizenId`, `thaiName`, `birthDate` by default; additional
 fields such as `englishName`, `gender`, `issuer`, `issueDate`,
 `expireDate`, `address`, and optional `portrait` when requested and granted) over a loopback
-WebSocket — only after the operator Allows the website origin and field set.
+WebSocket — only after the operator Allows the website origin and field set,
+or clinic IT pre-approves that explicit origin at install.
 
 See [docs/clinic.md](docs/clinic.md): add the library to the ERP, check the
 reader from the same page, call `autofillThaiID(config)`. Drop-in JSON

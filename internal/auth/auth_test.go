@@ -325,3 +325,56 @@ func TestEscapeTerminal(t *testing.T) {
 		t.Fatalf("expected escaped form, got %q", got)
 	}
 }
+
+func TestPreapproveSkipsAllowAndSurvivesTTL(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", 30*time.Second, time.Minute, 2*time.Second, 4)
+	origin, _ := NormalizeOrigin("https://erp.clinic.example")
+	if err := m.Preapprove(origin, card.DefaultFields, now); err != nil {
+		t.Fatal(err)
+	}
+	later := now.Add(2 * time.Hour)
+	g, ok := m.GrantFor(origin, later)
+	if !ok || !g.Persistent {
+		t.Fatalf("persistent grant missing after TTL: ok=%v g=%v", ok, g)
+	}
+	s, err := m.OpenSession(origin, card.DefaultFields, later)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.ExpiresAt.After(later.Add(time.Minute + time.Second)) {
+		t.Fatalf("session should still use sessionTTL, got %s", s.ExpiresAt)
+	}
+	if _, err := m.OpenSession(origin, append(append([]card.Field(nil), card.DefaultFields...), card.FieldGender), later); err == nil {
+		t.Fatal("field expansion must not be silent")
+	}
+
+	other, _ := NormalizeOrigin("https://other.example")
+	p, err := m.RequestApproval(other, []card.Field{card.FieldCitizenID}, "c1", later)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Resolve(p.ID, true, later); err != nil {
+		t.Fatal(err)
+	}
+	m.RevokeAll()
+	if _, ok := m.GrantFor(origin, later); !ok {
+		t.Fatal("RevokeAll must keep IT pre-approved grants")
+	}
+	if _, ok := m.GrantFor(other, later); ok {
+		t.Fatal("RevokeAll must drop staff Allow grants")
+	}
+}
+
+func TestApplyPreapprovedSkipsInvalid(t *testing.T) {
+	now := time.Now()
+	m := NewManager("b", time.Hour, time.Minute, 2*time.Second, 4)
+	m.ApplyPreapproved([]string{"*", "https://erp.clinic.example", ""}, card.DefaultFields, now)
+	want, _ := NormalizeOrigin("https://erp.clinic.example")
+	if _, ok := m.GrantFor(want, now); !ok {
+		t.Fatal("valid origin should be seeded")
+	}
+	if n := len(m.TrustedOrigins(now)); n != 1 {
+		t.Fatalf("trusted %d", n)
+	}
+}

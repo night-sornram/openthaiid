@@ -126,8 +126,11 @@ The ERP page cannot approve itself. The first time that origin asks for
 fields, someone at the PC clicks Allow on the helper Ready page
 (`http://127.0.0.1:17891/`, tray **Open Ready page**, or `allow <id>` in
 the helper terminal). After that, the grant is reused until it expires or
-is revoked. Technician tools on that page can list pending/approved origins
-and revoke them; they do not bypass Allow.
+is revoked. Clinic IT should pre-approve the ERP origin **once**
+(`openthaiid trust add`, `config.json` `preapprovedOrigins`, install
+`-ClinicOrigin`) so staff do not need Allow daily. Technician tools can
+list/edit those trusted clinic sites and revoke staff Allow grants; they
+do not let the ERP approve itself. Explicit list only — not “allow all”.
 
 ## Local helper (hardware only)
 
