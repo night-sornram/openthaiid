@@ -144,6 +144,9 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(js, "/v1/manager/approvals/") {
 		t.Fatal("Allow / Deny must still post to manager approval endpoints")
 	}
+	if !strings.Contains(js, "statusEpoch") {
+		t.Fatal("status loads must ignore stale in-flight polls so after-allow/deny notes stay")
+	}
 	if !strings.Contains(js, "lightOk") || !strings.Contains(js, "lightStateWord") {
 		t.Fatal("lights must expose text status words, not color alone")
 	}

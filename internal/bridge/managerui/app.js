@@ -1155,8 +1155,12 @@ function render(data) {
   renderAudit(data);
 }
 
+let statusEpoch = 0;
+
 async function loadOnce() {
+  const epoch = ++statusEpoch;
   const data = await api("/v1/manager/status");
+  if (epoch !== statusEpoch) return;
   noteHelperBack();
   noteServiceBack(data);
   render(data);
