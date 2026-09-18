@@ -373,6 +373,23 @@ code {
 
 .facts .fact-wide {
   grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 0.85rem;
+}
+
+.fact-wide dt {
+  margin: 0;
+}
+
+.fact-wide dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.7rem;
 }
 
 dt {
@@ -388,13 +405,6 @@ dd {
   font-weight: 650;
   word-break: break-all;
   line-height: 1.35;
-}
-
-.fact-wide dd {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.7rem;
 }
 
 .fact-wide .help {
