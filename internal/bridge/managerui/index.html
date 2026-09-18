@@ -70,6 +70,15 @@
         <p id="live-note" class="live-note" hidden></p>
       </section>
 
+      <section class="card pending-card" id="user-pending-card" aria-labelledby="user-pending-heading" hidden>
+        <h2 id="user-pending-heading" data-i18n="allowHeading">เว็บคลินิกขอใช้บัตรประชาชน</h2>
+        <p class="help" data-i18n="allowHelp">
+          อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกมีรหัส ให้รหัสตรงกัน
+        </p>
+        <ul id="user-pending" class="list"></ul>
+      </section>
+      <p id="decision-note" class="decision-note" hidden></p>
+
       <section class="card" id="staff-readers-card" hidden>
         <h2 id="staff-readers-heading" data-i18n="readersHeading">เลือกเครื่องอ่าน</h2>
         <p class="help" data-i18n="readersHelp">
@@ -94,15 +103,6 @@
           <li data-i18n="training4">กลับมาที่นี่ แล้วกด อนุญาต สำหรับหน้านั้น (ให้รหัสตรงกันถ้ามี)</li>
           <li data-i18n="training5">ช่องในหน้าคลินิกมีข้อมูลบัตรจำลอง — นั่นไม่ใช่ผู้ป่วยจริง</li>
         </ol>
-      </section>
-
-      <section class="card" id="user-pending-card" aria-labelledby="user-pending-heading" hidden>
-        <h2 id="user-pending-heading" data-i18n="allowHeading">เว็บไซต์ต้องการอ่านบัตร</h2>
-        <p class="help" data-i18n="allowHelp">
-          อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกแสดงรหัส ให้รหัสตรงกัน
-          เว็บไซต์อนุมัติตัวเองไม่ได้
-        </p>
-        <ul id="user-pending" class="list"></ul>
       </section>
 
       <section id="technician" class="tech" hidden aria-labelledby="technician-heading">

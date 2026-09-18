@@ -17,6 +17,12 @@ Post-tag notes on `dev` after **v0.1.0-rc.9**. Helper / SDK versions stay
   typography, and visual hierarchy. Staff Ready path is unchanged
   (lights still include text status, not color alone; large tap targets
   stay). No CSRF, Origin, or protocol change.
+- Ready-page staff Allow / site-permission prompt: Thai-first copy
+  (**เว็บคลินิกขอใช้บัตรประชาชน**, **อนุญาต** / **ไม่อนุญาต**), hostname
+  instead of a raw Origin dump, one primary Allow button, and a short
+  after-allow / after-deny note. Technician pending/trust still shows
+  Origin and Revoke. CSRF, Origin checks, and Allow-required grants are
+  unchanged.
 - SDK reconnect tests (#42): fake timers + fixed jitter so `make sdk-test`
   does not race first-attempt backoff. No production reconnect change.
 

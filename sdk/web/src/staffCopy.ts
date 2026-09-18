@@ -213,7 +213,7 @@ const TH_ERRORS: Record<string, ErrorPack> = {
     next: "ที่หน้า พร้อม ของ OpenThaiID กด อนุญาต สำหรับหน้านี้",
   },
   APPROVAL_DENIED: {
-    message: "การอ่านบัตรถูกปฏิเสธ",
+    message: "คุณกดไม่อนุญาต",
     next: "ถ้าเป็นหน้าคลินิกที่ใช้จริง ให้กด กรอกข้อมูล อีกครั้ง แล้วกด อนุญาต",
   },
   APPROVAL_TIMEOUT: {
@@ -221,7 +221,7 @@ const TH_ERRORS: Record<string, ErrorPack> = {
     next: "กด กรอกข้อมูล อีกครั้ง แล้วกด อนุญาต บนหน้า พร้อม",
   },
   AUTH_EXPIRED: {
-    message: "สิทธิ์อ่านบัตรหมดอายุหรือถูกเพิกถอน",
+    message: "สิทธิ์อ่านบัตรหมดอายุแล้ว",
     next: "กด กรอกข้อมูล อีกครั้ง แล้วกด อนุญาต",
   },
   FIELD_NOT_ALLOWED: {
@@ -313,10 +313,10 @@ const EN_ERRORS: Record<string, ErrorPack> = {
   },
   APPROVAL_REQUIRED: {
     message: "This clinic page is waiting for permission to read the card.",
-    next: "On the OpenThaiID Ready page, click Allow for this origin.",
+    next: "On the OpenThaiID Ready page, click Allow for this clinic page.",
   },
   APPROVAL_DENIED: {
-    message: "Reading the card was denied.",
+    message: "You chose Don't allow.",
     next: "If this is the clinic page you use, click Fill again and then Allow.",
   },
   APPROVAL_TIMEOUT: {
@@ -324,7 +324,7 @@ const EN_ERRORS: Record<string, ErrorPack> = {
     next: "Click Fill again, then Allow on the Ready page.",
   },
   AUTH_EXPIRED: {
-    message: "Permission to read the card expired or was revoked.",
+    message: "Permission to read the card expired.",
     next: "Click Fill again, then Allow.",
   },
   FIELD_NOT_ALLOWED: {

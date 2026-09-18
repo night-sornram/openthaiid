@@ -56,9 +56,8 @@ const I18N = {
     subtitle: "บนเครื่องนี้ · เสียบเครื่องอ่าน แล้วกด กรอกข้อมูล ในหน้าคลินิก",
     techToggle: "ช่างเทคนิค / Technician",
     techToggleHide: "ซ่อนเครื่องมือช่างเทคนิค",
-    allowHeading: "เว็บไซต์ต้องการอ่านบัตร",
-    allowHelp:
-      "อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกแสดงรหัส ให้รหัสตรงกัน เว็บไซต์อนุมัติตัวเองไม่ได้",
+    allowHeading: "เว็บคลินิกขอใช้บัตรประชาชน",
+    allowHelp: "อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้ ถ้าหน้าคลินิกมีรหัส ให้รหัสตรงกัน",
     footer:
       "เจ้าหน้าที่ใช้ไฟสถานะด้านบนก็พอ · Independent open-source project — not affiliated with or endorsed by the Department of Provincial Administration.",
     checking: "กำลังตรวจ…",
@@ -84,7 +83,7 @@ const I18N = {
     startHelper: "เปิด OpenThaiID บนเครื่องนี้",
     fixService: "กด ทดสอบการเชื่อมต่อ หรือให้ช่างเทคนิคกด Reconnect card service แล้วรอ พร้อม",
     insertThenFill: "เสียบบัตรประชาชนของผู้ป่วย แล้วกด กรอกข้อมูล ในหน้าคลินิก",
-    pendingAllow: "หน้าคลินิกกำลังรอ — กดอนุญาตด้านล่าง แล้วกด กรอกข้อมูล",
+    pendingAllow: "หน้าคลินิกกำลังรอ — กด อนุญาต ด้านล่าง แล้วกลับไปกด กรอกข้อมูล",
     multiReader: "มีเครื่องอ่านมากกว่าหนึ่งเครื่อง เลือกเครื่องด้านล่าง",
     usingThisReader: "กำลังใช้",
     useThisReader: "ใช้เครื่องนี้",
@@ -123,6 +122,11 @@ const I18N = {
     training5: "ช่องในหน้าคลินิกมีข้อมูลบัตรจำลอง — นั่นไม่ใช่ผู้ป่วยจริง",
     allow: "อนุญาต",
     deny: "ไม่อนุญาต",
+    allowConfirmed: "อนุญาตแล้ว — กลับไปหน้าคลินิก กด กรอกข้อมูล ได้ต่อ",
+    denyNext: "คุณกดไม่อนุญาต ถ้าเป็นหน้าคลินิกที่ใช้จริง ให้กด กรอกข้อมูล อีกครั้ง แล้วกด อนุญาต",
+    siteOnThisComputer: "หน้าคลินิกบนเครื่องนี้",
+    unknownSite: "หน้าคลินิก",
+    matchCode: "รหัสที่ต้องตรงกับหน้าคลินิก",
     wouldFill: "จะกรอก:",
     requestedFields: "ช่องที่ขอจากบัตร",
     fields: {
@@ -143,9 +147,8 @@ const I18N = {
     subtitle: "On this computer · plug in the reader, then Fill in your clinic page",
     techToggle: "Technician / developer",
     techToggleHide: "Hide technician tools",
-    allowHeading: "A website wants to read the card",
-    allowHelp:
-      "Allow only the clinic page you are using. Match the code if the clinic page shows one. This does not skip security — the website still cannot approve itself.",
+    allowHeading: "The clinic website wants to use the ID card",
+    allowHelp: "Allow only the clinic page you are using. Match the code if the clinic page shows one.",
     footer:
       "Clinic staff only need the lights above. Independent open-source project — not affiliated with or endorsed by the Department of Provincial Administration.",
     checking: "Checking…",
@@ -171,7 +174,7 @@ const I18N = {
     startHelper: "Start OpenThaiID on this computer.",
     fixService: "Click Test connection, or ask a technician to click Reconnect card service, then wait until Ready.",
     insertThenFill: "Insert the patient’s Thai ID card, then click Fill in the clinic page.",
-    pendingAllow: "A clinic page is waiting — Allow it below, then click Fill.",
+    pendingAllow: "A clinic page is waiting — click Allow below, then click Fill.",
     multiReader: "More than one reader is plugged in. Choose one below.",
     usingThisReader: "Using this reader",
     useThisReader: "Use this reader",
@@ -206,10 +209,15 @@ const I18N = {
     training1: "Start the helper with openthaiid -synthetic (this page already shows a practice card if that is running).",
     training2: "Open the clinic example at examples/clinic-patient/ from the repo.",
     training3: "Click Fill on the clinic page.",
-    training4: "Come back here and Allow that origin (match the code if one is shown).",
+    training4: "Come back here and click Allow for that clinic page (match the code if one is shown).",
     training5: "The clinic form shows fictional card data — not a real patient.",
     allow: "Allow",
     deny: "Don't allow",
+    allowConfirmed: "Allowed. Return to the clinic page and click Fill.",
+    denyNext: "You chose Don't allow. If this is the clinic page you use, click Fill again, then Allow.",
+    siteOnThisComputer: "Clinic page on this computer",
+    unknownSite: "Clinic page",
+    matchCode: "Match this code on the clinic page",
     wouldFill: "This would fill:",
     requestedFields: "the requested card fields",
     fields: {
@@ -292,6 +300,7 @@ function setLang(next) {
   if (window.__lastStatus) render(window.__lastStatus);
   refreshTestResultCopy();
   refreshUpdateResultCopy();
+  refreshDecisionNote();
 }
 
 const els = {
@@ -303,6 +312,7 @@ const els = {
   lightCard: document.getElementById("light-card"),
   userPendingCard: document.getElementById("user-pending-card"),
   userPending: document.getElementById("user-pending"),
+  decisionNote: document.getElementById("decision-note"),
   technician: document.getElementById("technician"),
   techToggle: document.getElementById("tech-toggle"),
   version: document.getElementById("version"),
@@ -487,6 +497,7 @@ function renderOffline() {
   setLight(els.lightCard, "wait", t("cardUnknown"));
   if (els.userPendingCard) els.userPendingCard.hidden = true;
   if (els.staffReadersCard) els.staffReadersCard.hidden = true;
+  setDecisionNote("");
   if (!wasOnline) {
     setLiveNote("");
   }
@@ -751,14 +762,81 @@ function renderHero(data) {
   setLight(els.lightCard, s.cardKind, s.cardText);
 }
 
+function isLoopbackHost(host) {
+  const h = String(host || "")
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
+  return h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "0.0.0.0";
+}
+
+function staffSiteLabel(origin) {
+  const raw = String(origin || "").trim();
+  if (!raw) return t("unknownSite");
+  try {
+    const u = new URL(raw);
+    const host = (u.hostname || "").toLowerCase();
+    if (isLoopbackHost(host)) return t("siteOnThisComputer");
+    let label = host;
+    if (u.port) label += ":" + u.port;
+    return label || t("unknownSite");
+  } catch {
+    const stripped = raw.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+    const hostpart = stripped.split("/")[0] || "";
+    const hostOnly = hostpart.split(":")[0];
+    if (isLoopbackHost(hostOnly)) return t("siteOnThisComputer");
+    return hostpart || t("unknownSite");
+  }
+}
+
+function setDecisionNote(kind) {
+  const el = els.decisionNote;
+  if (!el) return;
+  if (!kind) {
+    window.__lastStaffDecision = "";
+    el.hidden = true;
+    el.textContent = "";
+    el.classList.remove("warn");
+    return;
+  }
+  window.__lastStaffDecision = kind;
+  el.hidden = false;
+  el.textContent = kind === "allow" ? t("allowConfirmed") : t("denyNext");
+  el.classList.toggle("warn", kind !== "allow");
+}
+
+function refreshDecisionNote() {
+  if (!window.__lastStaffDecision) return;
+  setDecisionNote(window.__lastStaffDecision);
+}
+
 function allowRow(p, { detailed }) {
   const li = document.createElement("li");
-  const origin = document.createElement("div");
-  origin.className = "origin";
-  origin.textContent = p.origin;
-  const code = document.createElement("div");
-  code.className = "code";
-  code.textContent = p.comparisonCode || "";
+  if (!detailed) li.className = "staff-pending";
+  const site = document.createElement("div");
+  if (detailed) {
+    site.className = "origin";
+    site.textContent = p.origin;
+  } else {
+    site.className = "site-name";
+    site.textContent = staffSiteLabel(p.origin);
+  }
+  const codeWrap = document.createElement("div");
+  const codeValue = p.comparisonCode || "";
+  if (codeValue) {
+    if (detailed) {
+      codeWrap.className = "code";
+      codeWrap.textContent = codeValue;
+    } else {
+      codeWrap.className = "code-wrap";
+      const label = document.createElement("span");
+      label.className = "code-label";
+      label.textContent = t("matchCode");
+      const digits = document.createElement("span");
+      digits.className = "code";
+      digits.textContent = codeValue;
+      codeWrap.append(label, digits);
+    }
+  }
   const fields = document.createElement("p");
   fields.className = "fields";
   if (detailed) {
@@ -771,16 +849,18 @@ function allowRow(p, { detailed }) {
   actions.className = "actions";
   const allow = document.createElement("button");
   allow.type = "button";
-  allow.className = "btn btn-ok btn-staff";
+  allow.className = detailed ? "btn btn-ok btn-staff" : "btn btn-ok btn-staff btn-allow-primary";
   allow.textContent = t("allow");
   allow.addEventListener("click", () => decide(p.id, "allow"));
   const deny = document.createElement("button");
   deny.type = "button";
-  deny.className = "btn btn-danger btn-staff";
+  deny.className = detailed ? "btn btn-danger btn-staff" : "btn btn-staff btn-deny-quiet";
   deny.textContent = t("deny");
   deny.addEventListener("click", () => decide(p.id, "deny"));
   actions.append(allow, deny);
-  li.append(origin, code, fields, actions);
+  li.append(site);
+  if (codeValue) li.append(codeWrap);
+  li.append(fields, actions);
   return li;
 }
 
@@ -791,6 +871,7 @@ function renderUserPending(data) {
     els.userPendingCard.hidden = true;
     return;
   }
+  setDecisionNote("");
   els.userPendingCard.hidden = false;
   for (const p of pending) {
     els.userPending.append(allowRow(p, { detailed: false }));
@@ -1199,6 +1280,7 @@ async function decide(id, action) {
   try {
     await api(`/v1/manager/approvals/${id}/${action}`, { method: "POST" });
     await load();
+    setDecisionNote(action === "allow" ? "allow" : "deny");
   } catch (err) {
     window.alert(err.message || String(err));
   }

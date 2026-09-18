@@ -77,6 +77,15 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(page, `id="staff-readers"`) {
 		t.Fatal("missing staff multi-reader list")
 	}
+	if !strings.Contains(page, "เว็บคลินิกขอใช้บัตรประชาชน") {
+		t.Fatal("missing Thai-first staff Allow heading")
+	}
+	if !strings.Contains(page, `id="decision-note"`) {
+		t.Fatal("missing after-allow / after-deny staff note")
+	}
+	if !strings.Contains(page, `id="user-pending-card"`) {
+		t.Fatal("missing staff pending permission card")
+	}
 	if !strings.Contains(page, `class="light-state"`) {
 		t.Fatal("lights must include text status, not color alone")
 	}
@@ -120,6 +129,21 @@ func TestManagerPageAndStatus(t *testing.T) {
 	if !strings.Contains(js, "useThisReader") || !strings.Contains(js, "renderStaffReaders") {
 		t.Fatal("missing staff multi-reader picker")
 	}
+	if !strings.Contains(js, "staffSiteLabel") || !strings.Contains(js, "siteOnThisComputer") {
+		t.Fatal("staff Allow prompt must show a hostname / this-computer label, not only the raw origin")
+	}
+	if !strings.Contains(js, "allowConfirmed") || !strings.Contains(js, "denyNext") {
+		t.Fatal("missing after-allow / after-deny staff copy")
+	}
+	if strings.Contains(js, `Come back here and Allow that origin`) {
+		t.Fatal("staff training copy must not say origin")
+	}
+	if strings.Contains(js, `allowHeading: "เว็บไซต์ต้องการอ่านบัตร"`) {
+		t.Fatal("staff Allow heading must not use the old website-wants-to-read-the-card wording")
+	}
+	if !strings.Contains(js, "/v1/manager/approvals/") {
+		t.Fatal("Allow / Deny must still post to manager approval endpoints")
+	}
 	if !strings.Contains(js, "lightOk") || !strings.Contains(js, "lightStateWord") {
 		t.Fatal("lights must expose text status words, not color alone")
 	}
@@ -150,6 +174,12 @@ func TestManagerPageAndStatus(t *testing.T) {
 	}
 	if !strings.Contains(css, ".light-state") {
 		t.Fatal("lights must style a text status, not color alone")
+	}
+	if !strings.Contains(css, ".site-name") || !strings.Contains(css, ".btn-allow-primary") {
+		t.Fatal("staff Allow prompt must style a human site name and a primary Allow button")
+	}
+	if !strings.Contains(css, ".btn-deny-quiet") || !strings.Contains(css, ".decision-note") {
+		t.Fatal("staff Deny must be a secondary control; after-allow note needs styles")
 	}
 	if strings.Contains(page, "1234567890121") || strings.Contains(page, "สมชาย") {
 		t.Fatal("manager HTML must not embed card field values")

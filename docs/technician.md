@@ -93,10 +93,11 @@ Lights: helper running, reader not connected — or **บริการอ่�
 
 ### 3. Approval pending
 
-ERP is waiting; helper shows **A website wants to read the card**.
+ERP is waiting; helper staff view shows **เว็บคลินิกขอใช้บัตรประชาชน**
+(hostname, not the raw Origin). Technician pending list still shows Origin.
 
-- **Allow** that origin (match the comparison code).
-- **Don’t allow** if the origin is not the clinic ERP.
+- Staff **อนุญาต / Allow** that clinic page (match the comparison code).
+- **ไม่อนุญาต / Don't allow** if it is not the clinic page they use.
 - Pending list with request id, field tokens, and expiry is in technician
   tools. Same decision as `allow <id>` / `deny <id>` in the terminal.
 

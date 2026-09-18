@@ -29,8 +29,8 @@
 ถ้าแผนก IT เปิด **เริ่มเมื่อเข้าสู่ระบบ** หรือติดตั้ง always-on
 (`openthaiid service install`) ข้ามข้อ 1
 
-ครั้งแรกที่หน้าคลินิกขออ่านบัตร OpenThaiID จะแสดง
-**เว็บไซต์ต้องการอ่านบัตร** อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้
+ครั้งแรกที่หน้าคลินิกขอใช้บัตร OpenThaiID จะแสดง
+**เว็บคลินิกขอใช้บัตรประชาชน** อนุญาตเฉพาะหน้าคลินิกที่กำลังใช้
 ถ้ารหัสบนหน้าคลินิกมี ให้รหัสตรงกัน หลังจากนั้นกรอกข้อมูลได้จนกว่าจะปิด
 OpenThaiID หรือสิทธิ์หมดอายุ
 
@@ -65,7 +65,7 @@ OpenThaiID หรือสิทธิ์หมดอายุ
 | บัตรถูกถอดระหว่างอ่าน | เสียบบัตรให้สุด รอ **พร้อม** แล้วกด กรอกข้อมูล อีกครั้ง (`CARD_REMOVED`) อย่าใช้ค่าในช่องถ้ากรอกไม่สำเร็จ — E4: [hardware-checklist.md](hardware-checklist.md) |
 | เสียบบัตรประชาชนไทย | เสียบบัตรให้สุด |
 | มีเครื่องอ่านมากกว่าหนึ่งเครื่อง | กด **ใช้เครื่องนี้** บนหน้า พร้อม — ช่างเทคนิค **Use this reader**: [technician.md](technician.md) |
-| เว็บไซต์ต้องการอ่านบัตร | กดอนุญาตหน้าคลินิก (ให้รหัสตรงกัน) |
+| เว็บคลินิกขอใช้บัตรประชาชน | กด **อนุญาต** (ให้รหัสตรงกัน) ถ้าไม่ใช่หน้าคลินิกที่ใช้ ให้กด **ไม่อนุญาต** แล้วกด กรอกข้อมูล ใหม่ |
 | ยังติด | เรียกช่างเทคนิค — **Technician tools** จากถาด หรือ `#technician` ([technician.md](technician.md)) |
 | หน้าคลินิกเป็น HTTPS บน Firefox / Safari | ตัวช่วยยังทำงานอยู่ — ใช้ Chrome/Edge หรือหน้า http หรือให้ช่างเทคนิคเปิด HTTPS ของตัวช่วย (`HTTPS_WS_BLOCKED` / `TLS_UNTRUSTED`) อย่าปิดความปลอดภัยของเบราว์เซอร์ |
 
@@ -131,8 +131,8 @@ If clinic IT turned on **Start at login** or installed the always-on
 service (`openthaiid service install`), skip step 1.
 
 The first time that clinic page asks to read a card, OpenThaiID shows
-**เว็บไซต์ต้องการอ่านบัตร / A website wants to read the card**. Allow only
-the clinic page you are using. Match the code if the ERP shows one.
+**เว็บคลินิกขอใช้บัตรประชาชน / The clinic website wants to use the ID card**.
+Allow only the clinic page you are using. Match the code if the ERP shows one.
 
 Do not send screenshots of the patient’s card or of filled form fields.
 
