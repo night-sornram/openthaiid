@@ -21,8 +21,22 @@ Post-tag notes on `dev` after **v0.1.0-rc.9**. Helper / SDK versions stay
   rejected. CSRF/Origin manager checks and the `127.0.0.1` bind stay.
   Extra card fields still prompt staff Allow. Staff Ready stays jargon-free.
 
+### Fixed
+
+- WebSocket: a socket that never sent a message was never closed, so an
+  eligible page could hold all `maxConnections` slots. The 30s
+  unauthenticated bound is now enforced by a watchdog. A pending staff
+  Allow still has the full `approvalTimeout`.
+- WebSocket: the writer held the per-connection lock during `ws.Write`
+  (up to 5s), so one stalled client delayed reader events to every other
+  client. The documented isolation now holds.
+
 ### Changed
 
+- Ready page skips the DOM rebuild when `/v1/manager/status` is unchanged.
+  This drops idle redraws from about 2.5 per second to zero, and audit-log
+  text selections survive the poll.
+- HTTP/HTTPS listeners set `IdleTimeout` 60s and cap headers at 16 KiB.
 - Ready-page technician / settings panel: clearer layout, spacing,
   typography, and visual hierarchy. Staff Ready path is unchanged
   (lights still include text status, not color alone; large tap targets

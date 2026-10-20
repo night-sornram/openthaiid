@@ -368,6 +368,10 @@ function setText(el, text) {
 }
 
 async function api(path, opts) {
+  return (await apiRaw(path, opts)).body;
+}
+
+async function apiRaw(path, opts) {
   const res = await fetch(path, {
     credentials: "same-origin",
     ...opts,
@@ -391,7 +395,7 @@ async function api(path, opts) {
     err.status = res.status;
     throw err;
   }
-  return body;
+  return { body, text };
 }
 
 function parseCsrfFromHtml(html) {
@@ -490,6 +494,7 @@ function formatUpdateMessage(body) {
 }
 
 function renderOffline() {
+  lastStatusText = null;
   const wasOnline = Boolean(window.__lastStatus) || window.__helperOffline;
   window.__helperOffline = true;
   setText(els.headline, t("helperLostHeadline"));
@@ -1210,13 +1215,19 @@ function render(data) {
 }
 
 let statusEpoch = 0;
+// Raw text of the last rendered status. The status JSON carries no clock
+// fields, so identical text means nothing changed: skip the DOM rebuild on
+// the 400 ms Ready poll (keeps CPU low and keeps technician text selections).
+let lastStatusText = null;
 
 async function loadOnce() {
   const epoch = ++statusEpoch;
-  const data = await api("/v1/manager/status");
+  const { body: data, text } = await apiRaw("/v1/manager/status");
   if (epoch !== statusEpoch) return;
   noteHelperBack();
   noteServiceBack(data);
+  if (text === lastStatusText) return;
+  lastStatusText = text;
   render(data);
 }
 
