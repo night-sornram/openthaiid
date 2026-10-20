@@ -25,7 +25,9 @@ within browser security rules only.
 | Malformed card or oversized frames | Strict lengths, bounded command sequences, parser validation |
 | Compromised authorized site | Narrow field grants, expiry, revocation |
 | Local malware impersonating an origin | Outside browser-origin trust guarantee |
-| Slow client delaying others | Per-connection output queue; overflow closes with WS 1013 |
+| Slow client delaying others | Per-connection output queue; overflow closes with WS 1013. The single writer never holds the queue lock during a socket write, so a stalled socket cannot block events to other clients |
+| Idle sockets exhausting `maxConnections` | A socket with no session and nothing in flight is closed after 30s (WS 1008 `authentication timeout`). A `session.open` waiting on staff Allow is in flight, so `approvalTimeout` still governs that wait |
+| Slow or idle HTTP clients | `ReadHeaderTimeout` 5s, `IdleTimeout` 60s, 16 KiB header cap on HTTP and HTTPS listeners |
 | Request flooding a connection | Eight concurrent async operations max; excess is `RATE_LIMITED` |
 | Stuck native PC/SC call | Slot retained; `BACKEND_STALLED` after 2s post-cancel; no unsafe context release |
 

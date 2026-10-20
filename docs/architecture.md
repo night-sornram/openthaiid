@@ -132,7 +132,11 @@ consumer establishes interface requirements.
   operations. Excess requests receive `RATE_LIMITED`. `session.close` and
   `request.cancel` stay synchronous and responsive.
 - Slow clients or an overflowed reader-event queue close the socket with
-  WebSocket status 1013; reconnect obtains a fresh snapshot.
+  WebSocket status 1013; reconnect obtains a fresh snapshot. Each
+  connection has one writer goroutine that does not hold the enqueue lock
+  while writing, so the event broadcaster never waits on a stalled socket.
+- A connection without a session is closed after 30s (WS 1008) unless an
+  operation such as a pending approval is still in flight.
 - Helper process restart: the SDK clears the previous `instanceId`, waits
   for `bridge.probe` (autofill / status widget), and never auto-repeats
   `card.read`. Ready page refreshes its CSRF token.

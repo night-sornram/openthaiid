@@ -77,6 +77,12 @@ Rules:
   overflows, the connection is closed with WebSocket status **1013**
   (Try Again Later). Reconnect obtains a fresh snapshot; events are not
   replayed. Reconnect never automatically repeats a card read.
+- A connection that has no session after **30s**, and has no operation in
+  flight, is closed with WebSocket status **1008** (`authentication
+  timeout`). A `session.open` waiting for staff Allow is in flight, so the
+  wait lasts up to `approvalTimeout`. Send `session.open` (or a quick
+  `bridge.probe`, then close) right after the socket opens; the SDK already
+  does this.
 
 ## Operations
 

@@ -28,6 +28,11 @@ import (
 // connection. session.close and request.cancel stay synchronous and responsive.
 const maxAsyncOpsPerConn = 8
 
+// defaultUnauthTimeout bounds how long a socket may stay open without a
+// session and with nothing in flight. A session.open waiting on staff Allow
+// counts as in flight, so ApprovalTimeout still governs that wait.
+const defaultUnauthTimeout = 30 * time.Second
+
 // Server is the local bridge.
 type Server struct {
 	cfg     config.Config
@@ -79,6 +84,8 @@ type Server struct {
 	updateBusy  bool
 	updateStamp []time.Time
 	lastUpdate  *update.PublicJSON
+
+	unauthTimeout time.Duration
 }
 
 // UpdateCheckFunc looks up GitHub Releases. Tests inject a mock so unit tests
@@ -162,6 +169,8 @@ func New(cfg config.Config, log *slog.Logger, authMgr *auth.Manager, readers *re
 		managerToken: newManagerToken(),
 		logLevel:     new(slog.LevelVar),
 		audit:        audit.New(audit.DefaultCap),
+
+		unauthTimeout: defaultUnauthTimeout,
 	}
 	s.logLevel.Set(slog.LevelInfo)
 	authMgr.OnRevoke = func(origin auth.Origin, tokens []string) {
@@ -238,6 +247,8 @@ func (s *Server) Start(ctx context.Context) error {
 	s.httpSrv = &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    16 << 10,
 	}
 	if s.cfg.TLSEnabled() {
 		tlsLn, err := net.Listen("tcp", s.cfg.TLSAddr())
@@ -249,6 +260,8 @@ func (s *Server) Start(ctx context.Context) error {
 		s.tlsSrv = &http.Server{
 			Handler:           handler,
 			ReadHeaderTimeout: 5 * time.Second,
+			IdleTimeout:       60 * time.Second,
+			MaxHeaderBytes:    16 << 10,
 			TLSConfig:         &tls.Config{MinVersion: tls.VersionTLS12},
 		}
 	}
@@ -439,28 +452,50 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	go cc.writeLoop()
+	go s.watchUnauthenticated(cc)
 	// Pairing-only until session.open succeeds: no inventory, events, or card data.
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	c.SetReadLimit(int64(s.cfg.MaxFrameBytes))
 
-	unauthDeadline := time.Now().Add(30 * time.Second)
 	for {
-		if cc.getToken() == "" && time.Now().After(unauthDeadline) {
-			cc.closeWS(websocket.StatusPolicyViolation, "authentication timeout")
-			return
-		}
 		_, data, err := c.Read(ctx)
 		if err != nil {
 			return
 		}
-		if cc.getToken() != "" {
-			// Authenticated connections are no longer subject to the
-			// unauthenticated lifetime bound.
-			unauthDeadline = time.Now().Add(24 * time.Hour)
-		}
 		s.dispatch(ctx, cc, data)
+	}
+}
+
+// watchUnauthenticated closes a socket that has not opened a session within
+// unauthTimeout. Read cannot carry this deadline: cancelling a Read context
+// closes the connection, and a client that sends nothing never returns from
+// Read. Once a session exists the bound no longer applies.
+func (s *Server) watchUnauthenticated(cc *clientConn) {
+	d := s.unauthTimeout
+	if d <= 0 {
+		return
+	}
+	t := time.NewTimer(d)
+	defer t.Stop()
+	for {
+		select {
+		case <-cc.cancelOpsCtx.Done():
+			return
+		case <-t.C:
+		}
+		if cc.hasSession() {
+			return
+		}
+		cc.pendingMu.Lock()
+		busy := len(cc.pending) > 0
+		cc.pendingMu.Unlock()
+		if !busy {
+			cc.closeWS(websocket.StatusPolicyViolation, "authentication timeout")
+			return
+		}
+		t.Reset(time.Second)
 	}
 }
 
@@ -1112,23 +1147,28 @@ func (cc *clientConn) enqueue(body []byte) {
 	}
 }
 
+// writeLoop is the only writer. It must not hold writeMu across ws.Write:
+// enqueue takes writeMu, and the broadcaster calls enqueue for every client
+// in turn, so a stalled socket would otherwise delay everyone by up to the
+// write timeout. websocket.Conn allows Write concurrently with Close.
 func (cc *clientConn) writeLoop() {
 	for body := range cc.outq {
 		cc.writeMu.Lock()
-		if cc.closed {
-			cc.writeMu.Unlock()
+		closed := cc.closed
+		cc.writeMu.Unlock()
+		if closed {
 			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		err := cc.ws.Write(ctx, websocket.MessageText, body)
 		cancel()
 		if err != nil {
+			cc.writeMu.Lock()
 			cc.closed = true
 			cc.writeMu.Unlock()
 			_ = cc.ws.Close(websocket.StatusInternalError, "write failed")
 			return
 		}
-		cc.writeMu.Unlock()
 	}
 }
 
